@@ -104,4 +104,10 @@ def pixels(event=None, context=None):
         # Write config into zip file.
         zf.writestr('config.json', json.dumps(config_log))
 
-    return send_file(bytes_buffer)
+    bytes_buffer.seek(0)
+    return send_file(
+        bytes_buffer,
+        as_attachment=True,
+        attachment_filename='pixels.zip',
+        mimetype='application/zip'
+    )
