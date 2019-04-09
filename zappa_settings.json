@@ -6,10 +6,6 @@
         "project_name": "pixels",
         "runtime": "python3.6",
         "s3_bucket": "zappa-pixels",
-        "slim_handler": true,
-        "environment_variables": {
-            "GDAL_DATA": "/var/venv/lib/python3.6/site-packages/rasterio/gdal_data",
-            "PROJ_DATA": "/var/venv/lib/python3.6/site-packages/rasterio/proj_data"
-      }
+        "slim_handler": true
     }
 }
