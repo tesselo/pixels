@@ -2,16 +2,6 @@ from pixels import const
 from pixels.handler import handler
 import requests
 
-# target=/home/tam/Desktop/pixels
-# sen2cor=/home/tam/Documents/repos/sen2cor
-# pixels=/home/tam/Documents/repos/tesselo-scripts-collection/pixels
-# export FLASK_ENV=development
-# export FLASK_APP=pixels/app.py
-# cp $pixels/*.py $target/pixels; cp $sen2cor/*.py $target/sen2cor; flask run
-# cp $pixels/*.py $target/pixels; cp $sen2cor/*.py $target/sen2cor; ipython
-
-
-
 event = {
   "geom": {
       "type": "Feature",
@@ -19,9 +9,9 @@ event = {
         "type": "Polygon",
         "coordinates": [[
             [816091, 5946430],
-            [816991, 5946430],
-            [816991, 5945530],
-            [816091, 5945530],
+            [818991, 5946430],
+            [818991, 5925530],
+            [816091, 5925530],
             [816091, 5946430]
         ]]
       },
@@ -36,11 +26,15 @@ event = {
   "composite": True,
   "latest_pixel": False,
   "color": True,
-  "bands": const.SENTINEL_2_BANDS,
+  "bands": ["B02"]
+  # "bands": const.SENTINEL_2_BANDS,
 }
-result = requests.post('http://127.0.0.1:5000/', json=event)
+result = requests.post('https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/', json=event); result
 
-# result = handler(event, {})
-#
+with open('/home/tam/Desktop/bands.zip', 'wb') as fl:
+    fl.write(result.content)
+
+# result = requests.post('http://127.0.0.1:5000/', json=event); result
+
 # with open('/home/tam/Desktop/bands.zip', 'wb') as fl:
 #     fl.write(result.getvalue())
