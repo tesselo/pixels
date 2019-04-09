@@ -1,0 +1,10 @@
+{
+    "dev": {
+        "app_function": "pixels.app",
+        "aws_region": "eu-central-1",
+        "profile_name": "tesselo",
+        "project_name": "pixels",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-pixels"
+    }
+}

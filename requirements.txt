@@ -1,0 +1,4 @@
+rasterio==1.0.21
+requests==2.21
+pyproj==1.9.6
+Flask==1.0.2
