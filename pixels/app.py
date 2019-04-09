@@ -104,3 +104,7 @@ def pixels(event=None, context=None):
         zf.writestr('config.json', json.dumps(config_log))
 
     return send_file(bytes_buffer)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
