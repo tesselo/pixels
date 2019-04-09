@@ -9,13 +9,16 @@ from flask import Flask, send_file, request
 app = Flask(__name__)
 
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def handler():
     """
     AWS Lambda ready handler for the pixels package.
 
     The input event is a JSON configuration for a pixels request.
     """
+    if request.method == 'GET':
+        return "Use POST to query pixels!", 200
+
     event = request.get_json()
     # Get extract custom handler arguments.
     search_only = event.pop('search_only', False)

@@ -1,14 +1,17 @@
 # /bin/bash
 
-target=/home/tam/Desktop/pixels
+target=/home/tam/Documents/repos/pixels/build
 sen2cor=/home/tam/Documents/repos/sen2cor
-pixels=/home/tam/Documents/repos/tesselo-scripts-collection/pixels
+pixels=/home/tam/Documents/repos/pixels
 
+cd
+
+rm -rf $target
 mkdir $target
 touch $target/__init__.py
 
 mkdir $target/pixels
-cp $pixels/*.py $target/pixels
+cp $pixels/pixels $target/pixels
 
 mkdir $target/sen2cor
 cp $sen2cor/*.py $target/sen2cor
@@ -36,7 +39,26 @@ find $target -name "*.pyc" -exec rm -f {} \;
 find $target -name "*.txt" -exec rm -f {} \;
 find $target -name tests -exec rm -rf {} \;
 
+cp $pixels/zappa_settings.json $target
+
 rm $target.zip
+
+cd $target
+zappa package dev
+
+# Reduce size of zip file.
+ZAPPA_PACKAGE=`find . -iname "pixels-dev-*.zip"`
+zip -d $ZAPPA_PACKAGE \*.pyc
+zip -d $ZAPPA_PACKAGE scipy/.libs/libgfortran-ed201abd.so.3.0.0
+zip -d $ZAPPA_PACKAGE scipy/.libs/libopenblasp-r0-382c8f3a.3.5.dev.so
+zip -u --symlinks $ZAPPA_PACKAGE scipy/.libs/libgfortran-ed201abd.so.3.0.0
+zip -u --symlinks $ZAPPA_PACKAGE scipy/.libs/libopenblasp-r0-382c8f3a.3.5.dev.so
+
+unzip -l $ZAPPA_PACKAGE
+
+zappa deploy dev -z
+
+#python -m compileall .
 
 cd $target
 zip --symlinks -r9 $target.zip ./*
