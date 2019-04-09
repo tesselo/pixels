@@ -5,7 +5,7 @@ from io import BytesIO
 import logging
 
 from pixels import const, scihub, search
-from flask import Flask, send_file, request
+from flask import Flask, send_file, request, jsonify
 
 app = Flask(__name__)
 logging.basicConfig()
@@ -22,11 +22,12 @@ def pixels(event=None, context=None):
     """
     print('event', event)
     print('context', context)
-    data = request.get_json()
-    print('data', data)
 
     if request.method == 'GET':
         return "Use POST to query pixels!", 200
+
+    data = request.get_json()
+    print('data', data)
 
     # Get extract custom handler arguments.
     search_only = data.pop('search_only', False)
@@ -64,7 +65,7 @@ def pixels(event=None, context=None):
 
     # Return only search query if requested.
     if search_only:
-        return query_result
+        return jsonify(query_result)
 
     # Get pixels.
     if latest_pixel:
@@ -104,7 +105,3 @@ def pixels(event=None, context=None):
         zf.writestr('config.json', json.dumps(config_log))
 
     return send_file(bytes_buffer)
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
