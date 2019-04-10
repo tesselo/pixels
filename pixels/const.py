@@ -1,7 +1,7 @@
 # Base constants.
-WGS84 = 4326
+WGS84 = 'EPSG:4326'
 
-QUERY_URL = "https://scihub.copernicus.eu/dhus/search?q={search}&rows=100&start=0&format=json&sortedby=beginposition&order=desc"
+QUERY_URL = 'https://scihub.copernicus.eu/dhus/search?q={search}&rows=100&start=0&format=json&sortedby=beginposition&order=desc'
 
 BASE_SEARCH = '( footprint:"Intersects({geom})" ) AND ( beginPosition:[{start}T00:00:00.000Z TO {end}T23:59:59.999Z] AND endPosition:[{start}T00:00:00.000Z TO {end}T23:59:59.999Z] ) AND ( ( platformname:{platform} AND producttype:{product_type} AND {extra} ) )'
 
@@ -76,3 +76,5 @@ SENTINEL_2_BANDS = [
     'B11',
     'B12',
 ]
+
+SENTINEL_2_RGB_BANDS = ['B04', 'B03', 'B02']

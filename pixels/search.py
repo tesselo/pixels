@@ -5,11 +5,11 @@ from dateutil import parser
 from pyproj import Proj, transform
 
 from pixels import scihub
-from pixels.const import (BASE_SEARCH, MODE_EW, MODE_IW, MODE_SM, MODE_WV,
-                          PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2, PREFIX_S1,
-                          PREFIX_S2, PRODUCT_GRD, PRODUCT_L1C, PRODUCT_L2A,
-                          PRODUCT_OCN, PRODUCT_SLC, QUERY_URL,
-                          SEARCH_SENTINEL_1, SEARCH_SENTINEL_2, WGS84)
+from pixels.const import (
+    BASE_SEARCH, MODE_EW, MODE_IW, MODE_SM, MODE_WV, PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2, PREFIX_S1, PREFIX_S2,
+    PRODUCT_GRD, PRODUCT_L1C, PRODUCT_L2A, PRODUCT_OCN, PRODUCT_SLC, QUERY_URL, SEARCH_SENTINEL_1, SEARCH_SENTINEL_2,
+    WGS84
+)
 from pixels.utils import filter_key
 
 
@@ -52,12 +52,12 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
 
     # Setup the srs objects for projection.
     src_srs = Proj(init=geom['srs'])
-    tar_srs = Proj(init='EPSG:4326')
+    tar_srs = Proj(init=WGS84)
 
     # Transform the geom coordinates into WGS84.
     transformed_coords = [transform(src_srs, tar_srs, coord[0], coord[1]) for coord in geom['geometry']['coordinates'][0]]
 
-    # Compute WKT for geom in WGS84.
+    # Compute WKT for geom.
     geom_wkt = 'POLYGON(({}))'.format(','.join(['{} {}'.format(*coord) for coord in transformed_coords]))
 
     # Construct search string.

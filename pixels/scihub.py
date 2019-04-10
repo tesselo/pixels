@@ -3,13 +3,11 @@ import pickle
 import numpy
 from rasterio.io import MemoryFile
 
-from pixels.const import (AWS_DATA_BUCKET_SENTINEL_1_L1C,
-                          AWS_DATA_BUCKET_SENTINEL_2_L1C,
-                          AWS_DATA_BUCKET_SENTINEL_2_L2A, PLATFORM_SENTINEL_1,
-                          PROCESSING_LEVEL_S2_L1C, SENTINEL_1_BANDS_HH_HV,
-                          SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH,
-                          SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS,
-                          SENTINEL_2_NODATA)
+from pixels.const import (
+    AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
+    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH,
+    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA
+)
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 from sen2cor.sceneclass import SceneClass
 

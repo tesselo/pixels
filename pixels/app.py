@@ -1,16 +1,16 @@
 import copy
 import json
+import logging
 import zipfile
 from io import BytesIO
-import logging
 
+from flask import Flask, jsonify, request, send_file
 from pixels import const, scihub, search
-from flask import Flask, send_file, request, jsonify
 
 app = Flask(__name__)
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -20,14 +20,12 @@ def pixels(event=None, context=None):
 
     The input event is a JSON configuration for a pixels request.
     """
-    print('event', event)
-    print('context', context)
-
+    # Retrun message on GET.
     if request.method == 'GET':
         return "Use POST to query pixels!", 200
 
+    # Retrieve json data from post request.
     data = request.get_json()
-    print('data', data)
 
     # Get extract custom handler arguments.
     search_only = data.pop('search_only', False)
@@ -47,8 +45,11 @@ def pixels(event=None, context=None):
 
     # For composite, we will require all bands to be retrieved.
     if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
-        print('Requesting all Sentinel-2 bands for composite mode.')
+        logger.info('Adding all Sentinel-2 bands for composite mode.')
         bands = const.SENTINEL_2_BANDS
+    elif color and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
+        logger.info('Adding RGB bands for color mode.')
+        bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
 
     # Store original data and possible overrides.
     config_log = copy.deepcopy(data)
@@ -58,9 +59,10 @@ def pixels(event=None, context=None):
     config_log['color'] = color
     config_log['bands'] = bands
     config_log['scale'] = scale
+    logger.info('Configuration is {}'.format(config_log))
 
     # Query available scenery.
-    print('Querying data on the ESA SciHub.', data)
+    logger.info('Querying data on the ESA SciHub.')
     query_result = search.search(**data)
 
     # Return only search query if requested.
@@ -69,32 +71,28 @@ def pixels(event=None, context=None):
 
     # Get pixels.
     if latest_pixel:
-        print('Getting latest pixels stack.')
+        logger.info('Getting latest pixels stack.')
         stack = scihub.latest_pixel(data['geom'], query_result, scale=scale, bands=bands, as_file=True)
     else:
-        #### HACK TODO REMOVE
-        #BD2 = scihub.get_pixels(data['geom'], query_result[0], scale=scale, bands=['B02'])['B02']
-
         for entry in query_result:
-            print('Getting scene pixels for', entry['prefix'])
+            logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
             entry['pixels'] = scihub.get_pixels(data['geom'], entry, scale=scale, bands=bands)
-            #entry['pixels'] = {key: BD2 for key in const.SENTINEL_2_BANDS}
 
         if composite:
-            print('Computing composite from pixel stacks.')
+            logger.info('Computing composite from pixel stacks.')
             stack = [entry['pixels'] for entry in query_result]
             stack = scihub.s2_composite(stack, as_file=True)
 
     # Convert to RGB color tif.
     if color:
-        print('Computing RGB image from stack.')
+        logger.info('Computing RGB image from stack.')
         if data.get('platform', None) == const.PLATFORM_SENTINEL_1:
             stack['RGB'] = scihub.s1_color(stack, as_file=True)
         else:
             stack['RGB'] = scihub.s2_color(stack, as_file=True)
 
     # Write all result rasters into a zip file and return the data package.
-    print('Packaging data into zip file.')
+    logger.info('Packaging data into zip file.')
     bytes_buffer = BytesIO()
     with zipfile.ZipFile(bytes_buffer, 'w') as zf:
         # Write pixels into zip file.
@@ -104,7 +102,10 @@ def pixels(event=None, context=None):
         # Write config into zip file.
         zf.writestr('config.json', json.dumps(config_log))
 
+    # Rewind buffer.
     bytes_buffer.seek(0)
+
+    # Return buffer as file.
     return send_file(
         bytes_buffer,
         as_attachment=True,
