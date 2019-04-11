@@ -6,7 +6,7 @@ from rasterio.io import MemoryFile
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
     PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH,
-    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA
+    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 from sen2cor.sceneclass import SceneClass
@@ -70,7 +70,7 @@ def latest_pixel(geom, data, scale=10, bands=None, as_array=False, as_file=False
         # Parse additional pixels in a loop.
         for key, val in array_entry.items():
             if key in result:
-                empty_pixels = result[key].read(1) == SENTINEL_2_NODATA
+                empty_pixels = result[key] == SENTINEL_2_NODATA
                 new_pixels = val[empty_pixels]
                 result[key][empty_pixels] = new_pixels
             else:
@@ -268,9 +268,16 @@ def s1_color(stack, path=None, as_file=False):
     B1 = 10 * numpy.log(B1)
     B2 = (B0 / B1)
 
+    B0 = (B0 - numpy.min(B0)) / (numpy.max(B0) - numpy.min(B0)) * SENTINEL_2_RGB_CLIPPER
+    B1 = (B1 - numpy.min(B1)) / (numpy.max(B1) - numpy.min(B1)) * SENTINEL_2_RGB_CLIPPER
+    B2 = (B2 - numpy.min(B2)) / (numpy.max(B2) - numpy.min(B2)) * SENTINEL_2_RGB_CLIPPER
+
     data = numpy.array([B0, B1, B2]).astype(orig_dtype)
 
-    creation_args = next(iter(stack.values())).meta.copy()
+    if isinstance(stack[SENTINEL_1_BANDS_VV_VH[0]], MemoryFile):
+        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].open().meta.copy()
+    else:
+        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].meta.copy()
 
     creation_args['count'] = 3
 

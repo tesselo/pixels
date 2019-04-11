@@ -4,6 +4,9 @@ import logging
 import zipfile
 from io import BytesIO
 
+import numpy
+from PIL import Image
+
 from flask import Flask, jsonify, request, send_file
 from pixels import const, scihub, search
 
@@ -22,10 +25,12 @@ def pixels(event=None, context=None):
     """
     # Retrun message on GET.
     if request.method == 'GET':
-        return "Use POST to query pixels!", 200
-
-    # Retrieve json data from post request.
-    data = request.get_json()
+        # Look for a json string in data argument.
+        data = json.loads(request.args['data'])
+    else:
+        # Retrieve json data from post request.
+        data = request.get_json()
+    print(data)
 
     # Get extract custom handler arguments.
     search_only = data.pop('search_only', False)
@@ -34,6 +39,7 @@ def pixels(event=None, context=None):
     color = data.pop('color', False)
     bands = data.pop('bands', [])
     scale = data.pop('scale', 10)
+    render = data.pop('render', False)
 
     if not composite and not latest_pixel:
         # TODO: Allow getting multiple stacks as "raw" scenes data.
@@ -47,9 +53,13 @@ def pixels(event=None, context=None):
     if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
         logger.info('Adding all Sentinel-2 bands for composite mode.')
         bands = const.SENTINEL_2_BANDS
-    elif color and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
+    elif color and data['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
         logger.info('Adding RGB bands for color mode.')
         bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
+    elif color and data['platform'] == const.PLATFORM_SENTINEL_1:
+        # TODO: Allow other polarisation modes.
+        bands = const.SENTINEL_1_POLARISATION_MODE['DV']
+        bands = [band.lower() for band in bands]
 
     # Store original data and possible overrides.
     config_log = copy.deepcopy(data)
@@ -90,6 +100,24 @@ def pixels(event=None, context=None):
             stack['RGB'] = scihub.s1_color(stack, as_file=True)
         else:
             stack['RGB'] = scihub.s2_color(stack, as_file=True)
+
+        if render:
+            pixpix = numpy.array([
+                numpy.clip(stack['RGB'].open().read(1), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                numpy.clip(stack['RGB'].open().read(2), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                numpy.clip(stack['RGB'].open().read(3), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+            ]).astype('uint8')
+
+            img = Image.fromarray(pixpix.T)
+
+            # Save image to io buffer.
+            output = BytesIO()
+            img.save(output, format='PNG')
+            output.seek(0)
+            return send_file(
+                output,
+                mimetype='image/png'
+            )
 
     # Write all result rasters into a zip file and return the data package.
     logger.info('Packaging data into zip file.')
