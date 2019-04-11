@@ -6,7 +6,8 @@ from rasterio.io import MemoryFile
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
     PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH,
-    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA, SENTINEL_2_RGB_CLIPPER
+    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP,
+    SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 from sen2cor.sceneclass import SceneClass
@@ -29,15 +30,24 @@ def get_pixels(geom, entry, scale=10, bands=None, as_array=False, as_file=False)
             bucket = AWS_DATA_BUCKET_SENTINEL_2_L1C
         else:
             bucket = AWS_DATA_BUCKET_SENTINEL_2_L2A
+
         if not bands:
             bands = SENTINEL_2_BANDS
-        band_prefix = entry['prefix'] + '{}.jp2'
+        band_prefix = entry['prefix']
 
     result = {}
     for band in bands:
+        if entry['processing_level'] == PROCESSING_LEVEL_S2_L1C:
+            extension = '{}.jp2'
+        else:
+            # Band 10 is not available in L2A.
+            if band == 'B10':
+                continue
+            extension = 'R{}m/{{}}.jp2'.format(SENTINEL_2_RESOLUTION_LOOKUP[band])
+
         result[band] = warp_from_s3(
             bucket=bucket,
-            prefix=band_prefix.format(band),
+            prefix=band_prefix + extension.format(band),
             transform=transform,
             width=width,
             height=height,

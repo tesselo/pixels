@@ -80,3 +80,19 @@ SENTINEL_2_BANDS = [
 SENTINEL_2_RGB_BANDS = ['B04', 'B03', 'B02']
 
 SENTINEL_2_RGB_CLIPPER = 3e3
+
+SENTINEL_2_RESOLUTION_LOOKUP = {
+    'B01': '60',
+    'B02': '10',
+    'B03': '10',
+    'B04': '10',
+    'B05': '20',
+    'B06': '20',
+    'B07': '20',
+    'B08': '10',
+    'B8A': '20',
+    'B09': '60',
+    'B10': '60',
+    'B11': '20',
+    'B12': '20',
+}
