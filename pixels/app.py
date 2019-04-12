@@ -56,14 +56,12 @@ def pixels(data=None):
 
     delay = data.pop('delay', False)
     if delay:
-        print('Delaying', data)
         logger.info('Working in delay mode.')
-        data['tag'] = uuid.uuid4()
+        data['tag'] = str(uuid.uuid4())
         key = '{}/pixels.{}'.format(
             data['tag'],
             'png' if data.get('render', False) else 'zip'
         )
-        print('Delaying', data)
         pixels_task(data)
         s3 = boto3.client('s3')
         url = s3.generate_presigned_url(
@@ -192,7 +190,6 @@ def pixels(data=None):
 
     # Return buffer as file.
     if tag:
-        tag = uuid.uuid4()
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket='tesselo-pixels-results',
