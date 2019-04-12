@@ -148,3 +148,21 @@ def load_stacks(folder):
             stacks[key] = {}
         stacks[key][band] = rasterio.open(path, 'r')
     return stacks
+
+
+def tile_bounds(z, x, y):
+    """
+    Calculate the bounding box of a specific tile.
+    """
+    WEB_MERCATOR_WORLDSIZE = 2 * pi * 6378137
+
+    WEB_MERCATOR_TILESHIFT = WEB_MERCATOR_WORLDSIZE / 2.0
+
+    zscale = WEB_MERCATOR_WORLDSIZE / 2 ** z
+
+    xmin = x * zscale - WEB_MERCATOR_TILESHIFT
+    xmax = (x + 1) * zscale - WEB_MERCATOR_TILESHIFT
+    ymin = WEB_MERCATOR_TILESHIFT - (y + 1) * zscale
+    ymax = WEB_MERCATOR_TILESHIFT - y * zscale
+
+    return [xmin, ymin, xmax, ymax]

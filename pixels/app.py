@@ -7,8 +7,8 @@ from io import BytesIO
 import numpy
 from PIL import Image
 
-from flask import Flask, jsonify, request, send_file
-from pixels import const, scihub, search
+from flask import Flask, jsonify, render_template, request, send_file
+from pixels import const, scihub, search, utils
 
 app = Flask(__name__)
 logging.basicConfig()
@@ -16,20 +16,26 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@app.route('/', methods=['GET', 'POST'])
-def pixels(event=None, context=None):
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+
+@app.route('/pixels', methods=['GET', 'POST'])
+def pixels(data=None):
     """
     AWS Lambda ready handler for the pixels package.
 
     The input event is a JSON configuration for a pixels request.
     """
-    # Retrun message on GET.
-    if request.method == 'GET':
-        # Look for a json string in data argument.
-        data = json.loads(request.args['data'])
-    else:
-        # Retrieve json data from post request.
-        data = request.get_json()
+    if not data:
+        # Retrun message on GET.
+        if request.method == 'GET':
+            # Look for a json string in data argument.
+            data = json.loads(request.args['data'])
+        else:
+            # Retrieve json data from post request.
+            data = request.get_json()
     print(data)
 
     # Get extract custom handler arguments.
@@ -145,3 +151,39 @@ def pixels(event=None, context=None):
         attachment_filename='pixels.zip',
         mimetype='application/zip'
     )
+
+
+@app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
+def tiles(z, x, y):
+    bounds = utils.tile_bounds(z, x, y)
+    scale = utils.tile_scale(z)
+    data = {
+        "geom": {
+            "type": "Feature",
+            "srs": "EPSG:3857",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [bounds[0], bounds[1]],
+                    [bounds[2], bounds[1]],
+                    [bounds[2], bounds[3]],
+                    [bounds[0], bounds[3]],
+                    [bounds[0], bounds[1]],
+
+                ]]
+            },
+        },
+        "scale": scale,
+        "start": "2019-01-01",
+        "end": "2019-04-10",
+        "platform": const.PLATFORM_SENTINEL_2,
+        "product_type": const.PRODUCT_L2A,
+        "s2_max_cloud_cover_percentage": 50,
+        "search_only": False,
+        "composite": False,
+        "latest_pixel": True,
+        "color": True,
+        "render": True,
+    }
+    print('at tiles', data)
+    return pixels(data)

@@ -28,11 +28,11 @@ event = {
             ]]
         },
     },
-    "start": "2019-03-25",
-    "end": "2019-04-01",
+    "start": "2019-01-01",
+    "end": "2019-04-10",
     "platform": const.PLATFORM_SENTINEL_2,
     "product_type": const.PRODUCT_L2A,
-    "s2_max_cloud_cover_percentage": 100,
+    "s2_max_cloud_cover_percentage": 50,
     "search_only": False,
     "composite": False,
     "latest_pixel": True,
@@ -41,9 +41,15 @@ event = {
     # "bands": ["B04", "B03", "B02"],
 }
 
-url = 'http://127.0.0.1:5000/?data={}'.format(urllib.parse.quote(json.dumps(event)))
+
+host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/'
+# host = 'http://127.0.0.1:5000/'
+url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(event)))
 webbrowser.open(url, new=2)
 
+
+
+webbrowser.open('http://127.0.0.1:5000/13/4092/2723', new=2)
 # # Sentinel-1
 # event["start"] = "2019-01-01"
 # event["end"] = "2019-02-30"

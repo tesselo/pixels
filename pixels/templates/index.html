@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+	<title>Tesselo - Pixels</title>
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+   integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+   crossorigin=""/>
+
+ 	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+   integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+   crossorigin=""></script>
+
+</head>
+<body>
+
+<div id="mapid" style="width: 600px; height: 400px; position: relative;"></div>
+
+<script>
+	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		maxZoom: 18
+	});
+	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+		maxZoom: 18,
+		minZoom: 12
+	})
+	var baseMaps = {
+	    "OSM": osm
+	};
+	var overlayMaps = {
+	    "Sentinel-2": sentinel2
+	};
+
+	var map = L.map('mapid', {
+		center: [19.0576, 72.8885],
+		zoom: 13,
+		layers: [osm]
+	});
+
+	L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+</script>
+
+
+
+
+
+
+</body></html>
