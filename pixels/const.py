@@ -95,4 +95,20 @@ SENTINEL_2_RESOLUTION_LOOKUP = {
     'B10': '60',
     'B11': '20',
     'B12': '20',
+    'SCL': '20',
 }
+
+SCENE_CLASS_RANK_FLAT = (
+    8,   # NO_DATA
+    7,   # SATURATED_OR_DEFECTIVE
+    5,   # DARK_AREA_PIXELS
+    5,   # CLOUD_SHADOWS
+    1,   # VEGETATION
+    2,   # NOT_VEGETATED
+    3,   # WATER
+    5,   # UNCLASSIFIED
+    6,   # CLOUD_MEDIUM_PROBABILITY
+    7,   # CLOUD_HIGH_PROBABILITY
+    6,   # THIN_CIRRUS
+    4,   # SNOW
+)

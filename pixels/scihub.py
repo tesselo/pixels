@@ -1,13 +1,11 @@
-import pickle
-
 import numpy
 from rasterio.io import MemoryFile
 
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
-    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH,
-    SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP,
-    SENTINEL_2_RGB_CLIPPER
+    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV,
+    SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA,
+    SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 from sen2cor.sceneclass import SceneClass
@@ -115,49 +113,29 @@ def s2_composite(stacks, index_based=True, as_file=False):
     """
     # Cloud Extraction Indices, these are range indices for 2d arrays that are
     # needed to extract values by index when doing the cloud removal.
-    width = stacks[0]['B02'].width
-    height = stacks[0]['B02'].height
+    width = next(iter(stacks[0].values())).width
+    height = next(iter(stacks[0].values())).height
     CLOUD_IDX1, CLOUD_IDX2 = numpy.indices((width, height))
     # Convert rasters to numpy array.
     Xs = []
+    # Prepare cloud probabilities holder.
+    cloud_probs = []
+    # Compute cloud probabilities based on sen2cor sceneclass.
     for stack in stacks:
-        Xs.append([stack[band].read(1) for band in SENTINEL_2_BANDS])
-
-    # Predict class probabilities from classifier, normalized to sensor range.
-    if index_based:
-        # Prepare cloud probabilities holder.
-        cloud_probs = []
-        # Compute cloud probabilities based on sen2cor sceneclass.
-        for X in Xs:
-            """
-            Scene class pixels ranked by preference. The rank is flattened out so
-            that between categories that are similarly desireable, the relative NDVI
-            value is decisive.
-            """
+        """
+        Scene class pixels ranked by preference. The rank is flattened out so
+        that between categories that are similarly desireable, the relative NDVI
+        value is decisive.
+        """
+        X = [raster.read(1) for raster in stack.values()]
+        if 'SCL' in stack:
+            clouds = stack['SCL'].read(1).astype('uint16')
+            ndvi = None
+        else:
+            # Compute scene class using sen2cor.
             sc = SceneClass(X, solaz=0, solze=0.5)
             sc.process()
-
-            SCENE_CLASS_RANK_FLAT = (
-                8,   # NO_DATA
-                7,   # SATURATED_OR_DEFECTIVE
-                5,   # DARK_AREA_PIXELS
-                5,   # CLOUD_SHADOWS
-                1,   # VEGETATION
-                2,   # NOT_VEGETATED
-                3,   # WATER
-                5,   # UNCLASSIFIED
-                6,   # CLOUD_MEDIUM_PROBABILITY
-                7,   # CLOUD_HIGH_PROBABILITY
-                6,   # THIN_CIRRUS
-                4,   # SNOW
-            )
-
-            # Use SCL layer to select pixel ranks.
-            clouds = numpy.choose(sc.result.astype('int'), SCENE_CLASS_RANK_FLAT)
-
-            # Convert cloud probs to float.
-            clouds = clouds.astype('float')
-
+            clouds = sc.result.astype('int')
             # Compute NDVI, avoiding zero division.
             B4 = X[3].astype('float')  # B04
             B8 = X[7].astype('float')  # B08
@@ -166,51 +144,25 @@ def s2_composite(stacks, index_based=True, as_file=False):
             ndvi_sum[ndvi_sum == SENTINEL_2_NODATA] = 1
             ndvi = ndvi_diff / ndvi_sum
 
+        # Use SCL layer to select pixel ranks.
+        clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
+
+        # Convert cloud probs to float.
+        clouds = clouds.astype('float')
+
+        if ndvi is not None:
             # Add inverted and scaled NDVI values to the decimal range of the cloud
             # probs. This ensures that within acceptable pixels, the one with the
             # highest NDVI is selected.
             scaled_ndvi = (1 - ndvi) / 100
             clouds += scaled_ndvi
 
-            # Set cloud prob high for nodata pixels.
-            clouds[X[3] == SENTINEL_2_NODATA] = 999999
+        # Set cloud prob high for nodata pixels.
+        clouds[X[0] == SENTINEL_2_NODATA] = 999999
 
-            cloud_probs.append(clouds)
-    else:
-        Xs = numpy.array(Xs)
-        # Load cloud classifier.
-        clf = pickle.loads(open('/home/tam/Desktop/sklearn_mlc_clouds.pickle', 'rb').read())
-        # Create class name lookup.
-        class_names = {
-            'Clear': 10,
-            'Water': 20,
-            'Shadow': 30,
-            'Cirrus': 40,
-            'Cloud': 50,
-            'Snow': 60,
-        }
-        # Compute cloud colunm indices from classifier.
-        cloud_idx = numpy.where(clf.classes_ == class_names['Cloud'])[0][0]
-        cirrus_idx = numpy.where(clf.classes_ == class_names['Cirrus'])[0][0]
-        shadow_idx = numpy.where(clf.classes_ == class_names['Shadow'])[0][0]
+        cloud_probs.append(clouds)
 
-        clouds_and_shadows_idx = [cloud_idx, cirrus_idx, shadow_idx]
-
-        Ys = []
-        for X in Xs:
-            Y = []
-            for batch in numpy.array_split(X, X.shape[1] / 1000, axis=1):
-                Y.append(clf.predict_proba(batch.T / 1e4))
-            Ys.append(numpy.vstack(Y))
-        Ys = numpy.array(Ys)
-
-        # Compute the consolidated cloud probabilities for each avaiable scene band stack.
-        cloud_probs = []
-        for i, Y in enumerate(Ys):
-            prob = numpy.sum(Y[:, clouds_and_shadows_idx], axis=1)
-            # Set cloud prob high for nodata pixels.
-            prob[Xs[i][0] == SENTINEL_2_NODATA] = 999
-            cloud_probs.append(prob)
+        Xs.append(X)
 
     # Convert to numpy array.
     cloud_probs = numpy.array(cloud_probs)
@@ -220,13 +172,14 @@ def s2_composite(stacks, index_based=True, as_file=False):
 
     # Loop over all bands.
     result = {}
-    for i, band in enumerate(SENTINEL_2_BANDS):
+    raster_to_clone = [val for key, val in stacks[0].items() if key != 'SCL'][0]
+    for i, band in enumerate(stacks[0].keys()):
         # Merge scene tiles for this band into a composite tile using the selector index.
-        bnds = numpy.array([X[i] for X in Xs])
+        bnds = numpy.array([dat[i] for dat in Xs])
         # Construct final composite band array from selector index.
-        composite_data = numpy.choose(selector_index, bnds)
+        composite_data = numpy.choose(selector_index, bnds).astype('uint16')
         # Create band target raster.
-        result[band] = clone_raster(next(iter(stacks[0].values())), composite_data, as_file=as_file)
+        result[band] = clone_raster(raster_to_clone, composite_data, as_file=as_file)
 
     return result
 
