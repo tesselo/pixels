@@ -38,13 +38,13 @@ event = {
     "latest_pixel": True,
     "color": True,
     "render": True,
-    "delay": False,
+    "delay": True,
     # "bands": ["B04", "B03", "B02"],
 }
 
 
-# host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/'
-host = 'http://127.0.0.1:5000/pixels'
+host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/pixels/'
+# host = 'http://127.0.0.1:5000/pixels'
 url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(event)))
 result = requests.get(url)
 print(result.content)

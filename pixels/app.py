@@ -50,7 +50,7 @@ def pixels(data=None):
     dx = max(dat[0] for dat in transformed_coords) - min(dat[0] for dat in transformed_coords)
     dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
     area = abs(dx * dy)
-    logger.info('Geometry area bbox is', area)
+    logger.info('Geometry area bbox is {:0.1f}.'.format(area))
     if area > 10000 * 10000:
         return jsonify(error=400, message='Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6)), 400
 
@@ -66,13 +66,14 @@ def pixels(data=None):
         print('Delaying', data)
         pixels_task(data)
         s3 = boto3.client('s3')
-        return s3.generate_presigned_url(
+        url = s3.generate_presigned_url(
             ClientMethod='get_object',
             Params={
                 'Bucket': 'tesselo-pixels-results',
                 'Key': key,
             }
         )
+        return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
 
     # Get extract custom handler arguments.
     search_only = data.pop('search_only', False)
