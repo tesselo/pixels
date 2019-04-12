@@ -1,13 +1,17 @@
 import copy
 import json
 import logging
+import uuid
 import zipfile
 from io import BytesIO
 
+import boto3
 import numpy
-from PIL import Image
-
 from flask import Flask, jsonify, render_template, request, send_file
+from PIL import Image
+from pyproj import Proj, transform
+from zappa.async import task
+
 from pixels import const, scihub, search, utils
 
 app = Flask(__name__)
@@ -36,7 +40,39 @@ def pixels(data=None):
         else:
             # Retrieve json data from post request.
             data = request.get_json()
-    print(data)
+
+    # Limit size of geometry.
+    # Transform the geom coordinates into web mercator and limit size
+    # to 10km by 10km.
+    src_srs = Proj(init=data['geom']['srs'])
+    tar_srs = Proj(init='EPSG:3857')
+    transformed_coords = [transform(src_srs, tar_srs, coord[0], coord[1]) for coord in data['geom']['geometry']['coordinates'][0]]
+    dx = max(dat[0] for dat in transformed_coords) - min(dat[0] for dat in transformed_coords)
+    dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
+    area = abs(dx * dy)
+    logger.info('Geometry area bbox is', area)
+    if area > 10000 * 10000:
+        return jsonify(error=400, message='Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6)), 400
+
+    delay = data.pop('delay', False)
+    if delay:
+        print('Delaying', data)
+        logger.info('Working in delay mode.')
+        data['tag'] = uuid.uuid4()
+        key = '{}/pixels.{}'.format(
+            data['tag'],
+            'png' if data.get('render', False) else 'zip'
+        )
+        print('Delaying', data)
+        pixels_task(data)
+        s3 = boto3.client('s3')
+        return s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': 'tesselo-pixels-results',
+                'Key': key,
+            }
+        )
 
     # Get extract custom handler arguments.
     search_only = data.pop('search_only', False)
@@ -46,6 +82,7 @@ def pixels(data=None):
     bands = data.pop('bands', [])
     scale = data.pop('scale', 10)
     render = data.pop('render', False)
+    tag = data.pop('tag', None)
 
     if not composite and not latest_pixel:
         # TODO: Allow getting multiple stacks as "raw" scenes data.
@@ -125,10 +162,18 @@ def pixels(data=None):
             output = BytesIO()
             img.save(output, format='PNG')
             output.seek(0)
-            return send_file(
-                output,
-                mimetype='image/png'
-            )
+            if tag:
+                s3 = boto3.client('s3')
+                s3.put_object(
+                    Bucket='tesselo-pixels-results',
+                    Key='{}/pixels.png'.format(tag),
+                    Body=output,
+                )
+            else:
+                return send_file(
+                    output,
+                    mimetype='image/png'
+                )
 
     # Write all result rasters into a zip file and return the data package.
     logger.info('Packaging data into zip file.')
@@ -145,12 +190,26 @@ def pixels(data=None):
     bytes_buffer.seek(0)
 
     # Return buffer as file.
-    return send_file(
-        bytes_buffer,
-        as_attachment=True,
-        attachment_filename='pixels.zip',
-        mimetype='application/zip'
-    )
+    if tag:
+        tag = uuid.uuid4()
+        s3 = boto3.client('s3')
+        s3.put_object(
+            Bucket='tesselo-pixels-results',
+            Key='{}/pixels.zip'.format(tag),
+            Body=bytes_buffer,
+        )
+    else:
+        return send_file(
+            bytes_buffer,
+            as_attachment=True,
+            attachment_filename='pixels.zip',
+            mimetype='application/zip'
+        )
+
+
+@task
+def pixels_task(data):
+    pixels(data)
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
