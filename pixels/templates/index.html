@@ -24,7 +24,7 @@
 	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 18
 	});
-	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+	var sentinel2 = L.tileLayer('https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/tiles/{z}/{x}/{y}.png', {
 		maxZoom: 18,
 		minZoom: 12
 	})
@@ -44,10 +44,5 @@
 	L.control.layers(baseMaps, overlayMaps).addTo(map);
 
 </script>
-
-
-
-
-
 
 </body></html>
