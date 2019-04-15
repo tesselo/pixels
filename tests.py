@@ -28,8 +28,8 @@ event = {
             ]]
         },
     },
-    "start": "2019-01-01",
-    "end": "2019-01-31",
+    "start": "2019-03-28",
+    "end": "2019-04-01",
     "platform": const.PLATFORM_SENTINEL_2,
     "product_type": const.PRODUCT_L2A,
     "s2_max_cloud_cover_percentage": 60,
@@ -38,13 +38,14 @@ event = {
     "latest_pixel": False,
     "color": True,
     "render": True,
-    "delay": False,
-    # "bands": ["B04", "B03", "B02"],
+    "delay": True,
+    "bands": ["B04", "B03", "B02", "B08", "B05"],
 }
 
 
-host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/pixels'
-# host = 'http://127.0.0.1:5000/pixels'
+host = 'http://127.0.0.1:5000/pixels'
+host = 'https://pixels.tesselo.com/pixels'
+
 url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(event)))
 result = requests.get(url)
 print(result.content)

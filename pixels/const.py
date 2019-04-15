@@ -5,6 +5,7 @@ QUERY_URL = 'https://scihub.copernicus.eu/dhus/search?q={search}&rows=100&start=
 
 BASE_SEARCH = '( footprint:"Intersects({geom})" ) AND ( beginPosition:[{start}T00:00:00.000Z TO {end}T23:59:59.999Z] AND endPosition:[{start}T00:00:00.000Z TO {end}T23:59:59.999Z] ) AND ( ( platformname:{platform} AND producttype:{product_type} AND {extra} ) )'
 
+BUCKET = 'tesselo-pixels-results'
 
 # ###################################################
 # Sentinel-1

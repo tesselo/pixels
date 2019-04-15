@@ -7,7 +7,7 @@ from io import BytesIO
 
 import boto3
 import numpy
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, redirect, render_template, request, send_file
 from PIL import Image
 from pyproj import Proj, transform
 from zappa.async import task
@@ -20,12 +20,51 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-@app.route('/', methods=['GET'])
+# Exceptions.
+class PixelsFailed(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None, tag=None):
+        Exception.__init__(self)
+        self.message = message
+        self.tag = tag
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
+class AsyncPixelsFailed(PixelsFailed):
+    status_code = 500
+
+
+@app.errorhandler(PixelsFailed)
+def handle_pixels_error(exc):
+    if isinstance(exc, AsyncPixelsFailed):
+        s3 = boto3.client('s3')
+        base = exc.tag.split('/')[0]
+        s3.put_object(
+            Bucket=const.BUCKET,
+            Key='{}/failed.txt'.format(base),
+            Body=BytesIO(),
+        )
+        response = jsonify(message='Async computation failed, wrote failed tag file to S3.')
+    else:
+        response = jsonify(exc.to_dict())
+    response.status_code = exc.status_code
+    return response
+
+
+@app.route('/map', methods=['GET'])
 def index():
     return render_template('index.html')
 
 
-@app.route('/pixels', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def pixels(data=None):
     """
     AWS Lambda ready handler for the pixels package.
@@ -50,31 +89,11 @@ def pixels(data=None):
     dx = max(dat[0] for dat in transformed_coords) - min(dat[0] for dat in transformed_coords)
     dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
     area = abs(dx * dy)
-    logger.info('Geometry area bbox is {:0.1f}.'.format(area))
+    logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
     if area > 10000 * 10000:
-        return jsonify(error=400, message='Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6)), 400
-
-    delay = data.pop('delay', False)
-    if delay:
-        logger.info('Working in delay mode.')
-        data['tag'] = str(uuid.uuid4())
-        key = '{}/pixels.{}'.format(
-            data['tag'],
-            'png' if data.get('render', False) else 'zip'
-        )
-        pixels_task(data)
-        s3 = boto3.client('s3')
-        url = s3.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={
-                'Bucket': 'tesselo-pixels-results',
-                'Key': key,
-            }
-        )
-        return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
+        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6))
 
     # Get extract custom handler arguments.
-    search_only = data.pop('search_only', False)
     composite = data.pop('composite', False)
     latest_pixel = data.pop('latest_pixel', False)
     color = data.pop('color', False)
@@ -82,14 +101,19 @@ def pixels(data=None):
     scale = data.pop('scale', 10)
     render = data.pop('render', False)
     tag = data.pop('tag', None)
-
-    if not composite and not latest_pixel:
-        # TODO: Allow getting multiple stacks as "raw" scenes data.
-        raise ValueError('Choose either latest pixel or composite mode.')
+    delay = data.pop('delay', False)
+    search_only = data.pop('search_only', False)
 
     # Sanity checks.
+    if not composite and not latest_pixel:
+        # TODO: Allow getting multiple stacks as "raw" scenes data.
+        raise PixelsFailed('Choose either latest pixel or composite mode.')
+
     if composite and data.get('platform', None) == const.PLATFORM_SENTINEL_1:
-        raise ValueError('Cannot compute composite for Sentinel 1.')
+        raise PixelsFailed('Cannot compute composite for Sentinel 1.')
+
+    if delay and search_only:
+        raise PixelsFailed('Search only mode works in synchronous mode only.')
 
     # For composite, we will require all bands to be retrieved.
     if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
@@ -117,6 +141,18 @@ def pixels(data=None):
     config_log['bands'] = bands
     config_log['scale'] = scale
     logger.info('Configuration is {}'.format(config_log))
+
+    # Handle delay mode.
+    if delay:
+        logger.info('Working in delay mode.')
+        key = '{}/pixels.{}'.format(
+            uuid.uuid4(),
+            'png' if data.get('render', False) else 'zip'
+        )
+        config_log['tag'] = key
+        pixels_task(config_log)
+        url = '{}async/{}'.format(request.host_url, key)
+        return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
 
     # Query available scenery.
     logger.info('Querying data on the ESA SciHub.')
@@ -164,8 +200,8 @@ def pixels(data=None):
             if tag:
                 s3 = boto3.client('s3')
                 s3.put_object(
-                    Bucket='tesselo-pixels-results',
-                    Key='{}/pixels.png'.format(tag),
+                    Bucket=const.BUCKET,
+                    Key=tag,
                     Body=output,
                 )
             else:
@@ -192,8 +228,8 @@ def pixels(data=None):
     if tag:
         s3 = boto3.client('s3')
         s3.put_object(
-            Bucket='tesselo-pixels-results',
-            Key='{}/pixels.zip'.format(tag),
+            Bucket=const.BUCKET,
+            Key=tag,
             Body=bytes_buffer,
         )
     else:
@@ -207,7 +243,35 @@ def pixels(data=None):
 
 @task
 def pixels_task(data):
-    pixels(data)
+    try:
+        pixels(data)
+    except:
+        raise AsyncPixelsFailed('Async computation failed', tag=data['tag'])
+
+
+@app.route('/async/<tag>/<file>', methods=['GET'])
+def asyncresult(tag, file):
+    s3 = boto3.resource('s3')
+    obj = s3.Object(const.BUCKET, '{}/{}'.format(tag, file))
+    logger.info('Looking for result object {}/{} from async call.'.format(tag, file))
+    try:
+        obj = obj.get()
+        logger.info('Found result object from async call.')
+        url = boto3.client('s3').generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': const.BUCKET,
+                'Key': '{}/{}'.format(tag, file),
+            }
+        )
+        return redirect(url)
+    except s3.meta.client.exceptions.NoSuchKey:
+        try:
+            s3.Object(const.BUCKET, '{}/failed.txt'.format(tag)).get()
+        except s3.meta.client.exceptions.NoSuchKey:
+            return jsonify('Async collection not finished yet.')
+        else:
+            return jsonify('Async collection falied.')
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
@@ -242,5 +306,4 @@ def tiles(z, x, y):
         "color": True,
         "render": True,
     }
-    print('at tiles', data)
     return pixels(data)
