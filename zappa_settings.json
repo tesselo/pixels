@@ -6,6 +6,8 @@
         "project_name": "pixels",
         "runtime": "python3.6",
         "s3_bucket": "zappa-pixels",
-        "slim_handler": true
+        "slim_handler": true,
+        "domain": "pixels.tesselo.com",
+        "certificate_arn": "arn:aws:acm:us-east-1:595064993071:certificate/3cac1dfe-5915-4325-91fa-a53952cbd2e1"
     }
 }
