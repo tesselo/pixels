@@ -85,13 +85,20 @@ def pixels(data=None):
     # to 10km by 10km.
     src_srs = Proj(init=data['geom']['srs'])
     tar_srs = Proj(init='EPSG:3857')
-    transformed_coords = [transform(src_srs, tar_srs, coord[0], coord[1]) for coord in data['geom']['geometry']['coordinates'][0]]
+    transformed_coords = [list(transform(src_srs, tar_srs, coord[0], coord[1])) for coord in data['geom']['geometry']['coordinates'][0]]
+    print('trf', transformed_coords)
     dx = max(dat[0] for dat in transformed_coords) - min(dat[0] for dat in transformed_coords)
     dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
     area = abs(dx * dy)
     logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
     if area > 10000 * 10000:
         raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6))
+
+    # Reproject the geometry if in 4326.
+    if data['geom']['srs'] == 'EPSG:4326':
+        data['geom']['geometry']['coordinates'][0] = transformed_coords
+        data['geom']['srs'] = 'EPSG:3857'
+    print('geom', data['geom'])
 
     # Get extract custom handler arguments.
     composite = data.pop('composite', False)

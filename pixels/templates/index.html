@@ -1,48 +1,280 @@
 <!DOCTYPE html>
-<html><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
 	<title>Tesselo - Pixels</title>
 
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
-   integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
-   crossorigin=""/>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.3/leaflet.draw.css" />
 
- 	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
-   integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
-   crossorigin=""></script>
-
+	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js" integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg==" crossorigin=""></script>
+	<script src="https://code.jquery.com/jquery-3.4.0.min.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.3/leaflet.draw.js"></script>
 </head>
-<body>
 
-<div id="mapid" style="top: 15%; left: 25%; right:25%; bottom: 15%; max-width: 2000px; position: absolute;"></div>
+<body>
+<nav class="navbar navbar-light bg-light">
+  <a class="navbar-brand" href="#">
+    <img src="https://static.tesselo.com/logo-tesselo-email.png" height="30" class="d-inline-block align-top" alt="Tesselo">
+  </a>
+</nav>
+<div class="container">
+  <div class="row justify-content-md-center">
+		<div class="col col-lg-12">
+			<div id="mapid" style="width: 100%; height: 100%; min-height: 300px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+	<form>
+		<!-- Dates -->
+	  <div class="form-group row">
+	    <label for="inputEmail3" class="col-sm-2 col-form-label">Start date</label>
+	    <div class="col-sm-10">
+	      <input type="text" class="form-control" id="startDate" name="start" placeholder="Start date" value="2019-04-01">
+	    </div>
+	  </div>
+	  <div class="form-group row">
+	    <label for="inputPassword3" class="col-sm-2 col-form-label">End date</label>
+	    <div class="col-sm-10">
+	      <input type="text" class="form-control" id="startDate" name="end" placeholder="End date" value="2019-04-15">
+	    </div>
+	  </div>
+		<!-- Platform -->
+		<fieldset class="form-group">
+	    <div class="row">
+	      <legend class="col-form-label col-sm-2 pt-0">Platform</legend>
+	      <div class="col-sm-10">
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="platform" id="s1" value="Sentinel-1" disabled>
+	          <label class="form-check-label" for="plaform">
+	            Sentinel-1
+	          </label>
+	        </div>
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="platform" id="s2" value="Sentinel-2" checked>
+	          <label class="form-check-label" for="plaform">
+	            Sentinel-2
+	          </label>
+	        </div>
+	      </div>
+	    </div>
+	  </fieldset>
+		<!-- Processing level -->
+	  <fieldset class="form-group">
+	    <div class="row">
+	      <legend class="col-form-label col-sm-2 pt-0">Processing Level</legend>
+	      <div class="col-sm-10">
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="product_type" id="l1c" value="S2MSI1C" checked>
+	          <label class="form-check-label" for="format">
+	            L1C
+	          </label>
+	        </div>
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="product_type" id="l2a" value="S2MSI2A">
+	          <label class="form-check-label" for="format">
+	            L2A
+	          </label>
+	        </div>
+	      </div>
+	    </div>
+	  </fieldset>
+		<!-- Processing type -->
+		<fieldset class="form-group">
+	    <div class="row">
+	      <legend class="col-form-label col-sm-2 pt-0">Mode</legend>
+	      <div class="col-sm-10">
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="latest_pixel" id="modeRadios1" value="true" checked>
+	          <label class="form-check-label" for="modeRadios">
+	            Latest Pixel
+	          </label>
+	        </div>
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="composite" id="modeRadios2" value="true">
+	          <label class="form-check-label" for="modeRadios">
+	            Composite
+	          </label>
+	        </div>
+	      </div>
+	    </div>
+	  </fieldset>
+
+		<div class="form-group">
+	    <label for="bands">Example multiple select</label>
+	    <select multiple class="form-control" id="bands" name="bands">
+				<option name='B01'>B01</option>
+				<option name='B02'>B02</option>
+				<option name='B03'>B03</option>
+				<option name='B04'>B04</option>
+				<option name='B05'>B05</option>
+				<option name='B06'>B06</option>
+				<option name='B07'>B07</option>
+				<option name='B08'>B08</option>
+				<option name='B8A'>B8A</option>
+				<option name='B09'>B09</option>
+				<option name='B10'>B10</option>
+				<option name='B11'>B11</option>
+				<option name='B12'>B12</option>
+	    </select>
+	  </div>
+		<!-- Format -->
+		<fieldset class="form-group">
+	    <div class="row">
+	      <legend class="col-form-label col-sm-2 pt-0">Format</legend>
+	      <div class="col-sm-10">
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="render" id="formatRadios1" value="false" checked>
+	          <label class="form-check-label" for="formatRadios">
+	            Zipped GeoTIFFs
+	          </label>
+	        </div>
+	        <div class="form-check">
+	          <input class="form-check-input" type="radio" name="render" id="formatRadios2" value="true">
+	          <label class="form-check-label" for="formatRadios">
+	            Rendered to PNG
+	          </label>
+	        </div>
+	      </div>
+	    </div>
+	  </fieldset>
+		<!-- Search only -->
+	  <div class="form-group row">
+	    <div class="col-sm-2">Mode</div>
+	    <div class="col-sm-10">
+	      <div class="form-check">
+	        <input class="form-check-input" type="checkbox" id="searchOnly" name="search_only">
+	        <label class="form-check-label" for="searchOnly">
+	          Search Only
+	        </label>
+	      </div>
+				<div class="form-check">
+	        <input class="form-check-input" type="checkbox" id="color" name="color" checked>
+	        <label class="form-check-label" for="color">
+	          Include RGB
+	        </label>
+	      </div>
+	    </div>
+	  </div>
+		<!-- Cloudy pixels -->
+		<div class="form-group row">
+	    <label for="inputEmail3" class="col-sm-2 col-form-label">Maximum Cloudy Pixel Percentage</label>
+	    <div class="col-sm-10">
+	      <input type="text" class="form-control" id="startDate" value="100" name="s2_max_cloud_cover_percentage">
+	    </div>
+	  </div>
+		<!-- Submit -->
+	  <div class="form-group row">
+	    <div class="col-sm-10">
+	      <button type="submit" class="btn btn-primary" id="update">Update</button>
+	    </div>
+	  </div>
+	</form>
+</div>
+
 
 <script>
+	// Baselayer
 	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 18
 	});
-	var sentinel2 = L.tileLayer('https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/tiles/{z}/{x}/{y}.png', {
+	// Satellite data.
+	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
 		maxZoom: 18,
 		minZoom: 12
-	})
+	});
+	// Draw rectangles layer.
+	var drawnItems = L.featureGroup();
+	// Create map.
+	var map = L.map('mapid', {
+		center: [19.0576, 72.8885],
+		zoom: 13,
+		layers: [osm, drawnItems]
+	});
+	// Create layer switcher.
 	var baseMaps = {
 	    "OSM": osm
 	};
 	var overlayMaps = {
-	    "Sentinel-2": sentinel2
+	    "Sentinel-2": sentinel2,
+			'Draw': drawnItems
 	};
-
-	var map = L.map('mapid', {
-		center: [19.0576, 72.8885],
-		zoom: 13,
-		layers: [osm]
+	L.control.layers(baseMaps, overlayMaps, { position: 'topright', collapsed: false }).addTo(map);
+	// Add draw control.
+  map.addControl(new L.Control.Draw({
+      edit: {
+          featureGroup: drawnItems,
+      },
+      draw: {
+          polygon: false,
+					polyline: false,
+					rectangle: true,
+					circle: false,
+					marker: false
+      }
+  }));
+	// Handle drawing, track current layer.
+	var current_layer;
+  map.on(L.Draw.Event.CREATED, function (event) {
+		drawnItems.eachLayer(function(to_remove) {
+			map.removeLayer(to_remove);
+		});
+		current_layer = event.layer;
+    drawnItems.addLayer(current_layer);
+  });
+	// Catch update event.
+	$('form').submit(function(e){
+	      e.preventDefault();
+				if (typeof current_layer == 'undefined') {
+					alert('Draw a polygon first.')
+				}
+				// Get form data.
+				var data = {};
+				bands = [];
+				$(this).serializeArray().map(function(x){
+					if (x.name == 'bands') {
+						bands.push(x.value)
+					}
+					if (x.value === 'true' || x.value == 'on'){
+						x.value = true
+					}
+					if (x.value === 'false' || x.value === 'off'){
+						x.value = false
+					}
+					data[x.name] = x.value;
+				});
+				// Track bands requested.
+				if (bands.length) {
+					data['bands'] = bands;
+				}
+				// Set delay mode.
+				if(!data['search_only']) {
+					data['delay'] = true;
+				}
+				// Set geometry.
+				data['geom'] = current_layer.toGeoJSON();
+				data['geom']['srs'] = 'EPSG:4326'
+				$.ajax({
+				  type: "POST",
+				  url: '/',
+				  data: JSON.stringify(data),
+					dataType: 'json',
+					contentType: "application/json",
+				  success: function(response){
+						console.log(response)
+					}
+				});
 	});
-
-	L.control.layers(baseMaps, overlayMaps).addTo(map);
-
 </script>
 
 </body></html>

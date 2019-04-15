@@ -124,6 +124,7 @@ def parse_scihub_data(data):
             # Append scene count for this date and mgrstile to match S3 structure.
             count_duplicates = sum([dat['prefix'][:-2] == parsed_entry['prefix'] for dat in result])
             parsed_entry['prefix'] += '{}/'.format(count_duplicates)
+            parsed_entry['s2_max_cloud_cover_percentage'] = filter_key(entry, 'double', 'cloudcoverpercentage')
 
         parsed_entry.update({'date': str(date), 'footprint': footprint})
 
