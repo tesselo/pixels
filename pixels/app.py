@@ -156,7 +156,7 @@ def pixels(data=None):
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
     else:
         # Only add delay flag here, otherwise this will trigger infinite loop.
-        config_log['delay'] = delay
+        config_log['delay'] = True if tag else False
 
     # Query available scenery.
     logger.info('Querying data on the ESA SciHub.')
@@ -189,6 +189,7 @@ def pixels(data=None):
             stack['RGB'] = scihub.s2_color(stack, as_file=True)
 
         if render:
+            logger.info('Rendering RGB data into PNG image.')
             pixpix = numpy.array([
                 numpy.clip(stack['RGB'].open().read(1), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
                 numpy.clip(stack['RGB'].open().read(2), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
