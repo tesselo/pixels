@@ -209,6 +209,7 @@ def pixels(data=None):
                     Key=tag,
                     Body=output,
                 )
+                return
             else:
                 return send_file(
                     output,
