@@ -13,11 +13,11 @@ event = {
         "geometry": {
             "type": "Polygon",
             "coordinates": [[
-                [816091, 5946430],  # Bern
-                [817191, 5946430],
-                [817291, 5945430],
-                [816091, 5945430],
-                [816091, 5946430],
+                [916091, 5946430],  # Bern
+                [915091, 5946430],
+                [915091, 5945430],
+                [916091, 5945430],
+                [916091, 5946430],
 
                 # [-8685316, -161905],  # Puyo
                 # [-8680872, -161781],
@@ -29,25 +29,26 @@ event = {
         },
     },
     "start": "2019-01-01",
-    "end": "2019-04-10",
+    "end": "2019-01-31",
     "platform": const.PLATFORM_SENTINEL_2,
     "product_type": const.PRODUCT_L2A,
-    "s2_max_cloud_cover_percentage": 50,
+    "s2_max_cloud_cover_percentage": 60,
     "search_only": False,
-    "composite": False,
-    "latest_pixel": True,
+    "composite": True,
+    "latest_pixel": False,
     "color": True,
     "render": True,
-    "delay": True,
+    "delay": False,
     # "bands": ["B04", "B03", "B02"],
 }
 
 
-host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/pixels/'
+host = 'https://cu3qnyr749.execute-api.eu-central-1.amazonaws.com/dev/pixels'
 # host = 'http://127.0.0.1:5000/pixels'
 url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(event)))
 result = requests.get(url)
 print(result.content)
+
 # webbrowser.open(url, new=2)
 
 # webbrowser.open('http://127.0.0.1:5000/13/4092/2723', new=2)
