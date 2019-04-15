@@ -134,12 +134,13 @@ def pixels(data=None):
 
     # Store original data and possible overrides.
     config_log = copy.deepcopy(data)
-    config_log['search_only'] = search_only
     config_log['composite'] = composite
     config_log['latest_pixel'] = latest_pixel
     config_log['color'] = color
     config_log['bands'] = bands
     config_log['scale'] = scale
+    config_log['render'] = render
+    config_log['search_only'] = search_only
     logger.info('Configuration is {}'.format(config_log))
 
     # Handle delay mode.
@@ -153,6 +154,9 @@ def pixels(data=None):
         pixels_task(config_log)
         url = '{}async/{}'.format(request.host_url, key)
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
+    else:
+        # Only add delay flag here, otherwise this will trigger infinite loop.
+        config_log['delay'] = delay
 
     # Query available scenery.
     logger.info('Querying data on the ESA SciHub.')
