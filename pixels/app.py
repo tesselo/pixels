@@ -8,7 +8,7 @@ from io import BytesIO
 import boto3
 import numpy
 from flask import Flask, jsonify, redirect, render_template, request, send_file
-from PIL import Image
+from PIL import Image, ImageEnhance
 from pyproj import Proj, transform
 from zappa.async import task
 
@@ -196,7 +196,11 @@ def pixels(data=None):
                 numpy.clip(stack['RGB'].open().read(3), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
             ]).astype('uint8')
 
+            # Create image object and enhance color scheme.
             img = Image.fromarray(pixpix.T)
+            img = ImageEnhance.Contrast(img).enhance(1.1)
+            img = ImageEnhance.Brightness(img).enhance(1.8)
+            img = ImageEnhance.Color(img).enhance(1.3)
 
             # Save image to io buffer.
             output = BytesIO()
