@@ -147,7 +147,7 @@ def pixels(data=None):
         logger.info('Working in delay mode.')
         key = '{}/pixels.{}'.format(
             uuid.uuid4(),
-            'png' if data.get('render', False) else 'zip'
+            'png' if config_log.get('render', False) else 'zip'
         )
         config_log['tag'] = key
         pixels_task(config_log)
