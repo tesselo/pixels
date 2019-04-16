@@ -8,7 +8,6 @@ from pixels.const import (
     SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
-from sen2cor.sceneclass import SceneClass
 
 
 def get_pixels(geom, entry, scale=10, bands=None, as_array=False, as_file=False):
@@ -131,11 +130,9 @@ def s2_composite(stacks, index_based=True, as_file=False):
         if 'SCL' in stack:
             clouds = stack['SCL'].read(1).astype('uint16')
             ndvi = None
+            # Use SCL layer to select pixel ranks.
+            clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
         else:
-            # Compute scene class using sen2cor.
-            sc = SceneClass(X, solaz=0, solze=0.5)
-            sc.process()
-            clouds = sc.result.astype('int')
             # Compute NDVI, avoiding zero division.
             B4 = X[3].astype('float')  # B04
             B8 = X[7].astype('float')  # B08
@@ -143,9 +140,7 @@ def s2_composite(stacks, index_based=True, as_file=False):
             ndvi_sum = B8 + B4
             ndvi_sum[ndvi_sum == SENTINEL_2_NODATA] = 1
             ndvi = ndvi_diff / ndvi_sum
-
-        # Use SCL layer to select pixel ranks.
-        clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
+            clouds = numpy.zeros(ndvi.shape)
 
         # Convert cloud probs to float.
         clouds = clouds.astype('float')
