@@ -38,23 +38,9 @@ class PixelsFailed(Exception):
         return rv
 
 
-class AsyncPixelsFailed(PixelsFailed):
-    status_code = 500
-
-
 @app.errorhandler(PixelsFailed)
 def handle_pixels_error(exc):
-    if isinstance(exc, AsyncPixelsFailed):
-        s3 = boto3.client('s3')
-        base = exc.tag.split('/')[0]
-        s3.put_object(
-            Bucket=const.BUCKET,
-            Key='{}/failed.txt'.format(base),
-            Body=BytesIO(),
-        )
-        response = jsonify(message='Async computation failed, wrote failed tag file to S3.')
-    else:
-        response = jsonify(exc.to_dict())
+    response = jsonify(exc.to_dict())
     response.status_code = exc.status_code
     return response
 
@@ -258,10 +244,19 @@ def pixels(data=None):
 
 @task
 def pixels_task(data):
+    # Store tag for usage error in case the pixels call fails.
+    tag = data['tag']
     try:
         pixels(data)
     except:
-        raise AsyncPixelsFailed('Async computation failed', tag=data['tag'])
+        s3 = boto3.client('s3')
+        base = tag.split('/')[0]
+        s3.put_object(
+            Bucket=const.BUCKET,
+            Key='{}/failed.txt'.format(base),
+            Body=BytesIO(),
+        )
+        raise
 
 
 @app.route('/async/<tag>/<file>', methods=['GET'])

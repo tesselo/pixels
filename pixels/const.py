@@ -60,6 +60,8 @@ AWS_DATA_BUCKET_SENTINEL_2_L2A = 'sentinel-s2-l2a'
 PREFIX_S2 = 'tiles/{utm}/{lz}/{grid}/{year}/{month}/{day}/'
 # Example: 's3://sentinel-s2-l1c/tiles/29/S/NC/2016/3/21/'
 
+SENTINEL_2_DTYPE = 'uint16'
+
 SENTINEL_2_NODATA = 0
 
 SENTINEL_2_BANDS = [

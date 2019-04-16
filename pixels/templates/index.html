@@ -12,13 +12,14 @@
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.3/leaflet.draw.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
 
 	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js" integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg==" crossorigin=""></script>
 	<script src="https://code.jquery.com/jquery-3.4.0.min.js" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.3/leaflet.draw.js"></script>
-</head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
 
 <body>
 <nav class="navbar navbar-light bg-light">
@@ -26,160 +27,197 @@
     <img src="https://static.tesselo.com/logo-tesselo-email.png" height="30" class="d-inline-block align-top" alt="Tesselo">
   </a>
 </nav>
-<div class="container">
+<div class="container mb-3 mt-3">
   <div class="row justify-content-md-center">
-		<div class="col col-lg-12">
+		<div class="col">
 			<div id="mapid" style="width: 100%; height: 100%; min-height: 300px;"></div>
     </div>
   </div>
 </div>
 
 <div class="container">
-	<form>
-		<!-- Dates -->
-	  <div class="form-group row">
-	    <label for="inputEmail3" class="col-sm-2 col-form-label">Start date</label>
-	    <div class="col-sm-10">
-	      <input type="text" class="form-control" id="startDate" name="start" placeholder="Start date" value="2019-04-01">
+	<div class="row">
+		<div class="col">
+			<form>
+				<!-- Dates -->
+			  <div class="form-group row">
+			    <label for="inputEmail3" class="col-sm-2 col-form-label">Start date</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="startDate" name="start" placeholder="Start date" value="2019-04-01">
+			    </div>
+			  </div>
+			  <div class="form-group row">
+			    <label for="inputPassword3" class="col-sm-2 col-form-label">End date</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="startDate" name="end" placeholder="End date" value="2019-04-15">
+			    </div>
+			  </div>
+				<!-- Platform -->
+				<fieldset class="form-group">
+			    <div class="row">
+			      <legend class="col-form-label col-sm-2 pt-0">Platform</legend>
+			      <div class="col-sm-10">
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="platform" id="s1" value="Sentinel-1" disabled>
+			          <label class="form-check-label" for="plaform">
+			            Sentinel-1
+			          </label>
+			        </div>
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="platform" id="s2" value="Sentinel-2" checked>
+			          <label class="form-check-label" for="plaform">
+			            Sentinel-2
+			          </label>
+			        </div>
+			      </div>
+			    </div>
+			  </fieldset>
+				<!-- Processing level -->
+			  <fieldset class="form-group">
+			    <div class="row">
+			      <legend class="col-form-label col-sm-2 pt-0">Processing Level</legend>
+			      <div class="col-sm-10">
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="product_type" id="l1c" value="S2MSI1C" checked>
+			          <label class="form-check-label" for="format">
+			            L1C
+			          </label>
+			        </div>
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="product_type" id="l2a" value="S2MSI2A">
+			          <label class="form-check-label" for="format">
+			            L2A
+			          </label>
+			        </div>
+			      </div>
+			    </div>
+			  </fieldset>
+				<!-- Processing type -->
+				<fieldset class="form-group">
+			    <div class="row">
+			      <legend class="col-form-label col-sm-2 pt-0">Mode</legend>
+			      <div class="col-sm-10">
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="composite" id="modeRadios1" value="false" checked>
+			          <label class="form-check-label" for="modeRadios">
+			            Latest Pixel
+			          </label>
+			        </div>
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="composite" id="modeRadios2" value="true">
+			          <label class="form-check-label" for="modeRadios">
+			            Composite
+			          </label>
+			        </div>
+			      </div>
+			    </div>
+			  </fieldset>
+				<!-- Format -->
+				<fieldset class="form-group">
+			    <div class="row">
+			      <legend class="col-form-label col-sm-2 pt-0">Format</legend>
+			      <div class="col-sm-10">
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="render" id="formatRadios1" value="false" checked>
+			          <label class="form-check-label" for="formatRadios">
+			            Zipped GeoTIFFs
+			          </label>
+			        </div>
+			        <div class="form-check">
+			          <input class="form-check-input" type="radio" name="render" id="formatRadios2" value="true">
+			          <label class="form-check-label" for="formatRadios">
+			            Rendered to PNG
+			          </label>
+			        </div>
+			      </div>
+			    </div>
+			  </fieldset>
+				<!-- Search only -->
+			  <div class="form-group row">
+			    <div class="col-sm-2">Mode</div>
+			    <div class="col-sm-10">
+			      <div class="form-check">
+			        <input class="form-check-input" type="checkbox" id="searchOnly" name="search_only">
+			        <label class="form-check-label" for="searchOnly">
+			          Search Only
+			        </label>
+			      </div>
+						<div class="form-check">
+			        <input class="form-check-input" type="checkbox" id="color" name="color" checked>
+			        <label class="form-check-label" for="color">
+			          Include RGB
+			        </label>
+			      </div>
+			    </div>
+			  </div>
+				<!-- Cloudy pixels -->
+				<div class="form-group row">
+			    <label for="inputEmail3" class="col-sm-2 col-form-label">Maximum Cloudy Pixel Percentage</label>
+			    <div class="col-sm-10">
+			      <input type="number" class="form-control" id="startDate" value="100" name="s2_max_cloud_cover_percentage">
+			    </div>
+			  </div>
+				<!-- Bands -->
+				<div class="form-group row">
+			    <label for="bands" class="col-sm-2 col-form-label">Select bands (opt)</label>
+					<div class="col-sm-10">
+				    <select multiple class="form-control" id="bands" name="bands">
+							<option name='B01'>B01</option>
+							<option name='B02'>B02</option>
+							<option name='B03'>B03</option>
+							<option name='B04'>B04</option>
+							<option name='B05'>B05</option>
+							<option name='B06'>B06</option>
+							<option name='B07'>B07</option>
+							<option name='B08'>B08</option>
+							<option name='B8A'>B8A</option>
+							<option name='B09'>B09</option>
+							<option name='B10'>B10</option>
+							<option name='B11'>B11</option>
+							<option name='B12'>B12</option>
+				    </select>
+					</div>
+				</div>
+				<!-- Submit -->
+			  <div class="form-group row">
+			    <div class="col-sm-10">
+			      <button type="submit" class="btn btn-primary" id="update">Get Pixels</button>
+			    </div>
+			  </div>
+			</form>
+		</div>
+	</div>
+	<div class="row results">
+		<!-- Query data -->
+		<div class="col">
+			<h2>Query data</h2>
+			<pre><code class="query language-json" data-lang="json"></code></pre>
+		</div>
+		<div class="col">
+			<h2>Query result</h2>
+			<pre><code class="query-result language-json" data-lang="json"></code></pre>
+		</div>
+	</div>
+	<!-- Modal -->
+	<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="exampleModalLabel">Draw a square first</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+					Use the draw functionality on the map before querying pixels.
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	      </div>
 	    </div>
 	  </div>
-	  <div class="form-group row">
-	    <label for="inputPassword3" class="col-sm-2 col-form-label">End date</label>
-	    <div class="col-sm-10">
-	      <input type="text" class="form-control" id="startDate" name="end" placeholder="End date" value="2019-04-15">
-	    </div>
-	  </div>
-		<!-- Platform -->
-		<fieldset class="form-group">
-	    <div class="row">
-	      <legend class="col-form-label col-sm-2 pt-0">Platform</legend>
-	      <div class="col-sm-10">
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="platform" id="s1" value="Sentinel-1" disabled>
-	          <label class="form-check-label" for="plaform">
-	            Sentinel-1
-	          </label>
-	        </div>
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="platform" id="s2" value="Sentinel-2" checked>
-	          <label class="form-check-label" for="plaform">
-	            Sentinel-2
-	          </label>
-	        </div>
-	      </div>
-	    </div>
-	  </fieldset>
-		<!-- Processing level -->
-	  <fieldset class="form-group">
-	    <div class="row">
-	      <legend class="col-form-label col-sm-2 pt-0">Processing Level</legend>
-	      <div class="col-sm-10">
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="product_type" id="l1c" value="S2MSI1C" checked>
-	          <label class="form-check-label" for="format">
-	            L1C
-	          </label>
-	        </div>
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="product_type" id="l2a" value="S2MSI2A">
-	          <label class="form-check-label" for="format">
-	            L2A
-	          </label>
-	        </div>
-	      </div>
-	    </div>
-	  </fieldset>
-		<!-- Processing type -->
-		<fieldset class="form-group">
-	    <div class="row">
-	      <legend class="col-form-label col-sm-2 pt-0">Mode</legend>
-	      <div class="col-sm-10">
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="latest_pixel" id="modeRadios1" value="true" checked>
-	          <label class="form-check-label" for="modeRadios">
-	            Latest Pixel
-	          </label>
-	        </div>
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="composite" id="modeRadios2" value="true">
-	          <label class="form-check-label" for="modeRadios">
-	            Composite
-	          </label>
-	        </div>
-	      </div>
-	    </div>
-	  </fieldset>
+	</div>
 
-		<div class="form-group">
-	    <label for="bands">Example multiple select</label>
-	    <select multiple class="form-control" id="bands" name="bands">
-				<option name='B01'>B01</option>
-				<option name='B02'>B02</option>
-				<option name='B03'>B03</option>
-				<option name='B04'>B04</option>
-				<option name='B05'>B05</option>
-				<option name='B06'>B06</option>
-				<option name='B07'>B07</option>
-				<option name='B08'>B08</option>
-				<option name='B8A'>B8A</option>
-				<option name='B09'>B09</option>
-				<option name='B10'>B10</option>
-				<option name='B11'>B11</option>
-				<option name='B12'>B12</option>
-	    </select>
-	  </div>
-		<!-- Format -->
-		<fieldset class="form-group">
-	    <div class="row">
-	      <legend class="col-form-label col-sm-2 pt-0">Format</legend>
-	      <div class="col-sm-10">
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="render" id="formatRadios1" value="false" checked>
-	          <label class="form-check-label" for="formatRadios">
-	            Zipped GeoTIFFs
-	          </label>
-	        </div>
-	        <div class="form-check">
-	          <input class="form-check-input" type="radio" name="render" id="formatRadios2" value="true">
-	          <label class="form-check-label" for="formatRadios">
-	            Rendered to PNG
-	          </label>
-	        </div>
-	      </div>
-	    </div>
-	  </fieldset>
-		<!-- Search only -->
-	  <div class="form-group row">
-	    <div class="col-sm-2">Mode</div>
-	    <div class="col-sm-10">
-	      <div class="form-check">
-	        <input class="form-check-input" type="checkbox" id="searchOnly" name="search_only">
-	        <label class="form-check-label" for="searchOnly">
-	          Search Only
-	        </label>
-	      </div>
-				<div class="form-check">
-	        <input class="form-check-input" type="checkbox" id="color" name="color" checked>
-	        <label class="form-check-label" for="color">
-	          Include RGB
-	        </label>
-	      </div>
-	    </div>
-	  </div>
-		<!-- Cloudy pixels -->
-		<div class="form-group row">
-	    <label for="inputEmail3" class="col-sm-2 col-form-label">Maximum Cloudy Pixel Percentage</label>
-	    <div class="col-sm-10">
-	      <input type="text" class="form-control" id="startDate" value="100" name="s2_max_cloud_cover_percentage">
-	    </div>
-	  </div>
-		<!-- Submit -->
-	  <div class="form-group row">
-	    <div class="col-sm-10">
-	      <button type="submit" class="btn btn-primary" id="update">Update</button>
-	    </div>
-	  </div>
-	</form>
 </div>
 
 
@@ -236,7 +274,7 @@
 	$('form').submit(function(e){
 	      e.preventDefault();
 				if (typeof current_layer == 'undefined') {
-					alert('Draw a polygon first.')
+					$('.modal').modal()
 				}
 				// Get form data.
 				var data = {};
@@ -244,6 +282,14 @@
 				$(this).serializeArray().map(function(x){
 					if (x.name == 'bands') {
 						bands.push(x.value)
+						return
+					}
+					if (x.name == 's2_max_cloud_cover_percentage') {
+						x.value = Number(x.value)
+					}
+					if (x.name == 'composite') {
+							data['composite'] = x.value == 'true' ? true : false
+							data['latest_pixel'] = !data['composite']
 					}
 					if (x.value === 'true' || x.value == 'on'){
 						x.value = true
@@ -264,6 +310,14 @@
 				// Set geometry.
 				data['geom'] = current_layer.toGeoJSON();
 				data['geom']['srs'] = 'EPSG:4326'
+				// Log query to html.
+				$('.query').text(JSON.stringify(data, null, 4)).each(function (i, e) {
+				    hljs.highlightBlock(e);
+				});
+		    $([document.documentElement, document.body]).animate({
+		        scrollTop: $(".results").offset().top
+		    }, 1000);
+				// Request pixels.
 				$.ajax({
 				  type: "POST",
 				  url: '/',
@@ -271,7 +325,14 @@
 					dataType: 'json',
 					contentType: "application/json",
 				  success: function(response){
-						console.log(response)
+						$('.query-result').html('<pre><code>' + JSON.stringify(response, null, 4) + '</pre></code>').each(function (i, e) {
+						    hljs.highlightBlock(e);
+						});
+					},
+					error: function(err, code, msg){
+						$('.query-result').html('<pre><code>' + JSON.stringify(response, null, 4) + '</pre></code>').each(function (i, e) {
+						    hljs.highlightBlock(e);
+						});
 					}
 				});
 	});

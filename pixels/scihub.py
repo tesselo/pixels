@@ -4,7 +4,7 @@ from rasterio.io import MemoryFile
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
     PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV,
-    SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_NODATA,
+    SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA,
     SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
@@ -94,7 +94,7 @@ def latest_pixel(geom, data, scale=10, bands=None, as_array=False, as_file=False
     for key, val in result.items():
         memfile = MemoryFile()
         dst = memfile.open(**creation_args)
-        dst.write(val.reshape((1, ) + val.shape))
+        dst.write(val.reshape((1, ) + val.shape).astype(SENTINEL_2_DTYPE))
         # Convert to numpy array or set file if requested.
         if as_array:
             dst = [dst.read(i) for i in range(1, dst.count + 1)]
@@ -128,7 +128,7 @@ def s2_composite(stacks, index_based=True, as_file=False):
         """
         X = [raster.read(1) for raster in stack.values()]
         if 'SCL' in stack:
-            clouds = stack['SCL'].read(1).astype('uint16')
+            clouds = stack['SCL'].read(1).astype(SENTINEL_2_DTYPE)
             ndvi = None
             # Use SCL layer to select pixel ranks.
             clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
@@ -172,7 +172,7 @@ def s2_composite(stacks, index_based=True, as_file=False):
         # Merge scene tiles for this band into a composite tile using the selector index.
         bnds = numpy.array([dat[i] for dat in Xs])
         # Construct final composite band array from selector index.
-        composite_data = numpy.choose(selector_index, bnds).astype('uint16')
+        composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
         # Create band target raster.
         result[band] = clone_raster(raster_to_clone, composite_data, as_file=as_file)
 
