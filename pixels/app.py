@@ -76,8 +76,9 @@ def pixels(data=None):
     dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
     area = abs(dx * dy)
     logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
-    if area > 10000 * 10000:
-        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(area / 1e6))
+    MAX_AREA = 50000 ** 2
+    if area > MAX_AREA:
+        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(MAX_AREA / 1e6))
 
     # Reproject the geometry if in 4326.
     if data['geom']['srs'] == 'EPSG:4326':
