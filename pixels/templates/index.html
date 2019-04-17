@@ -49,7 +49,7 @@
 			  <div class="form-group row">
 			    <label for="inputPassword3" class="col-sm-2 col-form-label">End date</label>
 			    <div class="col-sm-10">
-			      <input type="text" class="form-control" id="startDate" name="end" placeholder="End date" value="2019-04-15">
+			      <input type="text" class="form-control" id="endDate" name="end" placeholder="End date" value="2019-04-15">
 			    </div>
 			  </div>
 				<!-- Platform -->
@@ -222,11 +222,31 @@
 
 
 <script>
+  // Get auth key query argument.
   var queries = {};
   $.each(document.location.search.substr(1).split('&'),function(c,q){
     var i = q.split('=');
     queries[i[0].toString()] = i[1].toString();
   });
+  // Set current date in form.
+  var d = new Date();
+  var month = d.getMonth() + 1;
+  var day = d.getDate();
+
+  var today = d.getFullYear() + '-' +
+    ((''+month).length<2 ? '0' : '') + month + '-' +
+    ((''+day).length<2 ? '0' : '') + day;
+
+  month = month - 1;
+  month == month == 0 ? 12 : month;
+  var last_month = d.getFullYear() + '-' +
+    ((''+month).length<2 ? '0' : '') + month + '-' +
+    ((''+day).length<2 ? '0' : '') + day;
+  $('#startDate').val(today);
+  $('#endDate').val(last_month);
+
+
+
   var key = queries.key;
 	// Baselayer
 	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
