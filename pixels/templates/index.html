@@ -181,21 +181,21 @@
 				<!-- Submit -->
 			  <div class="form-group row">
 			    <div class="col-sm-10">
-			      <button type="submit" class="btn btn-primary" id="update">Get Pixels</button>
+			      <button type="submit" class="btn btn-primary" id="getpixels">Get Pixels</button>
 			    </div>
 			  </div>
 			</form>
 		</div>
 	</div>
 	<div class="row results">
-		<!-- Query data -->
-		<div class="col">
-			<h2>Query data</h2>
-			<pre><code class="query language-json" data-lang="json"></code></pre>
-		</div>
-		<div class="col">
+    <div class="col col-md-6">
 			<h2>Query result</h2>
 			<pre><code class="query-result language-json" data-lang="json"></code></pre>
+		</div>
+		<!-- Query data -->
+		<div class="col col-md-6">
+			<h2>Query data</h2>
+			<pre><code class="query language-json" data-lang="json"></code></pre>
 		</div>
 	</div>
 	<!-- Modal -->
@@ -212,7 +212,7 @@
 					Use the draw functionality on the map before querying pixels.
 	      </div>
 	      <div class="modal-footer">
-	        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	        <button type="button" class="btn btn-secondary " data-dismiss="modal">Close</button>
 	      </div>
 	    </div>
 	  </div>
@@ -339,7 +339,7 @@
 				    hljs.highlightBlock(e);
 				});
 		    $([document.documentElement, document.body]).animate({
-		        scrollTop: $(".results").offset().top
+		        scrollTop: $("#getpixels").offset().top
 		    }, 1000);
         // Clear current result.
         $('.query-result').html('<p>Waiting for results...</p>');
