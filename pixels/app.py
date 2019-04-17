@@ -6,11 +6,11 @@ import logging
 import uuid
 import zipfile
 from io import BytesIO
-from dateutil import parser
 
 import boto3
 import numpy
-from flask import Flask, jsonify, redirect, render_template, request, send_file
+from dateutil import parser
+from flask import Flask, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
 from pyproj import Proj, transform
@@ -46,12 +46,14 @@ def token_required(func):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        key = request.args.get('key', None)
-        if not key:
-            raise PixelsFailed('Authentication key is required.')
-        token = RasterApiReadonlytoken.query.get(key)
-        if not token:
-            raise PixelsFailed('Authentication key is not valid.')
+        # Only run the test if the function is called as a view.
+        if has_request_context():
+            key = request.args.get('key', None)
+            if not key:
+                raise PixelsFailed('Authentication key is required.')
+            token = RasterApiReadonlytoken.query.get(key)
+            if not token:
+                raise PixelsFailed('Authentication key is not valid.')
         return func(*args, **kwargs)
 
     return wrapper
@@ -186,7 +188,7 @@ def pixels(data=None):
         )
         config_log['tag'] = key
         pixels_task(config_log)
-        url = '{}async/{}'.format(request.host_url, key)
+        url = '{}async/{}?key={}'.format(request.host_url, key, request.args['key'])
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
     else:
         # Only add delay flag here, otherwise this will trigger infinite loop.
