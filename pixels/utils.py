@@ -13,7 +13,10 @@ def filter_key(entry, namespace, key):
     """
     Extract a value from a section of a scihub entry namespace.
     """
-    return list(filter(lambda d: d['name'] == key, entry[namespace]))[0]['content']
+    search_target = entry[namespace]
+    if isinstance(search_target, dict):
+        search_target = [search_target]
+    return list(filter(lambda d: d['name'] == key, search_target))[0]['content']
 
 
 def compute_transform(geom, scale):
