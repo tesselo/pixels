@@ -228,6 +228,7 @@
     var i = q.split('=');
     queries[i[0].toString()] = i[1].toString();
   });
+  var key = queries.key;
   // Set current date in form.
   var d = new Date();
   var month = d.getMonth() + 1;
@@ -244,10 +245,6 @@
     ((''+day).length<2 ? '0' : '') + day;
   $('#startDate').val(today);
   $('#endDate').val(last_month);
-
-
-
-  var key = queries.key;
 	// Baselayer
 	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 18

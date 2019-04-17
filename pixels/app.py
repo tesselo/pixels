@@ -344,9 +344,9 @@ def tiles(z, x, y):
     # Retrieve start date from query arg, default to 4 weeks before end.
     start = request.args.get('start')
     if not start:
-        start = str((parser.parse(start) - datetime.timedelta(weeks=4)).date())
+        start = str((parser.parse(end) - datetime.timedelta(weeks=4)).date())
     # Get cloud cover filter.
-    max_cloud_cover_percentage = int(request.args.get('max_cloud_cover_percentage', 50))
+    max_cloud_cover_percentage = int(request.args.get('max_cloud_cover_percentage', 20))
     # Compute tile bounds and scale.
     bounds = utils.tile_bounds(z, x, y)
     scale = utils.tile_scale(z)
