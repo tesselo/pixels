@@ -4,7 +4,7 @@ A globel pixel grabber engine.
 ## Documentation
 
 ### Authentication
-All endpoints use Token based authentication. Pass the "?key=mysecretkey" query argument to all requests.
+All endpoints use Token based authentication. Pass the `?key=mysecretkey` query argument to all requests.
 
 ### Website for exploring the functionality
 We created a website to interactively use the existing endpoints. On this website, you can draw a rectangle on an online map, specify the query parameters and obtain the result. It is a great way to explore the endpoint functionalities.
@@ -58,6 +58,7 @@ In more detail, the configuration contains the following elements:
   - `color` A boolean specifying if the visual bands should be combined into an RGB file for convenience.
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP files (with render=False).
+  - `search_only` A boolean specifying if the endpoint should only send back the list of images that match the search query.
 
 #### Example
 
@@ -106,8 +107,3 @@ requests.post(base_url, json=data)
 url = '{}&data={}'.format(base_url, data_encoded)
 requests.get(url)
 ```
-
-## Develop
-To run the flask server locally use `flask run`.
-
-To deploy to lambda use `zappa update production`
