@@ -339,6 +339,8 @@ def tiles(z, x, y):
     """
     TMS tiles endpoint.
     """
+    if z < 12:
+        raise PixelsFailed('The minimal zoom level is 12.')
     # Retrieve end date from query args.
     end = request.args.get('end')
     if not end:
