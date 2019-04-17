@@ -64,3 +64,8 @@ cd $target
 zip --symlinks -r9 $target.zip ./*
 
 unzip -l $target.zip
+
+
+find ~/.virtualenvs/pixels-deploy/lib/python3.6/site-packages/django/ -name locale -exec rm -rf {} \;
+find ~/.virtualenvs/pixels-deploy/ -name "*.pyc" -exec rm -f {} \;
+find . -name "*.pyc" -exec rm -f {} \;
