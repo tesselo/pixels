@@ -7,10 +7,14 @@
         "runtime": "python3.6",
         "s3_bucket": "zappa-pixels",
         "slim_handler": false,
-        "domain": "pixels.tesselo.com",
+        "domain": "dev.pixels.tesselo.com",
         "certificate_arn": "arn:aws:acm:us-east-1:595064993071:certificate/3cac1dfe-5915-4325-91fa-a53952cbd2e1",
         "log_level": "INFO",
         "timeout_seconds": 600,
         "memory_size": 1024
+    },
+    "production": {
+      "extends": "dev",
+      "domain": "pixels.tesselo.com",
     }
 }

@@ -1,10 +1,12 @@
 import copy
+import datetime
 import functools
 import json
 import logging
 import uuid
 import zipfile
 from io import BytesIO
+from dateutil import parser
 
 import boto3
 import numpy
@@ -198,6 +200,9 @@ def pixels(data=None):
     if search_only:
         return jsonify(query_result)
 
+    if not len(query_result):
+        raise PixelsFailed('No scenes found for the given search criteria.')
+
     # Get pixels.
     if latest_pixel:
         logger.info('Getting latest pixels stack.')
@@ -329,8 +334,23 @@ def asyncresult(tag, file):
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
 @token_required
 def tiles(z, x, y):
+    """
+    TMS tiles endpoint.
+    """
+    # Retrieve end date from query args.
+    end = request.args.get('end')
+    if not end:
+        end = str(datetime.datetime.now().date())
+    # Retrieve start date from query arg, default to 4 weeks before end.
+    start = request.args.get('start')
+    if not start:
+        start = str((parser.parse(start) - datetime.timedelta(weeks=4)).date())
+    # Get cloud cover filter.
+    max_cloud_cover_percentage = int(request.args.get('max_cloud_cover_percentage', 50))
+    # Compute tile bounds and scale.
     bounds = utils.tile_bounds(z, x, y)
     scale = utils.tile_scale(z)
+    # Prepare pixels query dict.
     data = {
         "geom": {
             "type": "Feature",
@@ -348,11 +368,11 @@ def tiles(z, x, y):
             },
         },
         "scale": scale,
-        "start": "2019-01-01",
-        "end": "2019-04-10",
+        "start": start,
+        "end": end,
         "platform": const.PLATFORM_SENTINEL_2,
         "product_type": const.PRODUCT_L2A,
-        "s2_max_cloud_cover_percentage": 50,
+        "s2_max_cloud_cover_percentage": max_cloud_cover_percentage,
         "search_only": False,
         "composite": False,
         "latest_pixel": True,
