@@ -9,7 +9,7 @@ All endpoints use Token based authentication. Pass the "?key=mysecretkey" query 
 ### Website for exploring the functionality
 We created a website to interactively use the existing endpoints. On this website, you can draw a rectangle on an online map, specify the query parameters and obtain the result. It is a great way to explore the endpoint functionalities.
 
-    https://pixels.tesselo.com/map
+    https://pixels.tesselo.com
 
 ### TMS Endpoint
 Latest pixel maps can be added to online maps as layers with the following url.
@@ -31,7 +31,7 @@ To customize the filters, use the endpoint as follows:
 ### Image generation enpdoint
 The following endpoint allows requesting satellite image data in a flexible way. It requires a JSON configuration defining an image query.
 
-    https://pixels.tesselo.com/
+    https://pixels.tesselo.com/data
 
 The basic concept is that you have to specify an area of interest, a date range, and an optional filter for cloud coverage.
 
