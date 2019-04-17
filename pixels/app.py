@@ -1,4 +1,5 @@
 import copy
+import functools
 import json
 import logging
 import uuid
@@ -8,20 +9,56 @@ from io import BytesIO
 import boto3
 import numpy
 from flask import Flask, jsonify, redirect, render_template, request, send_file
+from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
 from pyproj import Proj, transform
 from zappa.async import task
 
 from pixels import const, scihub, search, utils
 
+# Flask setup
 app = Flask(__name__)
+app.config.from_pyfile('config.py')
+
+# Logging setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# DB Setup
+db = SQLAlchemy(app)
 
-# Exceptions.
+
+class RasterApiReadonlytoken(db.Model):
+    key = db.Column(db.String(40), primary_key=True)
+    user_id = db.Column(db.Integer, unique=True)
+    created = db.Column(db.DateTime)
+
+    def __repr__(self):
+        return 'Token %r' % self.key
+
+
+def token_required(func):
+    """
+    Decorator to check for auth token.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        key = request.args.get('key', None)
+        if not key:
+            raise PixelsFailed('Authentication key is required.')
+        token = RasterApiReadonlytoken.query.get(key)
+        if not token:
+            raise PixelsFailed('Authentication key is not valid.')
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class PixelsFailed(Exception):
+    """
+    Custom exception.
+    """
     status_code = 400
 
     def __init__(self, message, status_code=None, payload=None, tag=None):
@@ -45,12 +82,14 @@ def handle_pixels_error(exc):
     return response
 
 
-@app.route('/map', methods=['GET'])
+@app.route('/', methods=['GET'])
+@token_required
 def index():
     return render_template('index.html')
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/data', methods=['GET', 'POST'])
+@token_required
 def pixels(data=None):
     """
     AWS Lambda ready handler for the pixels package.
@@ -65,7 +104,8 @@ def pixels(data=None):
         else:
             # Retrieve json data from post request.
             data = request.get_json()
-
+    # Remove auth key from data dict.
+    data.pop('key', None)
     # Limit size of geometry.
     # Transform the geom coordinates into web mercator and limit size
     # to 10km by 10km.
@@ -261,6 +301,7 @@ def pixels_task(data):
 
 
 @app.route('/async/<tag>/<file>', methods=['GET'])
+@token_required
 def asyncresult(tag, file):
     s3 = boto3.resource('s3')
     obj = s3.Object(const.BUCKET, '{}/{}'.format(tag, file))
@@ -286,6 +327,7 @@ def asyncresult(tag, file):
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
+@token_required
 def tiles(z, x, y):
     bounds = utils.tile_bounds(z, x, y)
     scale = utils.tile_scale(z)

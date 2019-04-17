@@ -54,7 +54,7 @@ data.update({
     'composite': False,
     'latest_pixel': True
 })
-# results.append(requests.post(host, json=data))
+results.append(requests.post(host, json=data))
 
 data.update({
     'render': True,
@@ -62,10 +62,6 @@ data.update({
 })
 url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(data)))
 webbrowser.open(url)
-
-
-
-
 
 # results.append(requests.post(host, json=data))
 #

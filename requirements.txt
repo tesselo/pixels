@@ -1,6 +1,8 @@
-rasterio==1.0.21
+rasterio==1.0.22
 requests==2.21
 pyproj==1.9.6
 Flask==1.0.2
 zappa==0.48.2
 Pillow==6.0.0
+Flask-SQLAlchemy==2.3.2
+psycopg2-binary==2.8.2

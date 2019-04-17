@@ -222,12 +222,18 @@
 
 
 <script>
+  var queries = {};
+  $.each(document.location.search.substr(1).split('&'),function(c,q){
+    var i = q.split('=');
+    queries[i[0].toString()] = i[1].toString();
+  });
+  var key = queries.key;
 	// Baselayer
 	var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 18
 	});
 	// Satellite data.
-	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png?key=' + key, {
 		maxZoom: 18,
 		minZoom: 12
 	});
@@ -274,7 +280,8 @@
 	$('form').submit(function(e){
 	      e.preventDefault();
 				if (typeof current_layer == 'undefined') {
-					$('.modal').modal()
+					$('.modal').modal();
+          return;
 				}
 				// Get form data.
 				var data = {};
@@ -320,7 +327,7 @@
 				// Request pixels.
 				$.ajax({
 				  type: "POST",
-				  url: '/',
+				  url: '/data?key=' + key,
 				  data: JSON.stringify(data),
 					dataType: 'json',
 					contentType: "application/json",
