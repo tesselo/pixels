@@ -10,7 +10,7 @@ from pixels.const import (
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 
 
-def get_pixels(geom, entry, scale=10, bands=None, as_array=False, as_file=False):
+def get_pixels(geom, entry, scale=10, bands=None, as_file=False):
     """
     Get pixel values from S3.
     """
@@ -49,14 +49,13 @@ def get_pixels(geom, entry, scale=10, bands=None, as_array=False, as_file=False)
             width=width,
             height=height,
             crs=crs,
-            as_array=as_array,
             as_file=as_file,
         )
 
     return result
 
 
-def latest_pixel(geom, data, scale=10, bands=None, as_array=False, as_file=False):
+def latest_pixel(geom, data, scale=10, bands=None, as_file=False):
     """
     Construct the latest pixel composite from the query result.
 
@@ -95,10 +94,8 @@ def latest_pixel(geom, data, scale=10, bands=None, as_array=False, as_file=False
         memfile = MemoryFile()
         dst = memfile.open(**creation_args)
         dst.write(val.reshape((1, ) + val.shape).astype(SENTINEL_2_DTYPE))
-        # Convert to numpy array or set file if requested.
-        if as_array:
-            dst = [dst.read(i) for i in range(1, dst.count + 1)]
-        elif as_file:
+        # Convert to file if requested.
+        if as_file:
             dst = memfile
 
         rst_result[key.upper()] = dst

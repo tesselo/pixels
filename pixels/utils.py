@@ -43,7 +43,7 @@ def tile_scale(z):
     return round(scale, 8)
 
 
-def warp_from_s3(bucket, prefix, transform, width, height, crs, as_array=False, as_file=False):
+def warp_from_s3(bucket, prefix, transform, width, height, crs, as_file=False):
     """
     Warp a raster from S3 onto a local target raster using the target geotransform.
     """
@@ -94,10 +94,8 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs, as_array=False, 
             })
             reproject(**proj_args)
 
-        # Extract band arrays if requested.
-        if as_array:
-            return [dst.read(i) for i in range(1, dst.count + 1)]
-        elif as_file:
+        # Convert to file if requested.
+        if as_file:
             memfile.seek(0)
             return memfile
         else:
