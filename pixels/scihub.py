@@ -10,7 +10,7 @@ from pixels.const import (
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 
 
-def get_pixels(geom, entry, scale=10, bands=None, as_file=False):
+def get_pixels(geom, entry, scale=10, bands=None):
     """
     Get pixel values from S3.
     """
@@ -49,13 +49,12 @@ def get_pixels(geom, entry, scale=10, bands=None, as_file=False):
             width=width,
             height=height,
             crs=crs,
-            as_file=as_file,
         )
 
     return result
 
 
-def latest_pixel(geom, data, scale=10, bands=None, as_file=False):
+def latest_pixel(geom, data, scale=10, bands=None):
     """
     Construct the latest pixel composite from the query result.
 
@@ -94,16 +93,12 @@ def latest_pixel(geom, data, scale=10, bands=None, as_file=False):
         memfile = MemoryFile()
         dst = memfile.open(**creation_args)
         dst.write(val.reshape((1, ) + val.shape).astype(SENTINEL_2_DTYPE))
-        # Convert to file if requested.
-        if as_file:
-            dst = memfile
-
-        rst_result[key.upper()] = dst
+        rst_result[key.upper()] = memfile
 
     return rst_result
 
 
-def s2_composite(stacks, index_based=True, as_file=False):
+def s2_composite(stacks, index_based=True):
     """
     Compute a composite for a stack of S2 input data.
     """
@@ -171,12 +166,12 @@ def s2_composite(stacks, index_based=True, as_file=False):
         # Construct final composite band array from selector index.
         composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
         # Create band target raster.
-        result[band] = clone_raster(raster_to_clone, composite_data, as_file=as_file)
+        result[band] = clone_raster(raster_to_clone, composite_data)
 
     return result
 
 
-def s2_color(stack, path=None, as_file=False):
+def s2_color(stack, path=None):
     """
     Create RGB using the visual spectrum of an S2 stack.
     """
@@ -196,13 +191,11 @@ def s2_color(stack, path=None, as_file=False):
     memfile = MemoryFile()
     dst = memfile.open(**creation_args)
     dst.write(data)
-    if as_file:
-        return memfile
-    else:
-        return dst
+
+    return memfile
 
 
-def s1_color(stack, path=None, as_file=False):
+def s1_color(stack, path=None):
     """
     Create RGB using the two S1 backscatter polarisation channels.
     """
@@ -240,7 +233,5 @@ def s1_color(stack, path=None, as_file=False):
     memfile = MemoryFile()
     dst = memfile.open(**creation_args)
     dst.write(data)
-    if as_file:
-        return memfile
-    else:
-        return dst
+
+    return memfile

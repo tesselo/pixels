@@ -210,7 +210,7 @@ def pixels(data=None):
     # Get pixels.
     if latest_pixel:
         logger.info('Getting latest pixels stack.')
-        stack = scihub.latest_pixel(data['geom'], query_result, scale=scale, bands=bands, as_file=True)
+        stack = scihub.latest_pixel(data['geom'], query_result, scale=scale, bands=bands)
     else:
         for entry in query_result:
             logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
@@ -219,7 +219,7 @@ def pixels(data=None):
         if composite:
             logger.info('Computing composite from pixel stacks.')
             stack = [entry['pixels'] for entry in query_result]
-            stack = scihub.s2_composite(stack, as_file=True)
+            stack = scihub.s2_composite(stack)
 
     # Clip to geometry if requested:
     if clip_to_geom:
@@ -229,9 +229,9 @@ def pixels(data=None):
     if color:
         logger.info('Computing RGB image from stack.')
         if data.get('platform', None) == const.PLATFORM_SENTINEL_1:
-            stack['RGB'] = scihub.s1_color(stack, as_file=True)
+            stack['RGB'] = scihub.s1_color(stack)
         else:
-            stack['RGB'] = scihub.s2_color(stack, as_file=True)
+            stack['RGB'] = scihub.s2_color(stack)
 
         if render:
             logger.info('Rendering RGB data into PNG image.')

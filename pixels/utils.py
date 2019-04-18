@@ -43,7 +43,7 @@ def tile_scale(z):
     return round(scale, 8)
 
 
-def warp_from_s3(bucket, prefix, transform, width, height, crs, as_file=False):
+def warp_from_s3(bucket, prefix, transform, width, height, crs):
     """
     Warp a raster from S3 onto a local target raster using the target geotransform.
     """
@@ -94,12 +94,9 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs, as_file=False):
             })
             reproject(**proj_args)
 
-        # Convert to file if requested.
-        if as_file:
-            memfile.seek(0)
-            return memfile
-        else:
-            return dst
+        # Return memfile.
+        memfile.seek(0)
+        return memfile
 
 
 def write_to_disk(rst, path):
@@ -110,7 +107,7 @@ def write_to_disk(rst, path):
         dst.write(rst.read())
 
 
-def clone_raster(rst, data, as_file=False):
+def clone_raster(rst, data):
     """
     Clone a raster.
     """
@@ -122,11 +119,8 @@ def clone_raster(rst, data, as_file=False):
     # Write band data to target raster.
     dst.write(data.reshape((1, ) + (rst.height, rst.width)))
 
-    # Return raster or file object.
-    if as_file:
-        return memfile
-    else:
-        return dst
+    # Return memfile object.
+    return memfile
 
 
 def persist(entry, folder):
@@ -189,6 +183,6 @@ def clip_to_geom(stack, geom):
             dat = rst.read(1)
             dat[mask] = 0
             dat = dat.reshape((1, ) + dat.shape)
-            result[key] = clone_raster(rst, dat, as_file=True)
+            result[key] = clone_raster(rst, dat)
 
     return result
