@@ -9,6 +9,8 @@ from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
+from pixels import const
+
 
 def filter_key(entry, namespace, key):
     """
@@ -173,7 +175,7 @@ def clip_to_geom(stack, geom):
         mask = rasterize([geom['geometry']], out_shape=rst.shape, transform=rst.transform, all_touched=True).astype('bool')
     # If all pixels were included, return early.
     if numpy.all(mask):
-        return
+        return stack
     # Invert mask to use for clipping rasters.
     mask = numpy.logical_not(mask)
     # Mask all rasters.
@@ -181,7 +183,7 @@ def clip_to_geom(stack, geom):
     for key, val in stack.items():
         with val.open() as rst:
             dat = rst.read(1)
-            dat[mask] = 0
+            dat[mask] = const.SENTINEL_2_NODATA
             dat = dat.reshape((1, ) + dat.shape)
             result[key] = clone_raster(rst, dat)
 

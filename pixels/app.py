@@ -135,15 +135,20 @@ def pixels(data=None):
     color = data.pop('color', False)
     bands = data.pop('bands', [])
     scale = data.pop('scale', 10)
-    render = data.pop('render', False)
     tag = data.pop('tag', None)
     delay = data.pop('delay', False)
     search_only = data.pop('search_only', False)
     clip_to_geom = data.pop('clip_to_geom', False)
+    format = data.pop('format', const.REQUEST_FORMAT_ZIP).upper()
+
+    # Comute render flag for convenience.
+    render = format == const.REQUEST_FORMAT_PNG
 
     # Sanity checks.
+    if format not in const.REQUEST_FORMATS:
+        raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(format, const.REQUEST_FORMATS))
+
     if not composite and not latest_pixel:
-        # TODO: Allow getting multiple stacks as "raw" scenes data.
         raise PixelsFailed('Choose either latest pixel or composite mode.')
 
     if composite and data.get('platform', None) == const.PLATFORM_SENTINEL_1:
@@ -160,6 +165,7 @@ def pixels(data=None):
         else:
             logger.info('Adding all Sentinel-2 bands for composite mode.')
             bands = const.SENTINEL_2_BANDS
+
     # For color, assure the RGB bands are present.
     if render and data['platform'] == const.PLATFORM_SENTINEL_2:
         # For render, only request RGB bands.
@@ -179,7 +185,7 @@ def pixels(data=None):
     config_log['color'] = color
     config_log['bands'] = bands
     config_log['scale'] = scale
-    config_log['render'] = render
+    config_log['format'] = format
     config_log['search_only'] = search_only
     config_log['clip_to_geom'] = clip_to_geom
     logger.info('Configuration is {}'.format(config_log))
@@ -189,7 +195,7 @@ def pixels(data=None):
         logger.info('Working in delay mode.')
         key = '{}/pixels.{}'.format(
             uuid.uuid4(),
-            'png' if config_log.get('render', False) else 'zip'
+            config_log['format'].lower(),
         )
         config_log['tag'] = key
         pixels_task(config_log)
@@ -269,15 +275,28 @@ def pixels(data=None):
                 )
 
     # Write all result rasters into a zip file and return the data package.
-    logger.info('Packaging data into zip file.')
     bytes_buffer = BytesIO()
-    with zipfile.ZipFile(bytes_buffer, 'w') as zf:
-        # Write pixels into zip file.
-        for key, raster in stack.items():
-            raster.seek(0)
-            zf.writestr('{}.tif'.format(key), raster.read())
-        # Write config into zip file.
-        zf.writestr('config.json', json.dumps(config_log))
+    if format == const.REQUEST_FORMAT_ZIP:
+        logger.info('Packaging data into zip file.')
+        with zipfile.ZipFile(bytes_buffer, 'w') as zf:
+            # Write pixels into zip file.
+            for key, raster in stack.items():
+                raster.seek(0)
+                zf.writestr('{}.tif'.format(key), raster.read())
+            # Write config into zip file.
+            zf.writestr('config.json', json.dumps(config_log))
+    elif format == const.REQUEST_FORMAT_NPZ:
+        logger.info('Packaging data into numpy npz file.')
+        # Convert stack to numpy arrays.
+        stack = {key: val.open().read(1) for key, val in stack.items()}
+        # Save to compressed numpy npz format.
+        numpy.savez_compressed(
+            bytes_buffer,
+            config=config_log,
+            **stack
+        )
+    else:
+        raise PixelsFailed('Unrecognized format {}, choose one of {}'.format(format, const.REQUEST_FORMATS))
 
     # Rewind buffer.
     bytes_buffer.seek(0)
@@ -294,8 +313,8 @@ def pixels(data=None):
         return send_file(
             bytes_buffer,
             as_attachment=True,
-            attachment_filename='pixels.zip',
-            mimetype='application/zip'
+            attachment_filename='pixels.{}'.format(format.lower()),
+            mimetype='application/{}'.format(format.lower())
         )
 
 
@@ -389,6 +408,6 @@ def tiles(z, x, y):
         "composite": False,
         "latest_pixel": True,
         "color": True,
-        "render": True,
+        "format": const.REQUEST_FORMAT_PNG,
     }
     return pixels(data)

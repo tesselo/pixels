@@ -79,13 +79,13 @@
 			      <div class="col-sm-10">
 			        <div class="form-check">
 			          <input class="form-check-input" type="radio" name="product_type" id="l1c" value="S2MSI1C" checked>
-			          <label class="form-check-label" for="format">
+			          <label class="form-check-label" for="product_type">
 			            L1C
 			          </label>
 			        </div>
 			        <div class="form-check">
 			          <input class="form-check-input" type="radio" name="product_type" id="l2a" value="S2MSI2A">
-			          <label class="form-check-label" for="format">
+			          <label class="form-check-label" for="product_type">
 			            L2A
 			          </label>
 			        </div>
@@ -113,20 +113,26 @@
 			    </div>
 			  </fieldset>
 				<!-- Format -->
-				<fieldset class="form-group">
+        <fieldset class="form-group">
 			    <div class="row">
 			      <legend class="col-form-label col-sm-2 pt-0">Format</legend>
 			      <div class="col-sm-10">
 			        <div class="form-check">
-			          <input class="form-check-input" type="radio" name="render" id="formatRadios1" value="false" checked>
-			          <label class="form-check-label" for="formatRadios">
-			            Zipped GeoTIFFs
+			          <input class="form-check-input" type="radio" name="format" id="PNG" value="PNG" checked>
+			          <label class="form-check-label" for="format">
+			            PNG - Rendered image of visual bands.
 			          </label>
 			        </div>
 			        <div class="form-check">
-			          <input class="form-check-input" type="radio" name="render" id="formatRadios2" value="true">
-			          <label class="form-check-label" for="formatRadios">
-			            Rendered to PNG
+			          <input class="form-check-input" type="radio" name="format" id="ZIP" value="ZIP">
+			          <label class="form-check-label" for="format">
+			            ZIP - GeoTIFF files for all requested bands in zip archive.
+			          </label>
+			        </div>
+              <div class="form-check">
+			          <input class="form-check-input" type="radio" name="format" id="NPZ" value="NPZ">
+			          <label class="form-check-label" for="format">
+			            NPZ- Numpy arrays packed into a compressed npz file.
 			          </label>
 			        </div>
 			      </div>

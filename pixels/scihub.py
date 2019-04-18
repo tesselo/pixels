@@ -1,3 +1,5 @@
+import logging
+
 import numpy
 from rasterio.io import MemoryFile
 
@@ -8,6 +10,8 @@ from pixels.const import (
     SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
+
+logger = logging.getLogger(__name__)
 
 
 def get_pixels(geom, entry, scale=10, bands=None):
@@ -63,13 +67,14 @@ def latest_pixel(geom, data, scale=10, bands=None):
     result = {}
     creation_args = None
     for entry in data:
-        print('Adding entry', entry['prefix'], 'to latest pixel stack.')
+        logger.info('Adding entry', entry['prefix'], 'to latest pixel stack.')
         data = get_pixels(geom, entry, scale=scale, bands=bands)
         # Save a copy of the creation arguments for later conversion to raster.
         if creation_args is None:
-            creation_args = next(iter(data.values())).meta.copy()
+            with next(iter(data.values())).open() as tmp:
+                creation_args = tmp.meta.copy()
         # Extract band arrays.
-        array_entry = {key: val.read(1) for key, val in data.items()}
+        array_entry = {key: val.open().read(1) for key, val in data.items()}
         # Prepare flag for remaining nodata pixels.
         has_remaining_empty_pixels = False
         # Parse additional pixels in a loop.
@@ -118,9 +123,9 @@ def s2_composite(stacks, index_based=True):
         that between categories that are similarly desireable, the relative NDVI
         value is decisive.
         """
-        X = [raster.read(1) for raster in stack.values()]
+        X = [raster.open().read(1) for raster in stack.values()]
         if 'SCL' in stack:
-            clouds = stack['SCL'].read(1).astype(SENTINEL_2_DTYPE)
+            clouds = stack['SCL'].open().read(1).astype(SENTINEL_2_DTYPE)
             ndvi = None
             # Use SCL layer to select pixel ranks.
             clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
@@ -176,9 +181,9 @@ def s2_color(stack, path=None):
     Create RGB using the visual spectrum of an S2 stack.
     """
     data = numpy.array([
-        stack['B04'].open().read(1) if isinstance(stack['B04'], MemoryFile) else stack['B04'].read(1),
-        stack['B03'].open().read(1) if isinstance(stack['B03'], MemoryFile) else stack['B03'].read(1),
-        stack['B02'].open().read(1) if isinstance(stack['B02'], MemoryFile) else stack['B02'].read(1),
+        stack['B04'].open().read(1),
+        stack['B03'].open().read(1),
+        stack['B02'].open().read(1),
     ])
     if isinstance(stack['B04'], MemoryFile):
         creation_args = stack['B04'].open().meta.copy()
@@ -207,8 +212,8 @@ def s1_color(stack, path=None):
         B0 = stack[SENTINEL_1_BANDS_HH_HV[0]]
         B1 = stack[SENTINEL_1_BANDS_HH_HV[1]]
 
-    B0 = B0.open().read(1) if isinstance(B0, MemoryFile) else B0.read(1)
-    B1 = B1.open().read(1) if isinstance(B1, MemoryFile) else B1.read(1)
+    B0 = B0.open().read(1)
+    B1 = B1.open().read(1)
 
     orig_dtype = B0.dtype
 

@@ -7,6 +7,12 @@ BASE_SEARCH = '( footprint:"Intersects({geom})" ) AND ( beginPosition:[{start}T0
 
 BUCKET = 'tesselo-pixels-results'
 
+REQUEST_FORMAT_ZIP = 'ZIP'
+REQUEST_FORMAT_PNG = 'PNG'
+REQUEST_FORMAT_NPZ = 'NPZ'
+
+REQUEST_FORMATS = [REQUEST_FORMAT_ZIP, REQUEST_FORMAT_PNG, REQUEST_FORMAT_NPZ]
+
 # ###################################################
 # Sentinel-1
 # ###################################################
