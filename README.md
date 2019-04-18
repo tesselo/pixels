@@ -59,6 +59,7 @@ In more detail, the configuration contains the following elements:
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP files (with render=False).
   - `search_only` A boolean specifying if the endpoint should only send back the list of images that match the search query.
+  - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
 
 #### Example
 

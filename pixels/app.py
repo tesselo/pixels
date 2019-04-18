@@ -139,6 +139,7 @@ def pixels(data=None):
     tag = data.pop('tag', None)
     delay = data.pop('delay', False)
     search_only = data.pop('search_only', False)
+    clip_to_geom = data.pop('clip_to_geom', False)
 
     # Sanity checks.
     if not composite and not latest_pixel:
@@ -177,6 +178,7 @@ def pixels(data=None):
     config_log['scale'] = scale
     config_log['render'] = render
     config_log['search_only'] = search_only
+    config_log['clip_to_geom'] = clip_to_geom
     logger.info('Configuration is {}'.format(config_log))
 
     # Handle delay mode.
@@ -218,6 +220,10 @@ def pixels(data=None):
             logger.info('Computing composite from pixel stacks.')
             stack = [entry['pixels'] for entry in query_result]
             stack = scihub.s2_composite(stack, as_file=True)
+
+    # Clip to geometry if requested:
+    if clip_to_geom:
+        stack = utils.clip_to_geom(stack, data['geom'])
 
     # Convert to RGB color tif.
     if color:

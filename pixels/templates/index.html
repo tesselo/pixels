@@ -134,18 +134,24 @@
 			  </fieldset>
 				<!-- Search only -->
 			  <div class="form-group row">
-			    <div class="col-sm-2">Mode</div>
+			    <div class="col-sm-2">Options</div>
 			    <div class="col-sm-10">
-			      <div class="form-check">
-			        <input class="form-check-input" type="checkbox" id="searchOnly" name="search_only">
-			        <label class="form-check-label" for="searchOnly">
-			          Search Only
-			        </label>
-			      </div>
 						<div class="form-check">
 			        <input class="form-check-input" type="checkbox" id="color" name="color" checked>
 			        <label class="form-check-label" for="color">
 			          Include RGB
+			        </label>
+			      </div>
+            <div class="form-check">
+			        <input class="form-check-input" type="checkbox" id="clip_to_geom" name="clip_to_geom">
+			        <label class="form-check-label" for="clip_to_geom">
+			          Clip images to geometry
+			        </label>
+			      </div>
+            <div class="form-check">
+			        <input class="form-check-input" type="checkbox" id="searchOnly" name="search_only">
+			        <label class="form-check-label" for="searchOnly">
+			          Search Only
 			        </label>
 			      </div>
 			    </div>
@@ -277,7 +283,7 @@
           featureGroup: drawnItems,
       },
       draw: {
-          polygon: false,
+          polygon: true,
 					polyline: false,
 					rectangle: true,
 					circle: false,

@@ -2,9 +2,10 @@ import glob
 import os
 from math import ceil, pi
 
+import numpy
 import rasterio
 from rasterio import Affine
-from rasterio.features import bounds
+from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
@@ -169,3 +170,27 @@ def tile_bounds(z, x, y):
     ymax = WEB_MERCATOR_TILESHIFT - y * zscale
 
     return [xmin, ymin, xmax, ymax]
+
+
+def clip_to_geom(stack, geom):
+    """
+    Clip all rasters in this stack to the geometry.
+    """
+    # Compute mask from geom.
+    with next(iter(stack.values())).open() as rst:
+        mask = rasterize([geom['geometry']], out_shape=rst.shape, transform=rst.transform, all_touched=True).astype('bool')
+    # If all pixels were included, return early.
+    if numpy.all(mask):
+        return
+    # Invert mask to use for clipping rasters.
+    mask = numpy.logical_not(mask)
+    # Mask all rasters.
+    result = {}
+    for key, val in stack.items():
+        with val.open() as rst:
+            dat = rst.read(1)
+            dat[mask] = 0
+            dat = dat.reshape((1, ) + dat.shape)
+            result[key] = clone_raster(rst, dat, as_file=True)
+
+    return result
