@@ -161,7 +161,10 @@ def pixels(data=None):
             logger.info('Adding all Sentinel-2 bands for composite mode.')
             bands = const.SENTINEL_2_BANDS
     # For color, assure the RGB bands are present.
-    if color and data['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
+    if render and data['platform'] == const.PLATFORM_SENTINEL_2:
+        # For render, only request RGB bands.
+        bands = const.SENTINEL_2_RGB_BANDS
+    elif color and data['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
         logger.info('Adding RGB bands for color mode.')
         bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
     elif color and data['platform'] == const.PLATFORM_SENTINEL_1:
