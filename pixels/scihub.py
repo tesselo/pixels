@@ -67,7 +67,7 @@ def latest_pixel(geom, data, scale=10, bands=None):
     result = {}
     creation_args = None
     for entry in data:
-        logger.info('Adding entry', entry['prefix'], 'to latest pixel stack.')
+        logger.info('Adding entry {} to latest pixel stack.'.format(entry['prefix']))
         data = get_pixels(geom, entry, scale=scale, bands=bands)
         # Save a copy of the creation arguments for later conversion to raster.
         if creation_args is None:
