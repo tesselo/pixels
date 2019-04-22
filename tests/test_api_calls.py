@@ -1,7 +1,3 @@
-import json
-import urllib
-import webbrowser
-
 import requests
 
 from pixels import const
@@ -36,7 +32,7 @@ data = {
     "composite": True,
     "latest_pixel": False,
     "color": True,
-    "render": False,
+    "format": 'PNG',
     "delay": True,
     # "bands": ["B04", "B03", "B02", "B08", "B05"],
 }
@@ -55,27 +51,3 @@ data.update({
     'latest_pixel': True
 })
 results.append(requests.post(host, json=data))
-
-data.update({
-    'render': True,
-    'delay': False
-})
-url = '{}?data={}'.format(host, urllib.parse.quote(json.dumps(data)))
-webbrowser.open(url)
-
-# results.append(requests.post(host, json=data))
-#
-#
-# data.update({
-#     'color': False
-# })
-# results.append(requests.post(host, json=data))
-#
-# data.update({
-#     'search_only': True,
-#     'delay': False
-# })
-# results.append(requests.post(host, json=data))
-#
-# for res in results:
-#     print(res.json())
