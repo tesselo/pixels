@@ -92,6 +92,12 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/docs', methods=['GET'])
+@token_required
+def docs():
+    return render_template('docs.html')
+
+
 @app.route('/data', methods=['GET', 'POST'])
 @token_required
 def pixels(data=None):
