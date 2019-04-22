@@ -1,5 +1,6 @@
 # Pixels
-A globel pixel grabber engine.
+
+A global pixel grabber engine.
 
 ## Documentation
 
