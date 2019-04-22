@@ -25,4 +25,4 @@ pandoc docs/index.md --output=build/pixels/templates/docs.html --to=html5 --css=
 
 # Update dev environment.
 cd build
-zappa update dev
+zappa update $1
