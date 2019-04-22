@@ -98,9 +98,9 @@ data = {
     "bands": ["B04", "B03", "B02", "B08", "B05"],
 }
 
-host = 'https://pixels.tesselo.com'
+endpoint = 'https://pixels.tesselo.com/data'
 key = 'mysecretkey'
-base_url = host + '?key=' + key
+base_url = endpoint + '?key=' + key
 
 # Using POST
 requests.post(base_url, json=data)
