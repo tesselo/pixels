@@ -147,7 +147,7 @@ def pixels(data=None):
     clip_to_geom = data.pop('clip_to_geom', False)
     format = data.pop('format', const.REQUEST_FORMAT_ZIP).upper()
 
-    # Comute render flag for convenience.
+    # Compute render flag for convenience.
     render = format == const.REQUEST_FORMAT_PNG
 
     # Sanity checks.
