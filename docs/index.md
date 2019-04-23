@@ -110,3 +110,8 @@ data_encoded = urllib.parse.quote(json.dumps(data))
 url = '{}&data={}'.format(base_url, data_encoded)
 requests.get(url)
 ```
+
+### WMTS endpoint
+A set of predefined latest pixel maps can be viewed as an osgeo compliant [WMTS service](http://www.opengeospatial.org/standards/wmts). Use the following url as source for a WMTS layer in your favorite desktop GIS software such as QGIS or ArcGIS.
+
+    https://pixels.tesselo.com/wmts?key=mysecretkey
