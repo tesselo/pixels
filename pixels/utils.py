@@ -1,9 +1,12 @@
 import glob
 import os
+from io import BytesIO
 from math import ceil, pi
 
 import numpy
 import rasterio
+from flask import send_file
+from PIL import Image
 from rasterio import Affine
 from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
@@ -188,3 +191,18 @@ def clip_to_geom(stack, geom):
             result[key] = clone_raster(rst, dat)
 
     return result
+
+
+def get_empty_tile():
+    """
+    Tesselo + symbol as default.
+    """
+    path = os.path.dirname(os.path.abspath(__file__))
+    img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
+    output = BytesIO()
+    img.save(output, format='PNG')
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype='image/png'
+    )

@@ -374,7 +374,8 @@ def tiles(z, x, y):
     TMS tiles endpoint.
     """
     if z < 12:
-        raise PixelsFailed('The minimal zoom level is 12.')
+        return utils.get_empty_tile()
+
     # Retrieve end date from query args.
     end = request.args.get('end')
     if not end:
@@ -426,5 +427,5 @@ def wmtsview():
     WMTS endpoint with monthly latest pixel layers.
     """
     key = request.args.get('key')
-    xml = wmts.gen(key)
+    xml = wmts.gen(key, request.host_url)
     return Response(xml, mimetype="text/xml")
