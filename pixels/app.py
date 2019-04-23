@@ -10,13 +10,13 @@ from io import BytesIO
 import boto3
 import numpy
 from dateutil import parser
-from flask import Flask, has_request_context, jsonify, redirect, render_template, request, send_file
+from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
 from pyproj import Proj, transform
 from zappa.async import task
 
-from pixels import const, scihub, search, utils
+from pixels import const, scihub, search, utils, wmts
 
 # Flask setup
 app = Flask(__name__)
@@ -417,3 +417,14 @@ def tiles(z, x, y):
         "format": const.REQUEST_FORMAT_PNG,
     }
     return pixels(data)
+
+
+@app.route('/wmts', methods=['GET'])
+@token_required
+def wmtsview():
+    """
+    WMTS endpoint with monthly latest pixel layers.
+    """
+    key = request.args.get('key')
+    xml = wmts.gen(key)
+    return Response(xml, mimetype="text/xml")
