@@ -258,9 +258,9 @@ def pixels(data=None):
 
             # Create image object and enhance color scheme.
             img = Image.fromarray(pixpix.T)
-            img = ImageEnhance.Contrast(img).enhance(1.1)
+            img = ImageEnhance.Contrast(img).enhance(1.2)
             img = ImageEnhance.Brightness(img).enhance(1.8)
-            img = ImageEnhance.Color(img).enhance(1.3)
+            img = ImageEnhance.Color(img).enhance(1.4)
 
             # Save image to io buffer.
             output = BytesIO()
