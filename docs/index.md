@@ -22,7 +22,7 @@ This endpoint has a minimal zoom level of 12, i.e. `z >= 12`. By default, this w
 The endpoint allows three customizable query parameters:
 
 - `end` End date for the Sentinel-2 scene search, defaults to today.
-- `start` Start date for the Sentinel-2 scene search, defaults to today minus 4 Weeks.
+- `start` Start date for the Sentinel-2 scene search, defaults to `end` minus 4 Weeks.
 - `max_cloud_cover_percentage` The cloud cover percentage filter for the Sentinel-2 scene search, defaults to 20.
 
 To customize the filters, use the endpoint as follows:
