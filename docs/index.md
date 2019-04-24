@@ -48,7 +48,8 @@ Either POST a JSON object, or encode a JSON object string and pass the object th
 #### Configuration
 In more detail, the configuration contains the following elements:
 
-  - `geom` a GeoJSON feature with a polygon geometry. The bouding box of this geometry will be used as image location. The input can be in any projection but web mercator (EPSG:3557) is recommended.
+  - `geom` a GeoJSON-like feature with a polygon geometry. The bouding box of this geometry will be used as image location. The input feature requires a Coordinate Reference System (CRS) to be specified in the `crs` attribute. The structure is required to be `EPSG:X`, where `X` is a valid EPSG identifier (see example below). The CRS should eithr ebe a projected coordinate system or in WGS84 (`EPSG:4326`).
+  - `scale` The pixel resolution of the output rasters. The scale needs to be in the units of the CRS of the input geometry. Defaults to 10.
   - `end` End date for querying images, as string.
   - `start` Start date for querying images, as string.
   - `platform` The satellite platform to use. Currently only `Sentinel-2` is implemented.
