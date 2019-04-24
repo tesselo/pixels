@@ -15,6 +15,8 @@ REQUEST_FORMATS = [REQUEST_FORMAT_ZIP, REQUEST_FORMAT_PNG, REQUEST_FORMAT_NPZ]
 
 MAX_AREA = 50000 ** 2  # 50km by 50km
 
+MAX_PIXEL_SIZE = 10000
+
 # ###################################################
 # Sentinel-1
 # ###################################################

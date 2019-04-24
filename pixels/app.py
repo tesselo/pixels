@@ -17,6 +17,7 @@ from rasterio.features import bounds
 from zappa.async import task
 
 from pixels import const, scihub, search, utils, wmts
+from pixels.exceptions import PixelsFailed
 
 # Flask setup
 app = Flask(__name__)
@@ -57,26 +58,6 @@ def token_required(func):
         return func(*args, **kwargs)
 
     return wrapper
-
-
-class PixelsFailed(Exception):
-    """
-    Custom exception.
-    """
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None, tag=None):
-        Exception.__init__(self)
-        self.message = message
-        self.tag = tag
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
 
 
 @app.errorhandler(PixelsFailed)

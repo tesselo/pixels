@@ -1,19 +1,21 @@
 import copy
 import datetime
 import io
+import pprint
 
+import fiona
 import numpy
+import pandas
 import requests
 from dateutil import parser
+from shapely.geometry import shape
 
-import pandas
-
-bands = ["B04", "B03", "B02", "B08", "B05"]
+bands = ["B04", "B08"]
 
 config = {
     "geom": {
         "type": "Feature",
-        "srs": "EPSG:3857",
+        "crs": "EPSG:3857",
         "geometry": {
             "type": "Polygon",
             "coordinates": [[
@@ -37,18 +39,15 @@ config = {
     "platform": 'Sentinel-2',
     "product_type": 'S2MSI1C',
     "s2_max_cloud_cover_percentage": 100,
-    "search_only": False,
+    "search_only": True,
     "composite": False,
     "latest_pixel": True,
     "color": False,
     "format": 'NPZ',
-    "delay": True,
+    "delay": False,
     "bands": bands,
     "clip_to_geom": True,
 }
-
-endpoint = 'https://pixels.tesselo.com/data?key=b0ef31c1be11bede35c874ca6c5e5361e95598df'
-
 
 def funk(config):
     start = parser.parse(config['start'])
@@ -78,22 +77,36 @@ def funk(config):
         results.append(result)
 
     return results
+# endpoint = 'https://pixels.tesselo.com/data?key=b0ef31c1be11bede35c874ca6c5e5361e95598df'
+# endpoint = 'http://127.0.0.1:5000/data?key=829c0f290b9f0f0d49fd2501e5792f8413305535'
+endpoint = 'https://devpixels.tesselo.com/data?key=78f300a8965e04f111e2a738a9b1cbc4f6a8bc55'
 
+results = []
+with fiona.open('/media/tam/rhino/work/projects/tesselo/projects/celpa/celpa_national/new_data/areas teste_28set2018.shp', 'r', encoding='latin-1') as src:
+    for feat in src:
+        config['geom'] = feat
+        print(src.crs)
+        config['geom']['crs'] = src.crs['init']
+        results.append(funk(config))
+        break
 
-result = funk(config)
+# pprint.pprint(src[1])
 
-result_npz = [numpy.load(io.BytesIO(requests.get(dat['url']).content)) for dat in result]
-
-result_np = [{band: dat[band].ravel() for band in (bands + ['config'])} for dat in result_npz]
-
-result_np = []
-for dat in result_npz:
-    tmp = {band: dat[band].ravel() for band in bands}
-    tmp['start'] = dat['config'].item()['start']
-    tmp['end'] = dat['config'].item()['end']
-    result_np.append(tmp)
-
-result_pd = [pandas.DataFrame(dat) for dat in result_np]
-
-
-print(result_pd)
+#
+# result = funk(config)
+#
+# result_npz = [numpy.load(io.BytesIO(requests.get(dat['url']).content)) for dat in result]
+#
+# result_np = [{band: dat[band].ravel() for band in (bands + ['config'])} for dat in result_npz]
+#
+# result_np = []
+# for dat in result_npz:
+#     tmp = {band: dat[band].ravel() for band in bands}
+#     tmp['start'] = dat['config'].item()['start']
+#     tmp['end'] = dat['config'].item()['end']
+#     result_np.append(tmp)
+#
+# result_pd = [pandas.DataFrame(dat) for dat in result_np]
+#
+#
+# print(result_pd)

@@ -5,7 +5,7 @@ from pixels import const
 data = {
     "geom": {
         "type": "Feature",
-        "srs": "EPSG:3857",
+        "crs": "EPSG:3857",
         "geometry": {
             "type": "Polygon",
             "coordinates": [[
@@ -33,21 +33,20 @@ data = {
     "latest_pixel": False,
     "color": True,
     "format": 'PNG',
-    "delay": True,
+    "delay": False,
     # "bands": ["B04", "B03", "B02", "B08", "B05"],
 }
 
 
-# host = 'http://127.0.0.1:5000'
-host = 'https://pixels.tesselo.com'
+# host = 'http://127.0.0.1:5000/data?key=829c0f290b9f0f0d49fd2501e5792f8413305535'
+# host = 'https://pixels.tesselo.com/data'
+host = 'https://devpixels.tesselo.com/data?key=78f300a8965e04f111e2a738a9b1cbc4f6a8bc55'
 
+result = requests.post(host, json=data)
 
-results = []
-
+#
+# data.update({
+#     'composite': False,
+#     'latest_pixel': True
+# })
 # results.append(requests.post(host, json=data))
-
-data.update({
-    'composite': False,
-    'latest_pixel': True
-})
-results.append(requests.post(host, json=data))

@@ -4,12 +4,13 @@ import numpy
 from rasterio.io import MemoryFile
 
 from pixels.const import (
-    AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A,
+    AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A, MAX_PIXEL_SIZE,
     PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV,
     SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA,
     SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
+from pixels.exceptions import PixelsFailed
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,11 @@ def get_pixels(geom, entry, scale=10, bands=None):
     Get pixel values from S3.
     """
     transform, width, height, crs = compute_transform(geom, scale=scale)
+    # Sanity checks.
+    if width > MAX_PIXEL_SIZE:
+        raise PixelsFailed('Max raster width exceeded ({} > {}).'.format(width, MAX_PIXEL_SIZE))
+    if height > MAX_PIXEL_SIZE:
+        raise PixelsFailed('Max raster height exceeded ({} > {}).'.format(height, MAX_PIXEL_SIZE))
 
     if entry['platform_name'] == PLATFORM_SENTINEL_1:
         bucket = AWS_DATA_BUCKET_SENTINEL_1_L1C
