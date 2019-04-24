@@ -1,5 +1,6 @@
 import glob
 import os
+from copy import deepcopy
 from io import BytesIO
 from math import ceil, pi
 
@@ -7,6 +8,7 @@ import numpy
 import rasterio
 from flask import send_file
 from PIL import Image
+from pyproj import Proj, transform
 from rasterio import Affine
 from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
@@ -35,7 +37,7 @@ def compute_transform(geom, scale):
     width = ceil((extent[2] - extent[0]) / scale)
     height = ceil((extent[3] - extent[1]) / scale)
 
-    return transform, width, height, geom['srs']
+    return transform, width, height, geom['crs']
 
 
 def tile_scale(z):
@@ -206,3 +208,60 @@ def get_empty_tile():
         output,
         mimetype='image/png'
     )
+
+
+def reproject_coords(coords, src, tar):
+    """
+    Reproject a list of polygon coordinates.
+    """
+    transformed_coords = []
+
+    if len(coords) > 1:
+        raise ValueError('Polygons with interior rings are not supported.')
+
+    for coord in coords[0]:
+        transformed_coords.append(transform(src, tar, coord[0], coord[1]))
+
+    return [transformed_coords]
+
+
+def reproject_feature(feature, target_crs):
+    """
+    Reproject Polygon and MultiPolygon GeoJson objects.
+    """
+    feat = deepcopy(feature)
+    src = Proj(init=feat['crs'])
+    tar = Proj(init=target_crs)
+
+    feat['crs'] = target_crs
+
+    if feat['geometry']['type'] == 'MultiPolygon':
+        trsf = []
+        for poly in feat['geometry']['coordinates']:
+            trsf.append(reproject_coords(poly, src, tar))
+        feat['geometry']['coordinates'] = trsf
+    elif feat['geometry']['type'] == 'Polygon':
+        feat['geometry']['coordinates'] = reproject_coords(feat['geometry']['coordinates'], src, tar)
+    else:
+        raise ValueError('Geometry type "{}" is not supported. Please use Polygon or MultiPolygon.')
+
+    return feat
+
+
+def geometry_to_wkt(geom):
+    """
+    Convert a Polygon or MultiPolygon to WKT.
+    """
+    if geom['type'] == 'Polygon':
+        if len(geom['coordinates']) > 1:
+            raise ValueError('Polygons with interior rings are not supported.')
+        return 'POLYGON(({}))'.format(','.join(['{} {}'.format(*coord) for coord in geom['coordinates'][0]]))
+    elif geom['type'] == 'MultiPolygon':
+        wkt = ''
+        for poly in geom['coordinates']:
+            if len(poly) > 1:
+                raise ValueError('Polygons with interior rings are not supported.')
+            wkt += '(({}))'.format(','.join(['{} {}'.format(*coord) for coord in poly[0]]))
+        return 'MULTIPOLYGON({})'.format(wkt)
+    else:
+        raise ValueError('Geometry type "{}" is not supported. Please use Polygon or MultiPolygon.')

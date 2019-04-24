@@ -345,7 +345,7 @@
 				}
 				// Set geometry.
 				data['geom'] = current_layer.toGeoJSON();
-				data['geom']['srs'] = 'EPSG:4326'
+				data['geom']['crs'] = 'EPSG:4326'
 				// Log query to html.
 				$('.query').text(JSON.stringify(data, null, 4)).each(function (i, e) {
 				    hljs.highlightBlock(e);

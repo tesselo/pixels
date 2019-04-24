@@ -72,7 +72,7 @@ import requests
 data = {
     "geom": {
         "type": "Feature",
-        "srs": "EPSG:3857",
+        "crs": "EPSG:3857",
         "geometry": {
             "type": "Polygon",
             "coordinates": [[

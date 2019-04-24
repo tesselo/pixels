@@ -1,10 +1,10 @@
-import copy
 import datetime
 import functools
 import json
 import logging
 import uuid
 import zipfile
+from copy import deepcopy
 from io import BytesIO
 
 import boto3
@@ -13,7 +13,7 @@ from dateutil import parser
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
-from pyproj import Proj, transform
+from rasterio.features import bounds
 from zappa.async import task
 
 from pixels import const, scihub, search, utils, wmts
@@ -116,24 +116,22 @@ def pixels(data=None):
             data = request.get_json()
     # Remove auth key from data dict.
     data.pop('key', None)
-    # Limit size of geometry.
-    # Transform the geom coordinates into web mercator and limit size
-    # to 10km by 10km.
-    src_srs = Proj(init=data['geom']['srs'])
-    tar_srs = Proj(init='EPSG:3857')
-    transformed_coords = [list(transform(src_srs, tar_srs, coord[0], coord[1])) for coord in data['geom']['geometry']['coordinates'][0]]
-    dx = max(dat[0] for dat in transformed_coords) - min(dat[0] for dat in transformed_coords)
-    dy = max(dat[1] for dat in transformed_coords) - min(dat[1] for dat in transformed_coords)
-    area = abs(dx * dy)
-    logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
-    MAX_AREA = 50000 ** 2
-    if area > MAX_AREA:
-        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(MAX_AREA / 1e6))
 
-    # Reproject the geometry if in 4326.
-    if data['geom']['srs'] == 'EPSG:4326':
-        data['geom']['geometry']['coordinates'][0] = transformed_coords
-        data['geom']['srs'] = 'EPSG:3857'
+    # Transform the geom coordinates into web mercator and limit size.
+    trsf_geom = utils.reproject_feature(data['geom'], 'EPSG:3857')
+    trsf_bounds = bounds(trsf_geom)
+    dx = trsf_bounds[2] - trsf_bounds[0]
+    dy = trsf_bounds[3] - trsf_bounds[1]
+    area = abs(dx * dy)
+    if area > const.MAX_AREA:
+        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(const.MAX_AREA / 1e6))
+
+    logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
+
+    # Override the original geometry if it was in 4326.
+    if data['geom']['crs'] == 'EPSG:4326':
+        data['geom'] = trsf_geom
+        data['geom']['crs'] = 'EPSG:3857'
 
     # Get extract custom handler arguments.
     composite = data.pop('composite', False)
@@ -185,7 +183,7 @@ def pixels(data=None):
         bands = [band.lower() for band in bands]
 
     # Store original data and possible overrides.
-    config_log = copy.deepcopy(data)
+    config_log = deepcopy(data)
     config_log['composite'] = composite
     config_log['latest_pixel'] = latest_pixel
     config_log['color'] = color
@@ -393,7 +391,7 @@ def tiles(z, x, y):
     data = {
         "geom": {
             "type": "Feature",
-            "srs": "EPSG:3857",
+            "crs": "EPSG:3857",
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [[

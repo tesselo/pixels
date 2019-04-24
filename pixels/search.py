@@ -2,7 +2,7 @@ import os
 
 import requests
 from dateutil import parser
-from pyproj import Proj, transform
+from rasterio.features import bounds
 
 from pixels import scihub
 from pixels.const import (
@@ -10,7 +10,7 @@ from pixels.const import (
     PRODUCT_GRD, PRODUCT_L1C, PRODUCT_L2A, PRODUCT_OCN, PRODUCT_SLC, QUERY_URL, SEARCH_SENTINEL_1, SEARCH_SENTINEL_2,
     WGS84
 )
-from pixels.utils import filter_key
+from pixels.utils import filter_key, geometry_to_wkt, reproject_feature
 
 
 def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s1_polarisation_mode=None, s2_max_cloud_cover_percentage=100, raw=False):
@@ -45,20 +45,28 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     # Check geometry and reproject if necessary.
     if geom['type'].capitalize() != 'Feature':
         raise ValueError('Input GeoJson object needs to be of type Feature.')
-    if geom['geometry']['type'].capitalize() != 'Polygon':
-        raise ValueError('Input geometry needs to be of type Polygon.')
-    if 'srs' not in geom:
-        raise ValueError('Intput geometry needs an srs specified (for instance "srs": "EPSG:3857").')
+    if geom['geometry']['type'] not in ('Polygon', 'MultiPolygon'):
+        raise ValueError('Input geometry needs to be of type Polygon or MultiPolygon.')
+    if 'crs' not in geom:
+        raise ValueError('Intput geometry needs an crs specified (for instance "crs": "EPSG:3857").')
 
-    # Setup the srs objects for projection.
-    src_srs = Proj(init=geom['srs'])
-    tar_srs = Proj(init=WGS84)
+    # Transform the geom coordinates into WGS84 for the Scihub search query.
+    trsf_geom = reproject_feature(geom, WGS84)
 
-    # Transform the geom coordinates into WGS84.
-    transformed_coords = [transform(src_srs, tar_srs, coord[0], coord[1]) for coord in geom['geometry']['coordinates'][0]]
+    # For multipolygons, use bounds as search can only be done for polygons.
+    if trsf_geom['geometry']['type'] == 'MultiPolygon':
+        bnd = bounds(trsf_geom)
+        trsf_geom['geometry']['type'] = 'Polygon'
+        trsf_geom['geometry']['coordinates'] = [[
+            [bnd[0], bnd[1]],
+            [bnd[2], bnd[1]],
+            [bnd[2], bnd[3]],
+            [bnd[0], bnd[3]],
+            [bnd[0], bnd[1]],
+        ]]
 
     # Compute WKT for geom.
-    geom_wkt = 'POLYGON(({}))'.format(','.join(['{} {}'.format(*coord) for coord in transformed_coords]))
+    geom_wkt = geometry_to_wkt(trsf_geom['geometry'])
 
     # Construct search string.
     search = BASE_SEARCH.format(
