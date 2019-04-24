@@ -4,7 +4,6 @@ import json
 import logging
 import uuid
 import zipfile
-from copy import deepcopy
 from io import BytesIO
 
 import boto3
@@ -13,7 +12,6 @@ from dateutil import parser
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
-from rasterio.features import bounds
 from zappa.async import task
 
 from pixels import const, scihub, search, utils, wmts
@@ -95,139 +93,69 @@ def pixels(data=None):
         else:
             # Retrieve json data from post request.
             data = request.get_json()
-    # Remove auth key from data dict.
-    data.pop('key', None)
 
-    # Transform the geom coordinates into web mercator and limit size.
-    trsf_geom = utils.reproject_feature(data['geom'], 'EPSG:3857')
-    trsf_bounds = bounds(trsf_geom)
-    dx = trsf_bounds[2] - trsf_bounds[0]
-    dy = trsf_bounds[3] - trsf_bounds[1]
-    area = abs(dx * dy)
-    if area > const.MAX_AREA:
-        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(const.MAX_AREA / 1e6))
-
-    logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
-
-    # Override the original geometry if it was in 4326.
-    if data['geom']['crs'] == 'EPSG:4326':
-        data['geom'] = trsf_geom
-        data['geom']['crs'] = 'EPSG:3857'
-
-    # Get extract custom handler arguments.
-    composite = data.pop('composite', False)
-    latest_pixel = data.pop('latest_pixel', False)
-    color = data.pop('color', False)
-    bands = data.pop('bands', [])
-    scale = data.pop('scale', 10)
-    tag = data.pop('tag', None)
-    delay = data.pop('delay', False)
-    search_only = data.pop('search_only', False)
-    clip_to_geom = data.pop('clip_to_geom', False)
-    format = data.pop('format', const.REQUEST_FORMAT_ZIP).upper()
-
-    # Compute render flag for convenience.
-    render = format == const.REQUEST_FORMAT_PNG
-
-    # Sanity checks.
-    if format not in const.REQUEST_FORMATS:
-        raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(format, const.REQUEST_FORMATS))
-
-    if not composite and not latest_pixel:
-        raise PixelsFailed('Choose either latest pixel or composite mode.')
-
-    if composite and data.get('platform', None) == const.PLATFORM_SENTINEL_1:
-        raise PixelsFailed('Cannot compute composite for Sentinel 1.')
-
-    if delay and search_only:
-        raise PixelsFailed('Search only mode works in synchronous mode only.')
-
-    # For composite, we will require all bands to be retrieved.
-    if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
-        if data['product_type'] == const.PRODUCT_L2A:
-            logger.info('Adding SCL for composite mode.')
-            bands = list(set(bands + ['SCL']))
-        else:
-            logger.info('Adding all Sentinel-2 bands for composite mode.')
-            bands = const.SENTINEL_2_BANDS
-
-    # For color, assure the RGB bands are present.
-    if render and data['platform'] == const.PLATFORM_SENTINEL_2:
-        # For render, only request RGB bands.
-        bands = const.SENTINEL_2_RGB_BANDS
-    elif color and data['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
-        logger.info('Adding RGB bands for color mode.')
-        bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
-    elif color and data['platform'] == const.PLATFORM_SENTINEL_1:
-        # TODO: Allow other polarisation modes.
-        bands = const.SENTINEL_1_POLARISATION_MODE['DV']
-        bands = [band.lower() for band in bands]
-
-    # Store original data and possible overrides.
-    config_log = deepcopy(data)
-    config_log['composite'] = composite
-    config_log['latest_pixel'] = latest_pixel
-    config_log['color'] = color
-    config_log['bands'] = bands
-    config_log['scale'] = scale
-    config_log['format'] = format
-    config_log['search_only'] = search_only
-    config_log['clip_to_geom'] = clip_to_geom
-    logger.info('Configuration is {}'.format(config_log))
+    config = utils.validate_configuration(data)
 
     # Handle delay mode.
-    if delay:
+    if config['delay'] and not config['tag']:
         logger.info('Working in delay mode.')
         key = '{}/pixels.{}'.format(
             uuid.uuid4(),
-            config_log['format'].lower(),
+            config['format'].lower(),
         )
-        config_log['tag'] = key
-        pixels_task(config_log)
+        config['tag'] = key
+        pixels_task(config)
         url = '{}async/{}?key={}'.format(request.host_url, key, request.args['key'])
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
-    else:
-        # Only add delay flag here, otherwise this will trigger infinite loop.
-        config_log['delay'] = True if tag else False
 
     # Query available scenery.
     logger.info('Querying data on the ESA SciHub.')
-    query_result = search.search(**data)
+    query_result = search.search(
+        geom=config['geom'],
+        start=config['start'],
+        end=config['end'],
+        platform=config['platform'],
+        product_type=config['product_type'],
+        s1_acquisition_mode=None,
+        s1_polarisation_mode=None,
+        s2_max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
+    )
 
     # Return only search query if requested.
-    if search_only:
+    if config['search_only']:
         return jsonify(query_result)
 
     if not len(query_result):
         raise PixelsFailed('No scenes found for the given search criteria.')
 
     # Get pixels.
-    if latest_pixel:
+    if config['latest_pixel']:
         logger.info('Getting latest pixels stack.')
-        stack = scihub.latest_pixel(data['geom'], query_result, scale=scale, bands=bands)
+        stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
     else:
         for entry in query_result:
             logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
-            entry['pixels'] = scihub.get_pixels(data['geom'], entry, scale=scale, bands=bands)
+            entry['pixels'] = scihub.get_pixels(config['geom'], entry, scale=config['scale'], bands=config['bands'])
 
-        if composite:
+        if config['composite']:
             logger.info('Computing composite from pixel stacks.')
             stack = [entry['pixels'] for entry in query_result]
             stack = scihub.s2_composite(stack)
 
     # Clip to geometry if requested:
-    if clip_to_geom:
-        stack = utils.clip_to_geom(stack, data['geom'])
+    if config['clip_to_geom']:
+        stack = utils.clip_to_geom(stack, config['geom'])
 
     # Convert to RGB color tif.
-    if color:
+    if config['color']:
         logger.info('Computing RGB image from stack.')
-        if data.get('platform', None) == const.PLATFORM_SENTINEL_1:
+        if config.get('platform', None) == const.PLATFORM_SENTINEL_1:
             stack['RGB'] = scihub.s1_color(stack)
         else:
             stack['RGB'] = scihub.s2_color(stack)
 
-        if render:
+        # Check for RGB render mode.
+        if config['format'] == const.REQUEST_FORMAT_PNG:
             logger.info('Rendering RGB data into PNG image.')
             pixpix = numpy.array([
                 numpy.clip(stack['RGB'].open().read(1), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
@@ -243,13 +171,13 @@ def pixels(data=None):
 
             # Save image to io buffer.
             output = BytesIO()
-            img.save(output, format='PNG')
+            img.save(output, format=const.REQUEST_FORMAT_PNG)
             output.seek(0)
-            if tag:
+            if config['tag']:
                 s3 = boto3.client('s3')
                 s3.put_object(
                     Bucket=const.BUCKET,
-                    Key=tag,
+                    Key=config['tag'],
                     Body=output,
                 )
                 return
@@ -261,7 +189,7 @@ def pixels(data=None):
 
     # Write all result rasters into a zip file and return the data package.
     bytes_buffer = BytesIO()
-    if format == const.REQUEST_FORMAT_ZIP:
+    if config['format'] == const.REQUEST_FORMAT_ZIP:
         logger.info('Packaging data into zip file.')
         with zipfile.ZipFile(bytes_buffer, 'w') as zf:
             # Write pixels into zip file.
@@ -269,37 +197,35 @@ def pixels(data=None):
                 raster.seek(0)
                 zf.writestr('{}.tif'.format(key), raster.read())
             # Write config into zip file.
-            zf.writestr('config.json', json.dumps(config_log))
-    elif format == const.REQUEST_FORMAT_NPZ:
+            zf.writestr('config.json', json.dumps(config))
+    elif config['format'] == const.REQUEST_FORMAT_NPZ:
         logger.info('Packaging data into numpy npz file.')
         # Convert stack to numpy arrays.
         stack = {key: val.open().read(1) for key, val in stack.items()}
         # Save to compressed numpy npz format.
         numpy.savez_compressed(
             bytes_buffer,
-            config=config_log,
+            config=config,
             **stack
         )
-    else:
-        raise PixelsFailed('Unrecognized format {}, choose one of {}'.format(format, const.REQUEST_FORMATS))
 
     # Rewind buffer.
     bytes_buffer.seek(0)
 
     # Return buffer as file.
-    if tag:
+    if config['tag']:
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket=const.BUCKET,
-            Key=tag,
+            Key=config['tag'],
             Body=bytes_buffer,
         )
     else:
         return send_file(
             bytes_buffer,
             as_attachment=True,
-            attachment_filename='pixels.{}'.format(format.lower()),
-            mimetype='application/{}'.format(format.lower())
+            attachment_filename='pixels.{}'.format(config['format'].lower()),
+            mimetype='application/{}'.format(config['format'].lower())
         )
 
 

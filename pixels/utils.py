@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 from copy import deepcopy
 from io import BytesIO
@@ -14,7 +15,10 @@ from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
-from pixels import const
+from pixels import const, utils
+from pixels.exceptions import PixelsFailed
+
+logger = logging.getLogger(__name__)
 
 
 def filter_key(entry, namespace, key):
@@ -265,3 +269,94 @@ def geometry_to_wkt(geom):
         return 'MULTIPOLYGON({})'.format(wkt)
     else:
         raise ValueError('Geometry type "{}" is not supported. Please use Polygon or MultiPolygon.')
+
+
+def validate_configuration(config):
+    """
+    Returns a validated configuration.
+    """
+    # Remove auth key from config dict.
+    config.pop('key', None)
+
+    # Transform the geom coordinates into web mercator and limit size.
+    trsf_geom = utils.reproject_feature(config['geom'], 'EPSG:3857')
+    trsf_bounds = bounds(trsf_geom)
+    dx = trsf_bounds[2] - trsf_bounds[0]
+    dy = trsf_bounds[3] - trsf_bounds[1]
+    area = abs(dx * dy)
+    if area > const.MAX_AREA:
+        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(const.MAX_AREA / 1e6))
+
+    logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
+
+    # Override the original geometry if it was in 4326.
+    if config['geom']['crs'] == 'EPSG:4326':
+        config['geom'] = trsf_geom
+        config['geom']['crs'] = 'EPSG:3857'
+
+    # Get extract custom handler arguments.
+    composite = config.pop('composite', False)
+    latest_pixel = config.pop('latest_pixel', False)
+    color = config.pop('color', False)
+    bands = config.pop('bands', [])
+    scale = config.pop('scale', 10)
+    delay = config.pop('delay', False)
+    tag = config.pop('tag', False)
+    search_only = config.pop('search_only', False)
+    clip_to_geom = config.pop('clip_to_geom', False)
+    file_format = config.pop('format', const.REQUEST_FORMAT_ZIP).upper()
+    max_cloud_cover_percentage = config.pop('max_cloud_cover_percentage', 100)
+
+    # Sanity checks.
+    if 'product_type' not in config:
+        raise PixelsFailed('Product typ is required. Please specify "product_type" key.')
+
+    if file_format not in const.REQUEST_FORMATS:
+        raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(file_format, const.REQUEST_FORMATS))
+
+    if not composite and not latest_pixel:
+        raise PixelsFailed('Choose either latest pixel or composite mode.')
+
+    if composite and config.get('platform', None) == const.PLATFORM_SENTINEL_1:
+        raise PixelsFailed('Cannot compute composite for Sentinel 1.')
+
+    if delay and search_only:
+        raise PixelsFailed('Search only mode works in synchronous mode only.')
+
+    # For composite, we will require all bands to be retrieved.
+    if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
+        if config['product_type'] == const.PRODUCT_L2A:
+            logger.info('Adding SCL for composite mode.')
+            bands = list(set(bands + ['SCL']))
+        else:
+            logger.info('Adding all Sentinel-2 bands for composite mode.')
+            bands = const.SENTINEL_2_BANDS
+
+    # For color, assure the RGB bands are present.
+    if file_format == const.REQUEST_FORMAT_PNG and config['platform'] == const.PLATFORM_SENTINEL_2:
+        # For render, only request RGB bands.
+        bands = const.SENTINEL_2_RGB_BANDS
+    elif color and config['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
+        logger.info('Adding RGB bands for color mode.')
+        bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
+    elif color and config['platform'] == const.PLATFORM_SENTINEL_1:
+        # TODO: Allow other polarisation modes.
+        bands = const.SENTINEL_1_POLARISATION_MODE['DV']
+        bands = [band.lower() for band in bands]
+
+    # Store possible config overrides.
+    config['composite'] = composite
+    config['latest_pixel'] = latest_pixel
+    config['color'] = color
+    config['bands'] = bands
+    config['scale'] = scale
+    config['format'] = file_format
+    config['search_only'] = search_only
+    config['clip_to_geom'] = clip_to_geom
+    config['max_cloud_cover_percentage'] = max_cloud_cover_percentage
+    config['delay'] = delay
+    config['tag'] = tag
+
+    logger.info('Configuration is {}'.format(config))
+
+    return config

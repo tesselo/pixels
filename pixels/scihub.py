@@ -9,8 +9,8 @@ from pixels.const import (
     SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA,
     SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
-from pixels.utils import clone_raster, compute_transform, warp_from_s3
 from pixels.exceptions import PixelsFailed
+from pixels.utils import clone_raster, compute_transform, warp_from_s3
 
 logger = logging.getLogger(__name__)
 
