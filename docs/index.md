@@ -161,8 +161,8 @@ Which returns something like:
 {
     'message': 'Getting timeseries pixels asynchronously. Your files will be ready at the links below soon.',
     'timesteps': [
-        {'end': '2018-08-08', 'start': '2018-08-01', 'url': 'https://pixels.tesselo.com/async/fad167b4-59ce-484c-9adc-ad2ccb9cbb4893ffc1ce-4a0c-4f95-8fff-41460eeb7a39/pixels.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535'},
-        {'end': '2018-08-15', 'start': '2018-08-08', 'url': 'https://pixels.tesselo.com/async/fad167b4-59ce-484c-9adc-ad2ccb9cbb48d4a1e2a8-6433-4528-af45-73d69f50836d/pixels.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535'},
+        {'end': '2018-08-08', 'start': '2018-08-01', 'url': 'https://pixels.tesselo.com/async/fad167b4-59ce-484c-9adc-ad2ccb9cbb48/93ffc1ce-4a0c-4f95-8fff-41460eeb7a39/pixels.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535'},
+        {'end': '2018-08-15', 'start': '2018-08-08', 'url': 'https://pixels.tesselo.com/async/fad167b4-59ce-484c-9adc-ad2ccb9cbb48/d4a1e2a8-6433-4528-af45-73d69f50836d/pixels.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535'},
      ],
      'url': 'https://pixels.tesselo.com/timeseries/fad167b4-59ce-484c-9adc-ad2ccb9cbb48/data.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535',
 }
