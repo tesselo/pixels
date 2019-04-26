@@ -235,7 +235,7 @@ def pixels_task(data):
         pixels(data)
     except:
         s3 = boto3.client('s3')
-        base = tag.split('/')[0]
+        base = '/'.join(tag.split('/')[:-1])
         s3.put_object(
             Bucket=const.BUCKET,
             Key='{}/failed.txt'.format(base),
@@ -417,7 +417,7 @@ def timeseries_result(tag):
 
     # Check if any of the subjobs have failed.
     if any([dat.endswith('/failed.txt') for dat in results]):
-        return jsonify(message='Computation failed.')
+        return jsonify(message='Computation failed.', results=results)
 
     # Get the full timesteps list from the registry file.
     steps_key = '{tag}/ts_steps.json'.format(tag=tag)
