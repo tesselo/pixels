@@ -1,12 +1,14 @@
 import glob
 import logging
 import os
+import uuid
 from copy import deepcopy
 from io import BytesIO
 from math import ceil, pi
 
 import numpy
 import rasterio
+from dateutil import parser
 from flask import send_file
 from PIL import Image
 from pyproj import Proj, transform
@@ -19,6 +21,20 @@ from pixels import const, utils
 from pixels.exceptions import PixelsFailed
 
 logger = logging.getLogger(__name__)
+
+
+def generate_unique_key(frmt, ts_tag=''):
+    """
+    Generate a unique S3 file key to upload files to.
+    """
+    if ts_tag:
+        '{}/'.format(ts_tag)
+
+    return '{}{}/pixels.{}'.format(
+        ts_tag,
+        uuid.uuid4(),
+        frmt.lower(),
+    )
 
 
 def filter_key(entry, namespace, key):
@@ -308,8 +324,31 @@ def validate_configuration(config):
     max_cloud_cover_percentage = config.pop('max_cloud_cover_percentage', 100)
 
     # Sanity checks.
+    if 'geom' not in config:
+        raise PixelsFailed('Geom is required. Please specify "geom" key.')
+
+    if 'start' not in config:
+        raise PixelsFailed('Start date is required. Please specify "start" key.')
+    else:
+        try:
+            start = parser.parse(config['start'])
+        except:
+            raise PixelsFailed('Start date not valid, please specify a valid start date string like "2016-08-01".')
+
+    if 'end' not in config:
+        raise PixelsFailed('End date is required. Please specify "end" key.')
+    else:
+        try:
+            end = parser.parse(config['end'])
+        except:
+            raise PixelsFailed('End date not valid, please specify a valid end date string like "2016-08-01".')
+
+    if end < start:
+        # Ensure dates are valid and in right order.
+        raise PixelsFailed('End date is later than start date.')
+
     if 'product_type' not in config:
-        raise PixelsFailed('Product typ is required. Please specify "product_type" key.')
+        raise PixelsFailed('Product type is required. Please specify "product_type" key.')
 
     if file_format not in const.REQUEST_FORMATS:
         raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(file_format, const.REQUEST_FORMATS))
@@ -322,6 +361,15 @@ def validate_configuration(config):
 
     if delay and search_only:
         raise PixelsFailed('Search only mode works in synchronous mode only.')
+
+    if 'interval' in config and config['interval'] not in const.TIMESERIES_INTERVALS:
+        raise PixelsFailed('Timeseries interval {} not recognized. Use one of {}'.format(config['interval'], const.TIMESERIES_INTERVALS))
+
+    if 'interval_step' in config:
+        try:
+            config['interval_step'] = int(config['interval_step'])
+        except ValueError:
+            raise PixelsFailed('Interval step needs to be an integer.')
 
     # For composite, we will require all bands to be retrieved.
     if composite and not len(bands) == len(const.SENTINEL_2_BANDS):

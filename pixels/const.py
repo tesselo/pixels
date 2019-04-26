@@ -17,6 +17,10 @@ MAX_AREA = 50000 ** 2  # 50km by 50km
 
 MAX_PIXEL_SIZE = 10000
 
+TIMESERIES_WEEKLY = 'weeks'
+TIMESERIES_MONTHLY = 'months'
+TIMESERIES_INTERVALS = [TIMESERIES_MONTHLY, TIMESERIES_WEEKLY]
+
 # ###################################################
 # Sentinel-1
 # ###################################################

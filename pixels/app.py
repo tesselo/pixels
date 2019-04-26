@@ -2,6 +2,7 @@ import datetime
 import functools
 import json
 import logging
+import tempfile
 import uuid
 import zipfile
 from io import BytesIO
@@ -9,6 +10,7 @@ from io import BytesIO
 import boto3
 import numpy
 from dateutil import parser
+from dateutil.relativedelta import relativedelta
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageEnhance
@@ -99,13 +101,9 @@ def pixels(data=None):
     # Handle delay mode.
     if config['delay'] and not config['tag']:
         logger.info('Working in delay mode.')
-        key = '{}/pixels.{}'.format(
-            uuid.uuid4(),
-            config['format'].lower(),
-        )
-        config['tag'] = key
+        config['tag'] = utils.generate_unique_key(config['format'])
+        url = '{}async/{}?key={}'.format(request.host_url, config['tag'], request.args['key'])
         pixels_task(config)
-        url = '{}async/{}?key={}'.format(request.host_url, key, request.args['key'])
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
 
     # Query available scenery.
@@ -334,3 +332,125 @@ def wmtsview():
     key = request.args.get('key')
     xml = wmts.gen(key, request.host_url)
     return Response(xml, mimetype="text/xml")
+
+
+@app.route('/timeseries', methods=['POST'])
+@token_required
+def timeseries():
+    """
+    Trigger computation of a timeseries dataset.
+    """
+    # Retrieve json data from post request.
+    data = request.get_json()
+    # Validate input.
+    config = utils.validate_configuration(data)
+    if 'interval' not in config:
+        config['interval'] = const.TIMESERIES_MONTHLY
+    if 'interval_step' not in config:
+        config['interval_step'] = 1
+    # Generate timeseries key.
+    config['timeseries_tag'] = str(uuid.uuid4())
+    # Convert start and end date strings to objects.
+    start = parser.parse(config['start'])
+    end = parser.parse(config['end'])
+    # Compute time delta.
+    delta = relativedelta(**{config['interval'].lower(): config['interval_step']})
+    # Create intermediate timestamps.
+    here_start = start
+    here_end = start + delta
+    # Loop through timesteps.
+    results = []
+    while here_end <= end:
+        logger.info('Getting timeseries data from {} to {}.'.format(here_start, here_end))
+        # Update config with intermediate timestamps.
+        config.update({
+            'start': str(here_start.date()),
+            'end': str(here_end.date()),
+        })
+        # Generate unique key for target file and add download link to results.
+        config['tag'] = utils.generate_unique_key(config['format'], config['timeseries_tag'])
+        url = '{}async/{}?key={}'.format(request.host_url, config['tag'], request.args['key'])
+        results.append({
+            'start': str(here_start.date()),
+            'end': str(here_end.date()),
+            'url': url,
+        })
+        # Trigger async task.
+        pixels_task(config)
+        # Increment intermediate timestamps.
+        here_end += delta
+        here_start += delta
+
+    # Generate download url for the timeseries data.
+    timeseries_url = '{}timeseries/{}/data.zip?key={}'.format(request.host_url, config['timeseries_tag'], request.args['key'])
+
+    # Store the search results list as json at root of this timeseries.
+    results_io = BytesIO(json.dumps(results).encode())
+    results_io.seek(0)
+    timeseries_json_key = '{}/ts_steps.json'.format(config['timeseries_tag'])
+
+    s3 = boto3.client('s3')
+    s3.put_object(
+        Bucket=const.BUCKET,
+        Key=timeseries_json_key,
+        Body=results_io,
+    )
+
+    # Return results list to user.
+    return jsonify(
+        message='Getting timeseries pixels asynchronously. Your files will be ready at the links below soon.',
+        url=timeseries_url,
+        timesteps=results,
+    )
+
+
+@app.route('/timeseries/<tag>/data.zip', methods=['GET'])
+@token_required
+def timeseries_result(tag):
+    """
+    Retrieve a timeseries dataset.
+    """
+    # Get list of finished objects from target directory.
+    s3 = boto3.client('s3')
+    results = s3.list_objects(Bucket=const.BUCKET, Prefix=tag)
+    results = [dat['Key'] for dat in results['Contents'] if not dat['Key'].endswith('/ts_steps.json')]
+
+    # Check if any of the subjobs have failed.
+    if any([dat.endswith('/failed.txt') for dat in results]):
+        return jsonify(message='Computation failed.')
+
+    # Get the full timesteps list from the registry file.
+    steps_key = '{tag}/ts_steps.json'.format(tag=tag)
+    steps_file = s3.get_object(Bucket=const.BUCKET, Key=steps_key)
+    steps = json.loads(steps_file['Body'].read())
+
+    # Check if all pixels are collected.
+    timesteps_count = len(steps)
+    done_count = len(results)
+
+    # Return with message if pixels are still being collected.
+    if done_count != timesteps_count:
+        return jsonify(
+            message='Pixel collection not finished yet.'.format(done_count, timesteps_count),
+            timesteps_done=done_count,
+            timesteps_total=timesteps_count,
+        )
+
+    # Write all timesteps into a single zipfile.
+    logger.info('Packaging data into zip file.')
+    fl = tempfile.NamedTemporaryFile()
+    with zipfile.ZipFile(fl.name, 'w') as zf:
+        for step in steps:
+            step_key = next(filter(lambda x: x in step['url'], results))
+            step_file = s3.get_object(Bucket=const.BUCKET, Key=step_key)
+            step_name = '{}_{}_{}'.format(step['start'], step['end'], step_key.split('/')[-1])
+            zf.writestr(step_name, step_file['Body'].read())
+
+    # Rewind and send file.
+    fl.seek(0)
+    return send_file(
+        fl,
+        as_attachment=True,
+        attachment_filename='pixels.zip',
+        mimetype='application/zip',
+    )
