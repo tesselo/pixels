@@ -365,6 +365,9 @@ def validate_configuration(config):
     if 'interval' in config and config['interval'] not in const.TIMESERIES_INTERVALS:
         raise PixelsFailed('Timeseries interval {} not recognized. Use one of {}'.format(config['interval'], const.TIMESERIES_INTERVALS))
 
+    if 'interval' in config and search_only:
+        raise PixelsFailed('Timeseries requests do not support search_only mode.')
+
     if 'interval_step' in config:
         try:
             config['interval_step'] = int(config['interval_step'])
