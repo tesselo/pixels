@@ -233,13 +233,14 @@ def pixels_task(data):
     tag = data['tag']
     try:
         pixels(data)
-    except:
+    except Exception as exc:
         s3 = boto3.client('s3')
         base = '/'.join(tag.split('/')[:-1])
+        data['exception'] = str(exc)
         s3.put_object(
             Bucket=const.BUCKET,
-            Key='{}/failed.txt'.format(base),
-            Body=BytesIO(),
+            Key='{}/failed.json'.format(base),
+            Body=json.dumps(data).encode(),
         )
         raise
 
@@ -263,11 +264,11 @@ def asyncresult(tag, file):
         return redirect(url)
     except s3.meta.client.exceptions.NoSuchKey:
         try:
-            s3.Object(const.BUCKET, '{}/failed.txt'.format(tag)).get()
+            failed = s3.Object(const.BUCKET, '{}/failed.json'.format(tag)).get()
         except s3.meta.client.exceptions.NoSuchKey:
-            return jsonify('Async collection not finished yet.')
+            return jsonify(message='Async collection not finished yet.')
         else:
-            return jsonify('Async collection falied.')
+            return jsonify(message='Async collection falied.', data=json.loads(failed['Body'].read()))
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
@@ -416,7 +417,7 @@ def timeseries_result(tag):
     results = [dat['Key'] for dat in results['Contents'] if not dat['Key'].endswith('/ts_steps.json')]
 
     # Check if any of the subjobs have failed.
-    if any([dat.endswith('/failed.txt') for dat in results]):
+    if any([dat.endswith('/failed.json') for dat in results]):
         return jsonify(message='Computation failed.', results=results)
 
     # Get the full timesteps list from the registry file.
