@@ -236,11 +236,14 @@ def pixels_task(data):
     except Exception as exc:
         s3 = boto3.client('s3')
         base = '/'.join(tag.split('/')[:-1])
-        data['exception'] = str(exc)
+        fail_result = {
+            'error': str(exc),
+            'data': data,
+        }
         s3.put_object(
             Bucket=const.BUCKET,
             Key='{}/failed.json'.format(base),
-            Body=json.dumps(data).encode(),
+            Body=json.dumps(fail_result).encode(),
         )
         raise
 
