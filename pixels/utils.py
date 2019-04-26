@@ -28,7 +28,7 @@ def generate_unique_key(frmt, ts_tag=''):
     Generate a unique S3 file key to upload files to.
     """
     if ts_tag:
-        '{}/'.format(ts_tag)
+        ts_tag = '{}/'.format(ts_tag)
 
     return '{}{}/pixels.{}'.format(
         ts_tag,
