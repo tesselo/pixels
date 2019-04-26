@@ -244,13 +244,22 @@ def pixels_task(data):
         )
         raise
 
-
 @app.route('/async/<tag>/<file>', methods=['GET'])
+@app.route('/async/<basetag>/<tag>/<file>', methods=['GET'])
 @token_required
-def asyncresult(tag, file):
+def asyncresult(tag, file, basetag=None):
+    """
+    Retrieve an async result file.
+    """
+    logger.info('Looking for result object {}/{} from async call.'.format(tag, file))
+    # Combine basetag with tag if present.
+    if basetag:
+        tag = basetag + '/' + tag
+    # S3 client setup.
     s3 = boto3.resource('s3')
     obj = s3.Object(const.BUCKET, '{}/{}'.format(tag, file))
-    logger.info('Looking for result object {}/{} from async call.'.format(tag, file))
+    # Get file, if not present, try getting fail json, if not present, its
+    # still processing.
     try:
         obj = obj.get()
         logger.info('Found result object from async call.')
