@@ -424,8 +424,24 @@ def timeseries_result(tag):
     """
     Retrieve a timeseries dataset.
     """
-    # Get list of finished objects from target directory.
     s3 = boto3.client('s3')
+
+    # Check if result already exists.
+    try:
+        s3.get_object(Bucket=const.BUCKET, Key='{}/data.zip'.format(tag))
+    except:
+        pass
+    else:
+        url = boto3.client('s3').generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': const.BUCKET,
+                'Key': '{}/data.zip'.format(tag),
+            }
+        )
+        return redirect(url)
+
+    # Get list of finished objects from target directory.
     results = s3.list_objects(Bucket=const.BUCKET, Prefix=tag)
     results = [dat['Key'] for dat in results['Contents'] if not dat['Key'].endswith('/ts_steps.json')]
 
@@ -466,11 +482,19 @@ def timeseries_result(tag):
             # Add file to zip.
             zf.writestr(step_name, step_file['Body'].read())
 
-    # Rewind and send file.
+    # Rewind and upload file to S3.
     fl.seek(0)
-    return send_file(
-        fl,
-        as_attachment=True,
-        attachment_filename='pixels.zip',
-        mimetype='application/zip',
+    s3.put_object(
+        Bucket=const.BUCKET,
+        Key='{}/data.zip'.format(tag),
+        Body=fl,
     )
+    # Redirect to file.
+    url = boto3.client('s3').generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': const.BUCKET,
+            'Key': '{}/data.zip'.format(tag),
+        }
+    )
+    return redirect(url)
