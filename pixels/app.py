@@ -247,6 +247,7 @@ def pixels_task(data):
         )
         raise
 
+
 @app.route('/async/<tag>/<file>', methods=['GET'])
 @app.route('/async/<basetag>/<tag>/<file>', methods=['GET'])
 @token_required
@@ -428,10 +429,6 @@ def timeseries_result(tag):
     results = s3.list_objects(Bucket=const.BUCKET, Prefix=tag)
     results = [dat['Key'] for dat in results['Contents'] if not dat['Key'].endswith('/ts_steps.json')]
 
-    # Check if any of the subjobs have failed.
-    if any([dat.endswith('/failed.json') for dat in results]):
-        return jsonify(message='Computation failed.', results=results)
-
     # Get the full timesteps list from the registry file.
     steps_key = '{tag}/ts_steps.json'.format(tag=tag)
     steps_file = s3.get_object(Bucket=const.BUCKET, Key=steps_key)
@@ -454,9 +451,16 @@ def timeseries_result(tag):
     fl = tempfile.NamedTemporaryFile()
     with zipfile.ZipFile(fl.name, 'w') as zf:
         for step in steps:
-            step_key = next(filter(lambda x: x in step['url'], results))
+            # Only keep base of url for searching a results key match. This
+            # ensures that for fail cases, the error data json is included.
+            step_url = '/'.join(step['url'].split('/')[:-1]) + '/failed.json'
+            # Match step list json with object search result.
+            step_key = next(filter(lambda x: x in step_url, results))
+            # Get file for match.
             step_file = s3.get_object(Bucket=const.BUCKET, Key=step_key)
+            # Add datetime strings to file name.
             step_name = '{}_{}_{}'.format(step['start'], step['end'], step_key.split('/')[-1])
+            # Add file to zip.
             zf.writestr(step_name, step_file['Body'].read())
 
     # Rewind and send file.
