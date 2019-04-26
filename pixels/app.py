@@ -451,11 +451,14 @@ def timeseries_result(tag):
     fl = tempfile.NamedTemporaryFile()
     with zipfile.ZipFile(fl.name, 'w') as zf:
         for step in steps:
-            # Only keep base of url for searching a results key match. This
-            # ensures that for fail cases, the error data json is included.
-            step_url = '/'.join(step['url'].split('/')[:-1]) + '/failed.json'
-            # Match step list json with object search result.
-            step_key = next(filter(lambda x: x in step_url, results))
+            try:
+                # Match step list json with existing objects search result.
+                step_key = next(filter(lambda x: x in step['url'], results))
+            except StopIteration:
+                # Convert data target to fail json target. This ensures that for
+                # fail cases, the error data json is included.
+                fail_step_url = '/'.join(step['url'].split('/')[:-1]) + '/failed.json'
+                step_key = next(filter(lambda x: x in fail_step_url, results))
             # Get file for match.
             step_file = s3.get_object(Bucket=const.BUCKET, Key=step_key)
             # Add datetime strings to file name.
