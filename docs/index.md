@@ -89,7 +89,7 @@ config = {
     'end': '2019-04-01',
     'platform': 'Sentinel-2',
     'product_type': 'S2MSI2A',
-    's2_max_cloud_cover_percentage': 60,
+    'max_cloud_cover_percentage': 60,
     'search_only': False,
     'composite': True,
     'latest_pixel': False,

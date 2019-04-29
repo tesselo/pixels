@@ -230,7 +230,7 @@ TILE_LAYER_TEMPLATE = '''
 </Layer>
 '''
 
-URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;s2_max_cloud_cover_percentage=50'
+URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;max_cloud_cover_percentage=50'
 
 
 def gen(key, host):

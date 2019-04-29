@@ -166,7 +166,7 @@
 				<div class="form-group row">
 			    <label for="inputEmail3" class="col-sm-2 col-form-label">Maximum Cloudy Pixel Percentage</label>
 			    <div class="col-sm-10">
-			      <input type="number" class="form-control" id="startDate" value="100" name="s2_max_cloud_cover_percentage">
+			      <input type="number" class="form-control" id="startDate" value="100" name="max_cloud_cover_percentage">
 			    </div>
 			  </div>
 				<!-- Bands -->
@@ -320,7 +320,7 @@
 						bands.push(x.value)
 						return
 					}
-					if (x.name == 's2_max_cloud_cover_percentage') {
+					if (x.name == 'max_cloud_cover_percentage') {
 						x.value = Number(x.value)
 					}
 					if (x.name == 'composite') {

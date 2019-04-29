@@ -27,7 +27,7 @@ data = {
     "end": "2019-04-01",
     "platform": const.PLATFORM_SENTINEL_2,
     "product_type": const.PRODUCT_L2A,
-    "s2_max_cloud_cover_percentage": 60,
+    "max_cloud_cover_percentage": 60,
     "search_only": False,
     "composite": True,
     "latest_pixel": False,

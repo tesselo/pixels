@@ -116,7 +116,7 @@ def pixels(data=None):
         product_type=config['product_type'],
         s1_acquisition_mode=None,
         s1_polarisation_mode=None,
-        s2_max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
+        max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
     )
 
     # Return only search query if requested.
@@ -327,7 +327,7 @@ def tiles(z, x, y):
         "end": end,
         "platform": const.PLATFORM_SENTINEL_2,
         "product_type": const.PRODUCT_L2A,
-        "s2_max_cloud_cover_percentage": max_cloud_cover_percentage,
+        "max_cloud_cover_percentage": max_cloud_cover_percentage,
         "search_only": False,
         "composite": False,
         "latest_pixel": True,

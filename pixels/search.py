@@ -13,7 +13,7 @@ from pixels.const import (
 from pixels.utils import filter_key, geometry_to_wkt, reproject_feature
 
 
-def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s1_polarisation_mode=None, s2_max_cloud_cover_percentage=100, raw=False):
+def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s1_polarisation_mode=None, max_cloud_cover_percentage=100, raw=False):
     """
     Search the scihub for data.
     """
@@ -30,14 +30,14 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
 
     elif platform == PLATFORM_SENTINEL_2:
         # Convert cloud percentage to integer.
-        s2_max_cloud_cover_percentage = int(s2_max_cloud_cover_percentage)
+        max_cloud_cover_percentage = int(max_cloud_cover_percentage)
         # Check inputs.
-        if s2_max_cloud_cover_percentage < 0 or s2_max_cloud_cover_percentage > 100:
-            raise ValueError('Cloud cover percentage out of range [0, 100]'.format(s2_max_cloud_cover_percentage))
+        if max_cloud_cover_percentage < 0 or max_cloud_cover_percentage > 100:
+            raise ValueError('Cloud cover percentage out of range [0, 100]'.format(max_cloud_cover_percentage))
         if product_type not in [PRODUCT_L1C, PRODUCT_L2A]:
             raise ValueError('Unknown product type "{}" for Sentinel-2'.format(product_type))
         # Construct extra search key.
-        extra = SEARCH_SENTINEL_2.format(cloudcoverpercentage=s2_max_cloud_cover_percentage)
+        extra = SEARCH_SENTINEL_2.format(cloudcoverpercentage=max_cloud_cover_percentage)
 
     else:
         raise ValueError('Unknown platform {}'.format(platform))
@@ -132,7 +132,7 @@ def parse_scihub_data(data):
             # Append scene count for this date and mgrstile to match S3 structure.
             count_duplicates = sum([dat['prefix'][:-2] == parsed_entry['prefix'] for dat in result])
             parsed_entry['prefix'] += '{}/'.format(count_duplicates)
-            parsed_entry['s2_max_cloud_cover_percentage'] = filter_key(entry, 'double', 'cloudcoverpercentage')
+            parsed_entry['max_cloud_cover_percentage'] = filter_key(entry, 'double', 'cloudcoverpercentage')
 
         parsed_entry.update({'date': str(date), 'footprint': footprint})
 
@@ -242,7 +242,7 @@ def pixels(geom, start, end, platform=[PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2]
             end=end,
             platform=PLATFORM_SENTINEL_2,
             product_type=PRODUCT_L1C,
-            s2_max_cloud_cover_percentage=max_cloud_cover_percentage,
+            max_cloud_cover_percentage=max_cloud_cover_percentage,
         )
         if mode == 'latest_pixel':
             dat[mode] = scihub.latest_pixel(geom, dat['scenes'], scale=scale, bands=s2_bands)
