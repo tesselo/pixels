@@ -138,14 +138,12 @@ def clone_raster(rst, data):
     """
     Clone a raster.
     """
-    # Clone raster.
+    # Get creation args from parent raster.
     creation_args = rst.meta.copy()
+    # Create target raster and write band data to it.
     memfile = MemoryFile()
-    dst = memfile.open(**creation_args)
-
-    # Write band data to target raster.
-    dst.write(data.reshape((1, ) + (rst.height, rst.width)))
-
+    with memfile.open(**creation_args) as dst:
+        dst.write(data.reshape((1, ) + (rst.height, rst.width)))
     # Return memfile object.
     return memfile
 

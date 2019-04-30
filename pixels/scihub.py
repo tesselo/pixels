@@ -171,14 +171,15 @@ def s2_composite(stacks, index_based=True):
 
     # Loop over all bands.
     result = {}
-    raster_to_clone = [val for key, val in stacks[0].items() if key != 'SCL'][0]
-    for i, band in enumerate(stacks[0].keys()):
-        # Merge scene tiles for this band into a composite tile using the selector index.
-        bnds = numpy.array([dat[i] for dat in Xs])
-        # Construct final composite band array from selector index.
-        composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
-        # Create band target raster.
-        result[band] = clone_raster(raster_to_clone, composite_data)
+    raster_file_to_clone = [val for key, val in stacks[0].items() if key != 'SCL'][0]
+    with raster_file_to_clone.open() as raster_to_clone:
+        for i, band in enumerate(stacks[0].keys()):
+            # Merge scene tiles for this band into a composite tile using the selector index.
+            bnds = numpy.array([dat[i] for dat in Xs])
+            # Construct final composite band array from selector index.
+            composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
+            # Create band target raster.
+            result[band] = clone_raster(raster_to_clone, composite_data)
 
     return result
 
