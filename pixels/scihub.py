@@ -115,8 +115,9 @@ def s2_composite(stacks, index_based=True):
     """
     # Cloud Extraction Indices, these are range indices for 2d arrays that are
     # needed to extract values by index when doing the cloud removal.
-    width = next(iter(stacks[0].values())).width
-    height = next(iter(stacks[0].values())).height
+    with next(iter(stacks[0].values())).open() as rst:
+        width = rst.width
+        height = rst.height
     CLOUD_IDX1, CLOUD_IDX2 = numpy.indices((width, height))
     # Convert rasters to numpy array.
     Xs = []
