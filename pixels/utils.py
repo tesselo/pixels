@@ -17,7 +17,7 @@ from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
-from pixels import const, utils
+from pixels import const
 from pixels.exceptions import PixelsFailed
 
 logger = logging.getLogger(__name__)
@@ -295,7 +295,7 @@ def validate_configuration(config):
     config.pop('key', None)
 
     # Transform the geom coordinates into web mercator and limit size.
-    trsf_geom = utils.reproject_feature(config['geom'], 'EPSG:3857')
+    trsf_geom = reproject_feature(config['geom'], 'EPSG:3857')
     trsf_bounds = bounds(trsf_geom)
     dx = trsf_bounds[2] - trsf_bounds[0]
     dy = trsf_bounds[3] - trsf_bounds[1]
