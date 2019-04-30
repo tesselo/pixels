@@ -386,7 +386,7 @@ def validate_configuration(config):
     # For color, assure the RGB bands are present.
     if file_format == const.REQUEST_FORMAT_PNG and config['platform'] == const.PLATFORM_SENTINEL_2:
         # For render, only request RGB bands.
-        bands = const.SENTINEL_2_RGB_BANDS
+        bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
     elif color and config['platform'] == const.PLATFORM_SENTINEL_2 and not all([dat in bands for dat in const.SENTINEL_2_RGB_BANDS]):
         logger.info('Adding RGB bands for color mode.')
         bands = list(set(bands + const.SENTINEL_2_RGB_BANDS))
