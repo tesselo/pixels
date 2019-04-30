@@ -1,16 +1,6 @@
-import copy
-import datetime
-import io
 import pprint
 
-import fiona
-import numpy
-import pandas
 import requests
-from dateutil import parser
-from shapely.geometry import shape
-
-from pixels import const
 
 bands = ["B03"]
 
