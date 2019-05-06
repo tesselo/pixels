@@ -372,6 +372,11 @@ def validate_configuration(config):
         except ValueError:
             raise PixelsFailed('Interval step needs to be an integer.')
 
+    # Override color flag if PNG is requested, as in that case RGB bands are
+    # required.
+    if file_format == const.REQUEST_FORMAT_PNG:
+        color = True
+
     # For composite, we will require all bands to be retrieved.
     if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
         if config['product_type'] == const.PRODUCT_L2A:
