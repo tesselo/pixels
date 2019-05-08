@@ -290,8 +290,8 @@ def tiles(z, x, y):
     """
     TMS tiles endpoint.
     """
-    if z < 12:
-        return utils.get_empty_tile()
+    if z < const.PIXELS_MIN_ZOOM:
+        return utils.get_empty_tile(z)
 
     # Retrieve end date from query args.
     end = request.args.get('end')

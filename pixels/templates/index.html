@@ -263,15 +263,14 @@
 	});
 	// Satellite data.
 	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png?key=' + key, {
-		maxZoom: 18,
-		minZoom: 12
+		maxZoom: 18
 	});
 	// Draw rectangles layer.
 	var drawnItems = L.featureGroup();
 	// Create map.
 	var map = L.map('mapid', {
-		center: [19.0576, 72.8885],
-		zoom: 13,
+    center: [0, 0],
+		zoom: 1,
 		layers: [osm, drawnItems]
 	});
 	// Create layer switcher.

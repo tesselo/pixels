@@ -10,7 +10,7 @@ import numpy
 import rasterio
 from dateutil import parser
 from flask import send_file
-from PIL import Image
+from PIL import Image, ImageDraw
 from pyproj import Proj, transform
 from rasterio import Affine
 from rasterio.features import bounds, rasterize
@@ -213,12 +213,20 @@ def clip_to_geom(stack, geom):
     return result
 
 
-def get_empty_tile():
+def get_empty_tile(zoom=None):
     """
     Tesselo + symbol as default.
     """
     path = os.path.dirname(os.path.abspath(__file__))
+    # Open the ref image.
     img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
+    # Write zoom message into image.
+    if zoom is not None:
+        msg = 'Zoom is {} | Min zoom is {}'.format(zoom, const.PIXELS_MIN_ZOOM)
+        draw = ImageDraw.Draw(img)
+        text_width, text_height = draw.textsize(msg)
+        draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
+    # Write image to response.
     output = BytesIO()
     img.save(output, format='PNG')
     output.seek(0)

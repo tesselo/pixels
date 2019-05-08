@@ -21,6 +21,8 @@ TIMESERIES_WEEKLY = 'weeks'
 TIMESERIES_MONTHLY = 'months'
 TIMESERIES_INTERVALS = [TIMESERIES_MONTHLY, TIMESERIES_WEEKLY]
 
+PIXELS_MIN_ZOOM = 12
+
 # ###################################################
 # Sentinel-1
 # ###################################################
