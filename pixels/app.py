@@ -206,6 +206,25 @@ def pixels(data=None):
             config=config,
             **stack
         )
+    elif config['format'] == const.REQUEST_FORMAT_CSV:
+        logger.info('Packaging data into a csv file.')
+        # Extract raster profile to compute pixel coordinates.
+        with next(iter(stack.values())).open() as rst:
+            profile = rst.profile
+        width = profile['width']
+        height = profile['height']
+        scale_x = profile['transform'][0]
+        origin_x = profile['transform'][2]
+        scale_y = profile['transform'][4]
+        origin_y = profile['transform'][5]
+        # Compute point coordinates for all pixels.
+        coords_x = numpy.array([origin_x + scale_x * idx for idx in range(width)] * height)
+        coords_y = numpy.tile([origin_y + scale_y * idx for idx in range(height)], (width, 1)).T.ravel()
+        # Get pixel values by band.
+        stack = {key: val.open().read(1).ravel() for key, val in stack.items()}
+        header = 'x,y,{}'.format(','.join(stack.keys()))
+        data = numpy.array([coords_x, coords_y] + list(stack.values())).T
+        numpy.savetxt(bytes_buffer, data, delimiter=',', header=header, comments='')
 
     # Rewind buffer.
     bytes_buffer.seek(0)
