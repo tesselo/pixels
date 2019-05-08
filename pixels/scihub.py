@@ -132,29 +132,34 @@ def s2_composite(stacks, index_based=True):
         """
         X = [raster.open().read(1) for raster in stack.values()]
         if 'SCL' in stack:
-            clouds = stack['SCL'].open().read(1).astype(SENTINEL_2_DTYPE)
-            ndvi = None
             # Use SCL layer to select pixel ranks.
-            clouds = numpy.choose(clouds, SCENE_CLASS_RANK_FLAT)
+            with stack['SCL'].open() as rst:
+                scl = rst.read(1).astype(SENTINEL_2_DTYPE)
+            clouds = numpy.choose(scl, SCENE_CLASS_RANK_FLAT)
         else:
-            # Compute NDVI, avoiding zero division.
-            B4 = X[3].astype('float')  # B04
-            B8 = X[7].astype('float')  # B08
-            ndvi_diff = B8 - B4
-            ndvi_sum = B8 + B4
-            ndvi_sum[ndvi_sum == SENTINEL_2_NODATA] = 1
-            ndvi = ndvi_diff / ndvi_sum
-            clouds = numpy.zeros(ndvi.shape)
+            # Prepare zeros cloud array.
+            clouds = numpy.zeros(X[0].shape)
+
+        # Get NDVI bands.
+        with stack['B04'].open() as rst:
+            B4 = rst.read(1).astype('float')
+        with stack['B08'].open() as rst:
+            B8 = rst.read(1).astype('float')
+
+        # Compute NDVI, avoiding zero division for nodata pixels.
+        ndvi_diff = B8 - B4
+        ndvi_sum = B8 + B4
+        ndvi_sum[ndvi_sum == SENTINEL_2_NODATA] = 1
+        ndvi = ndvi_diff / ndvi_sum
 
         # Convert cloud probs to float.
         clouds = clouds.astype('float')
 
-        if ndvi is not None:
-            # Add inverted and scaled NDVI values to the decimal range of the cloud
-            # probs. This ensures that within acceptable pixels, the one with the
-            # highest NDVI is selected.
-            scaled_ndvi = (1 - ndvi) / 100
-            clouds += scaled_ndvi
+        # Add inverted and scaled NDVI values to the decimal range of the cloud
+        # probs. This ensures that within acceptable pixels, the one with the
+        # highest NDVI is selected.
+        scaled_ndvi = (1 - ndvi) / 100
+        clouds += scaled_ndvi
 
         # Set cloud prob high for nodata pixels.
         clouds[X[0] == SENTINEL_2_NODATA] = 999999

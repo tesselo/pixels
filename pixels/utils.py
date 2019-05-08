@@ -388,11 +388,11 @@ def validate_configuration(config):
     # For composite, we will require all bands to be retrieved.
     if composite:
         if config['product_type'] == const.PRODUCT_L2A:
-            logger.info('Adding SCL for composite mode.')
-            bands = list(set(bands + ['SCL']))
+            logger.info('Adding SCL and NDVI bands for composite mode.')
+            bands = list(set(bands + ['SCL', 'B04', 'B08']))
         elif len(bands) != len(const.SENTINEL_2_BANDS):
-            logger.info('Adding all Sentinel-2 bands for composite mode.')
-            bands = const.SENTINEL_2_BANDS
+            logger.info('Adding NDVI bands for composite mode.')
+            bands = list(set(bands + ['B04', 'B08']))
 
     # For color, assure the RGB bands are present.
     if file_format == const.REQUEST_FORMAT_PNG and config['platform'] == const.PLATFORM_SENTINEL_2:
