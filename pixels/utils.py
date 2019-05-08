@@ -386,11 +386,11 @@ def validate_configuration(config):
         color = True
 
     # For composite, we will require all bands to be retrieved.
-    if composite and not len(bands) == len(const.SENTINEL_2_BANDS):
+    if composite:
         if config['product_type'] == const.PRODUCT_L2A:
             logger.info('Adding SCL for composite mode.')
             bands = list(set(bands + ['SCL']))
-        else:
+        elif len(bands) != len(const.SENTINEL_2_BANDS):
             logger.info('Adding all Sentinel-2 bands for composite mode.')
             bands = const.SENTINEL_2_BANDS
 

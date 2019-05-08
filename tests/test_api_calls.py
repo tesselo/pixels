@@ -29,8 +29,8 @@ data = {
     "product_type": const.PRODUCT_L2A,
     "max_cloud_cover_percentage": 60,
     "search_only": False,
-    "composite": True,
-    "latest_pixel": False,
+    "composite": False,
+    "latest_pixel": True,
     "color": True,
     "format": 'PNG',
     "delay": False,
@@ -38,9 +38,9 @@ data = {
 }
 
 
-# host = 'http://127.0.0.1:5000/data?key=829c0f290b9f0f0d49fd2501e5792f8413305535'
+host = 'http://127.0.0.1:5000/data?key=829c0f290b9f0f0d49fd2501e5792f8413305535'
 # host = 'https://pixels.tesselo.com/data'
-host = 'https://devpixels.tesselo.com/data?key=78f300a8965e04f111e2a738a9b1cbc4f6a8bc55'
+# host = 'https://devpixels.tesselo.com/data?key=78f300a8965e04f111e2a738a9b1cbc4f6a8bc55'
 
 result = requests.post(host, json=data)
 
