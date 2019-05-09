@@ -58,7 +58,6 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     # of length above 8000 character will fail on scihub. So to be on the safe
     # side, limit the geom only part length. If applicable, convert to bbox.
     if trsf_geom['geometry']['type'] == 'MultiPolygon' or len(str(trsf_geom['geometry']['coordinates']).replace(' ', '')) > QUERY_URL_MAX_LENGTH:
-        print('lenlen', len(str(trsf_geom['geometry']['coordinates']).replace(' ', '')), str(trsf_geom['geometry']['coordinates']).replace(' ', ''))
         bnd = bounds(trsf_geom)
         trsf_geom['geometry']['type'] = 'Polygon'
         trsf_geom['geometry']['coordinates'] = [[
