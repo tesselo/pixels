@@ -208,6 +208,7 @@ def pixels(data=None):
         )
     elif config['format'] == const.REQUEST_FORMAT_CSV:
         logger.info('Packaging data into a csv file.')
+
         # Extract raster profile to compute pixel coordinates.
         with next(iter(stack.values())).open() as rst:
             profile = rst.profile
@@ -217,11 +218,23 @@ def pixels(data=None):
         origin_x = profile['transform'][2]
         scale_y = profile['transform'][4]
         origin_y = profile['transform'][5]
+
         # Compute point coordinates for all pixels.
         coords_x = numpy.array([origin_x + scale_x * idx for idx in range(width)] * height)
         coords_y = numpy.tile([origin_y + scale_y * idx for idx in range(height)], (width, 1)).T.ravel()
+
+        # Reproject pixel coords to original coordinate system if required.
+        if 'properties' in config['geom'] and 'original_crs' in config['geom']['properties']:
+            coords = utils.reproject_coords(
+                [list(zip(coords_x, coords_y))],
+                config['geom']['crs'],
+                config['geom']['properties']['original_crs']
+            )
+            coords_x = numpy.array([dat[0] for dat in coords[0]])
+            coords_y = numpy.array([dat[1] for dat in coords[0]])
+
         # Get pixel values by band.
-        stack = {key: val.open().read(1).ravel() for key, val in stack.items()}
+        stack = {key: val.open().read(1).ravel() for key, val in stack.items() if key != 'RGB'}
         header = 'x,y,{}'.format(','.join(stack.keys()))
         data = numpy.array([coords_x, coords_y] + list(stack.values())).T
         numpy.savetxt(bytes_buffer, data, delimiter=',', header=header, comments='')

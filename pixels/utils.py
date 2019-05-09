@@ -240,11 +240,15 @@ def reproject_coords(coords, src, tar):
     """
     Reproject a list of polygon coordinates.
     """
-    transformed_coords = []
-
     if len(coords) > 1:
         raise ValueError('Polygons with interior rings are not supported.')
 
+    if isinstance(src, str):
+        src = Proj(init=src)
+    if isinstance(tar, str):
+        tar = Proj(init=tar)
+
+    transformed_coords = []
     for coord in coords[0]:
         transformed_coords.append(transform(src, tar, coord[0], coord[1]))
 
@@ -315,6 +319,10 @@ def validate_configuration(config):
     if config['geom']['crs'] == 'EPSG:4326':
         config['geom'] = trsf_geom
         config['geom']['crs'] = 'EPSG:3857'
+        # Track the original crs for reference.
+        if 'properties' not in config['geom']:
+            config['geom']['properties'] = {}
+        config['geom']['properties']['original_crs'] = 'EPSG:4326'
 
     # Get extract custom handler arguments.
     composite = config.pop('composite', False)
