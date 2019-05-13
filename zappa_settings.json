@@ -1,6 +1,6 @@
 {
     "dev": {
-        "app_function": "pixels.app.app",
+        "app_function": "app.app.app",
         "aws_region": "eu-central-1",
         "profile_name": "tesselo",
         "project_name": "pixels",

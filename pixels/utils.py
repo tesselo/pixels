@@ -1,16 +1,11 @@
-import glob
 import logging
-import os
 import uuid
 from copy import deepcopy
-from io import BytesIO
 from math import ceil, pi
 
 import numpy
 import rasterio
 from dateutil import parser
-from flask import send_file
-from PIL import Image, ImageDraw
 from pyproj import Proj, transform
 from rasterio import Affine
 from rasterio.features import bounds, rasterize
@@ -148,29 +143,6 @@ def clone_raster(rst, data):
     return memfile
 
 
-def persist(entry, folder):
-    """
-    Persist pixel data from an entry to a folder.
-    """
-    for band, val in entry['pixels'].items():
-        write_to_disk(val, os.path.join(folder, '{}-{}-{}.tif'.format(entry['mgrs'], entry['date'].date(), band)))
-
-
-def load_stacks(folder):
-    """
-    Load all persisted stacks from this folder.
-    """
-    stacks = {}
-    for path in glob.glob(os.path.join(folder, '*.tif')):
-        # mgrs, year, month, day, band = os.path.basename(path).split('.tif')[0].split('-')
-        band, year, month, day, mgrs = os.path.basename(path).split('.tif')[0].split('-')
-        key = '{}-{}-{}-{}'.format(mgrs, year, month, day)
-        if key not in stacks:
-            stacks[key] = {}
-        stacks[key][band] = rasterio.open(path, 'r')
-    return stacks
-
-
 def tile_bounds(z, x, y):
     """
     Calculate the bounding box of a specific tile.
@@ -211,29 +183,6 @@ def clip_to_geom(stack, geom):
             result[key] = clone_raster(rst, dat)
 
     return result
-
-
-def get_empty_tile(zoom=None):
-    """
-    Tesselo + symbol as default.
-    """
-    path = os.path.dirname(os.path.abspath(__file__))
-    # Open the ref image.
-    img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
-    # Write zoom message into image.
-    if zoom is not None:
-        msg = 'Zoom is {} | Min zoom is {}'.format(zoom, const.PIXELS_MIN_ZOOM)
-        draw = ImageDraw.Draw(img)
-        text_width, text_height = draw.textsize(msg)
-        draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
-    # Write image to response.
-    output = BytesIO()
-    img.save(output, format='PNG')
-    output.seek(0)
-    return send_file(
-        output,
-        mimetype='image/png'
-    )
 
 
 def reproject_coords(coords, src, tar):

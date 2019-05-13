@@ -2,8 +2,6 @@ import pprint
 
 import requests
 
-bands = ['B03']
-
 burned_pt_north = {
         "type": "Feature",
         "properties": {},
@@ -12,85 +10,53 @@ burned_pt_north = {
             "coordinates": [
                 [
                     [
-                        -8.062592,
-                        41.757996
+                        -7.917194,
+                        41.852365
                     ],
                     [
-                        -8.062592,
-                        41.921694
+                        -7.917194,
+                        41.857032
                     ],
                     [
-                        -7.599792,
-                        41.921694
+                        -7.907152,
+                        41.857032
                     ],
                     [
-                        -7.599792,
-                        41.757996
+                        -7.907152,
+                        41.852365
                     ],
                     [
-                        -8.062592,
-                        41.757996
+                        -7.917194,
+                        41.852365
                     ]
                 ]
             ]
         },
         "crs": "EPSG:4326"
     }
-
 config = {
     'geom': burned_pt_north,
-    #     'geom': {
-    #     'type': 'Feature',
-    #     'crs': 'EPSG:3857',
-    #     'geometry': {
-    #         'type': 'Polygon',
-    #         'coordinates': [[
-    #             # [916091, 5946430],  # Bern
-    #             # [914091, 5946430],
-    #             # [914091, 5944430],
-    #             # [916091, 5944430],
-    #             # [916091, 5946430],
-    #             # [-8685316, -161905],  # Puyo
-    #             # [-8680872, -161781],
-    #             # [-8680982, -166239],
-    #             # [-8685433, -166239],
-    #             # [-8685316, -161905],
-    #             [-838827, 5137055],  # PT North
-    #             [-818231, 5137358],
-    #             [-818761, 5121507],
-    #             [-838550, 5121128],
-    #             [-838827, 5137055],
-    #         ]]
-    #     },
-    # },
-    'start': '2019-01-01',
-    'end': '2019-05-07',
-    # 'end': '2017-09-26',
-    # 'start': '2017-08-30',
+    'start': '2016-04-01',
+    'end': '2019-04-01',
     'platform': 'Sentinel-2',
-    'product_type': 'S2MSI2A',
+    'product_type': 'S2MSI1C',
     'max_cloud_cover_percentage': 100,
     'search_only': False,
     'composite': False,
     'latest_pixel': True,
-    'color': True,
-    'format': 'PNG',
+    'color': False,
+    'format': 'NPZ',
     'delay': True,
-    'scale': 10,
-    # 'bands': const.SENTINEL_2_BANDS,
+    'scale': 20,
+    'bands': ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11', 'B12'],
+    # 'bands': ['B07'],
     'clip_to_geom': False,
     'interval': 'weeks',
     'interval_step': 1,
 }
 
-shape_config = {
-    'target_column': 'target',
-    'feature_identifier_column': 'id',
-}
-
-
 # endpoint = 'https://pixels.tesselo.com/data?key=4bd45b2e090149dd5dfa7cdb10f48aa683354542'
-endpoint = 'https://pixels.tesselo.com/timeseries?key=4bd45b2e090149dd5dfa7cdb10f48aa683354542'
+endpoint = 'https://pixels.tesselo.com/timeseries?key=ac66322315e8b98cc7af954383ae6f01424a2fcb'
 # endpoint = 'http://127.0.0.1:5000/timeseries?key=829c0f290b9f0f0d49fd2501e5792f8413305535'
 # endpoint = 'https://devpixels.tesselo.com/timeseries?key=78f300a8965e04f111e2a738a9b1cbc4f6a8bc55'
 
@@ -103,9 +69,13 @@ pprint.pprint(result.json())
 # import numpy
 # for path in glob.glob('/home/tam/Desktop/bla/*.npz'):
 #     print(path)
-#     with open(path) as fl:
-#         data = numpy.load(fl)
-#         print(data.keys())
+#     with open(path, 'rb') as fl:
+#         try:
+#             data = numpy.load(fl)
+#             print(data['B02'])
+#         except:
+#             print('Failed')
+#             raise
 
 
 # 'http://127.0.0.1:5000/timeseries/be190e0e-eeb6-4677-b7bd-07ff974baeb2/data.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535'

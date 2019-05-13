@@ -2,21 +2,21 @@ import datetime
 import functools
 import json
 import logging
+import os
 import tempfile
 import uuid
 import zipfile
 from io import BytesIO
 
 import boto3
-import numpy
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageDraw
 from zappa.async import task
 
-from pixels import const, scihub, search, utils, wmts
+from pixels import const, core, utils, wmts
 from pixels.exceptions import PixelsFailed
 
 # Flask setup
@@ -88,7 +88,6 @@ def pixels(data=None):
     The input event is a JSON configuration for a pixels request.
     """
     if not data:
-        # Retrun message on GET.
         if request.method == 'GET':
             # Look for a json string in data argument.
             data = json.loads(request.args['data'])
@@ -96,163 +95,42 @@ def pixels(data=None):
             # Retrieve json data from post request.
             data = request.get_json()
 
+    # Validate input.
     config = utils.validate_configuration(data)
 
     # Handle delay mode.
     if config['delay'] and not config['tag']:
         logger.info('Working in delay mode.')
+        # Add tag to config and call async task with tag specified.
         config['tag'] = utils.generate_unique_key(config['format'])
         url = '{}async/{}?key={}'.format(request.host_url, config['tag'], request.args['key'])
         pixels_task(config)
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
 
-    # Query available scenery.
-    logger.info('Querying data on the ESA SciHub.')
-    query_result = search.search(
-        geom=config['geom'],
-        start=config['start'],
-        end=config['end'],
-        platform=config['platform'],
-        product_type=config['product_type'],
-        s1_acquisition_mode=None,
-        s1_polarisation_mode=None,
-        max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
-    )
+    # Compute pixel stack.
+    output = core.handler(config)
 
-    # Return only search query if requested.
+    # Return if no scenes could be found.
+    if output is None:
+        return jsonify(message='No scenes found for the given search criteria.')
+
+    # Return search query if requested.
     if config['search_only']:
-        return jsonify(query_result)
+        return jsonify(output)
 
-    if not len(query_result):
-        raise PixelsFailed('No scenes found for the given search criteria.')
-
-    # Get pixels.
-    if config['latest_pixel']:
-        logger.info('Getting latest pixels stack.')
-        stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
-    else:
-        for entry in query_result:
-            logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
-            entry['pixels'] = scihub.get_pixels(config['geom'], entry, scale=config['scale'], bands=config['bands'])
-
-        if config['composite']:
-            logger.info('Computing composite from pixel stacks.')
-            stack = [entry['pixels'] for entry in query_result]
-            stack = scihub.s2_composite(stack)
-
-    # Clip to geometry if requested:
-    if config['clip_to_geom']:
-        stack = utils.clip_to_geom(stack, config['geom'])
-
-    # Convert to RGB color tif.
-    if config['color']:
-        logger.info('Computing RGB image from stack.')
-        if config.get('platform', None) == const.PLATFORM_SENTINEL_1:
-            stack['RGB'] = scihub.s1_color(stack)
-        else:
-            stack['RGB'] = scihub.s2_color(stack)
-
-        # Check for RGB render mode.
-        if config['format'] == const.REQUEST_FORMAT_PNG:
-            logger.info('Rendering RGB data into PNG image.')
-            pixpix = numpy.array([
-                numpy.clip(stack['RGB'].open().read(1), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                numpy.clip(stack['RGB'].open().read(2), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                numpy.clip(stack['RGB'].open().read(3), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-            ]).astype('uint8')
-
-            # Create image object and enhance color scheme.
-            img = Image.fromarray(pixpix.T)
-            img = ImageEnhance.Contrast(img).enhance(1.2)
-            img = ImageEnhance.Brightness(img).enhance(1.8)
-            img = ImageEnhance.Color(img).enhance(1.4)
-
-            # Save image to io buffer.
-            output = BytesIO()
-            img.save(output, format=const.REQUEST_FORMAT_PNG)
-            output.seek(0)
-            if config['tag']:
-                s3 = boto3.client('s3')
-                s3.put_object(
-                    Bucket=const.BUCKET,
-                    Key=config['tag'],
-                    Body=output,
-                )
-                return
-            else:
-                return send_file(
-                    output,
-                    mimetype='image/png'
-                )
-
-    # Write all result rasters into a zip file and return the data package.
-    bytes_buffer = BytesIO()
-    if config['format'] == const.REQUEST_FORMAT_ZIP:
-        logger.info('Packaging data into zip file.')
-        with zipfile.ZipFile(bytes_buffer, 'w') as zf:
-            # Write pixels into zip file.
-            for key, raster in stack.items():
-                raster.seek(0)
-                zf.writestr('{}.tif'.format(key), raster.read())
-            # Write config into zip file.
-            zf.writestr('config.json', json.dumps(config))
-    elif config['format'] == const.REQUEST_FORMAT_NPZ:
-        logger.info('Packaging data into numpy npz file.')
-        # Convert stack to numpy arrays.
-        stack = {key: val.open().read(1) for key, val in stack.items()}
-        # Save to compressed numpy npz format.
-        numpy.savez_compressed(
-            bytes_buffer,
-            config=config,
-            **stack
-        )
-    elif config['format'] == const.REQUEST_FORMAT_CSV:
-        logger.info('Packaging data into a csv file.')
-
-        # Extract raster profile to compute pixel coordinates.
-        with next(iter(stack.values())).open() as rst:
-            profile = rst.profile
-        width = profile['width']
-        height = profile['height']
-        scale_x = profile['transform'][0]
-        origin_x = profile['transform'][2]
-        scale_y = profile['transform'][4]
-        origin_y = profile['transform'][5]
-
-        # Compute point coordinates for all pixels.
-        coords_x = numpy.array([origin_x + scale_x * idx for idx in range(width)] * height)
-        coords_y = numpy.tile([origin_y + scale_y * idx for idx in range(height)], (width, 1)).T.ravel()
-
-        # Reproject pixel coords to original coordinate system if required.
-        if 'properties' in config['geom'] and 'original_crs' in config['geom']['properties']:
-            coords = utils.reproject_coords(
-                [list(zip(coords_x, coords_y))],
-                config['geom']['crs'],
-                config['geom']['properties']['original_crs']
-            )
-            coords_x = numpy.array([dat[0] for dat in coords[0]])
-            coords_y = numpy.array([dat[1] for dat in coords[0]])
-
-        # Get pixel values by band.
-        stack = {key: val.open().read(1).ravel() for key, val in stack.items() if key != 'RGB'}
-        header = 'x,y,{}'.format(','.join(stack.keys()))
-        data = numpy.array([coords_x, coords_y] + list(stack.values())).T
-        numpy.savetxt(bytes_buffer, data, delimiter=',', header=header, comments='')
-
-    # Rewind buffer.
-    bytes_buffer.seek(0)
-
-    # Return buffer as file.
     if config['tag']:
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket=const.BUCKET,
             Key=config['tag'],
-            Body=bytes_buffer,
+            Body=output,
         )
+        return jsonify(message='Wrote files to bucket.')
+    elif config['color']:
+        return send_file(output, mimetype='image/png')
     else:
         return send_file(
-            bytes_buffer,
+            output,
             as_attachment=True,
             attachment_filename='pixels.{}'.format(config['format'].lower()),
             mimetype='application/{}'.format(config['format'].lower())
@@ -323,8 +201,23 @@ def tiles(z, x, y):
     TMS tiles endpoint.
     """
     if z < const.PIXELS_MIN_ZOOM:
-        return utils.get_empty_tile(z)
-
+        path = os.path.dirname(os.path.abspath(__file__))
+        # Open the ref image.
+        img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
+        # Write zoom message into image.
+        if z is not None:
+            msg = 'Zoom is {} | Min zoom is {}'.format(z, const.PIXELS_MIN_ZOOM)
+            draw = ImageDraw.Draw(img)
+            text_width, text_height = draw.textsize(msg)
+            draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
+        # Write image to response.
+        output = BytesIO()
+        img.save(output, format='PNG')
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype='image/png'
+        )
     # Retrieve end date from query args.
     end = request.args.get('end')
     if not end:
