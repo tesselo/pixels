@@ -10,7 +10,6 @@ from io import BytesIO
 
 import boto3
 from dateutil import parser
-from dateutil.relativedelta import relativedelta
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw
@@ -289,17 +288,9 @@ def timeseries():
         config['interval_step'] = 1
     # Generate timeseries key.
     config['timeseries_tag'] = str(uuid.uuid4())
-    # Convert start and end date strings to objects.
-    start = parser.parse(config['start'])
-    end = parser.parse(config['end'])
-    # Compute time delta.
-    delta = relativedelta(**{config['interval'].lower(): config['interval_step']})
-    # Create intermediate timestamps.
-    here_start = start
-    here_end = start + delta
     # Loop through timesteps.
     results = []
-    while here_end <= end:
+    for here_start, here_end in utils.timeseries_steps(config['start'], config['end'], config['interval'], config['interval_step']):
         logger.info('Getting timeseries data from {} to {}.'.format(here_start, here_end))
         # Update config with intermediate timestamps.
         config.update({
@@ -316,9 +307,6 @@ def timeseries():
         })
         # Trigger async task.
         pixels_task(config)
-        # Increment intermediate timestamps.
-        here_end += delta
-        here_start += delta
 
     # Generate download url for the timeseries data.
     timeseries_url = '{}timeseries/{}/data.zip?key={}'.format(request.host_url, config['timeseries_tag'], request.args['key'])

@@ -6,6 +6,7 @@ from math import ceil, pi
 import numpy
 import rasterio
 from dateutil import parser
+from dateutil.relativedelta import relativedelta
 from pyproj import Proj, transform
 from rasterio import Affine
 from rasterio.features import bounds, rasterize
@@ -244,6 +245,28 @@ def geometry_to_wkt(geom):
         return 'MULTIPOLYGON({})'.format(wkt)
     else:
         raise ValueError('Geometry type "{}" is not supported. Please use Polygon or MultiPolygon.')
+
+
+def timeseries_steps(start, end, interval, interval_step):
+    """
+    Construct a series of timesteps given the input date range.
+    """
+    # Convert input to dates if provided as str.
+    if isinstance(start, str):
+        start = parser.parse(start)
+    if isinstance(end, str):
+        end = parser.parse(end)
+    # Compute time delta.
+    delta = relativedelta(**{interval.lower(): int(interval_step)})
+    # Create intermediate timestamps.
+    here_start = start
+    here_end = start + delta
+    # Loop through timesteps.
+    while here_end <= end:
+        yield here_start, here_end
+        # Increment intermediate timestamps.
+        here_start += delta
+        here_end += delta
 
 
 def validate_configuration(config):
