@@ -16,6 +16,7 @@ from rasterio.warp import Resampling, reproject
 from pixels import const
 from pixels.exceptions import PixelsFailed
 
+# Get logger.
 logger = logging.getLogger(__name__)
 
 

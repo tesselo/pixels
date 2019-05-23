@@ -23,9 +23,7 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
 # Logging setup
-logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # DB Setup
 db = SQLAlchemy(app)

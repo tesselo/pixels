@@ -1,0 +1,132 @@
+{
+  "start": "2019-03-01",
+  "end": "2019-04-01",
+  "interval": "weeks",
+  "interval_step": 1,
+  "platform": "Sentinel-2",
+  "product_type": "S2MSI1C",
+  "max_cloud_cover_percentage": 100,
+  "search_only": false,
+  "composite": false,
+  "latest_pixel": true,
+  "color": false,
+  "format": "NPZ",
+  "delay": false,
+  "scale": 10,
+  "bands": ["B02", "B03", "B04", "B05", "B08"],
+  "clip_to_geom": true,
+  "keras_compile_arguments": {
+    "optimizer": "rmsprop",
+    "loss": "sparse_categorical_crossentropy",
+    "metrics": ["accuracy"]
+  },
+  "keras_fit_arguments": {"epochs": 20, "batch_size": 500},
+  "keras_model": {
+    "class_name": "Sequential", "config": {"name": "sequential_4", "layers": [{"class_name": "BatchNormalization", "config": {"name": "batch_normalization_5", "trainable": true, "axis": -1, "momentum": 0.99, "epsilon": 0.001, "center": true, "scale": true, "beta_initializer": {"class_name": "Zeros", "config": {}}, "gamma_initializer": {"class_name": "Ones", "config": {}}, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "beta_regularizer": null, "gamma_regularizer": null, "beta_constraint": null, "gamma_constraint": null}}, {"class_name": "Bidirectional", "config": {"name": "bidirectional_2", "trainable": true, "layer": {"class_name": "GRU", "config": {"name": "gru_3", "trainable": true, "return_sequences": false, "return_state": false, "go_backwards": false, "stateful": false, "unroll": false, "units": 250, "activation": "tanh", "recurrent_activation": "hard_sigmoid", "use_bias": true, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "mode": "fan_avg", "distribution": "uniform", "seed": null}}, "recurrent_initializer": {"class_name": "Orthogonal", "config": {"gain": 1.0, "seed": null}}, "bias_initializer": {"class_name": "Zeros", "config": {}}, "kernel_regularizer": null, "recurrent_regularizer": null, "bias_regularizer": null, "activity_regularizer": null, "kernel_constraint": null, "recurrent_constraint": null, "bias_constraint": null, "dropout": 0.3, "recurrent_dropout": 0.3, "implementation": 1, "reset_after": false}}, "merge_mode": "concat"}}, {"class_name": "BatchNormalization", "config": {"name": "batch_normalization_6", "trainable": true, "axis": -1, "momentum": 0.99, "epsilon": 0.001, "center": true, "scale": true, "beta_initializer": {"class_name": "Zeros", "config": {}}, "gamma_initializer": {"class_name": "Ones", "config": {}}, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "beta_regularizer": null, "gamma_regularizer": null, "beta_constraint": null, "gamma_constraint": null}}]}, "keras_version": "2.2.4", "backend": "tensorflow"
+  },
+  "train": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {"id": 1, "class": "a"},
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [
+                        -7.917194,
+                        41.852365
+                    ],
+                    [
+                        -7.917194,
+                        41.857032
+                    ],
+                    [
+                        -7.907152,
+                        41.857032
+                    ],
+                    [
+                        -7.907152,
+                        41.852365
+                    ],
+                    [
+                        -7.917194,
+                        41.852365
+                    ]
+                ]
+            ]
+        },
+        "crs": "EPSG:4326"
+      },
+      {
+        "type": "Feature",
+        "properties": {"id": 2, "class": "b"},
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [
+                        -6.917194,
+                        40.852365
+                    ],
+                    [
+                        -6.917194,
+                        40.857032
+                    ],
+                    [
+                        -6.907152,
+                        40.857032
+                    ],
+                    [
+                        -6.907152,
+                        40.852365
+                    ],
+                    [
+                        -6.917194,
+                        40.852365
+                    ]
+                ]
+            ]
+        },
+        "crs": "EPSG:4326"
+      }
+    ]
+  },
+  "predict": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [
+                        -7.917194,
+                        41.852365
+                    ],
+                    [
+                        -7.917194,
+                        41.857032
+                    ],
+                    [
+                        -7.907152,
+                        41.857032
+                    ],
+                    [
+                        -7.907152,
+                        41.852365
+                    ],
+                    [
+                        -7.917194,
+                        41.852365
+                    ]
+                ]
+            ]
+        },
+        "crs": "EPSG:4326"
+      }
+    ]
+  }
+}

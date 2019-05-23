@@ -1,6 +1,7 @@
 import logging
 
 import numpy
+from rasterio.errors import RasterioIOError
 from rasterio.io import MemoryFile
 
 from pixels.const import (
@@ -12,6 +13,7 @@ from pixels.const import (
 from pixels.exceptions import PixelsFailed
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
 
+# Get logger.
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +76,12 @@ def latest_pixel(geom, data, scale=10, bands=None):
     creation_args = None
     for entry in data:
         logger.info('Adding entry {} to latest pixel stack.'.format(entry['prefix']))
-        data = get_pixels(geom, entry, scale=scale, bands=bands)
+        try:
+            data = get_pixels(geom, entry, scale=scale, bands=bands)
+        except RasterioIOError:
+            # Catch error if a specific scene was not registered in S3 bucket.
+            logger.warning('Not all bands found in S3 for scene key {}.'.format(entry['prefix']))
+            continue
         # Save a copy of the creation arguments for later conversion to raster.
         if creation_args is None:
             with next(iter(data.values())).open() as tmp:

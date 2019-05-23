@@ -8,10 +8,8 @@ from PIL import Image, ImageEnhance
 
 from pixels import const, scihub, search, utils
 
-# Logging setup
-logging.basicConfig()
+# Get logger.
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def handler(config):
