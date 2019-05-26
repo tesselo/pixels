@@ -57,7 +57,7 @@ for page in data_files:
         data = s3.get_object(Bucket=bucket, Key=npz['Key'])['Body'].read()
         data = dict(numpy.load(io.BytesIO(data), allow_pickle=True))
         training_x.append(data['data'])
-        training_y.append(numpy.array([class_lookup[data['class_name']] * data['data'].shape[0]]))
+        training_y.append(numpy.ones(data['data'].shape[0]) * class_lookup[data['class_name'].item()])
 
 X = numpy.vstack(training_x)
 Y = numpy.hstack(training_y)
