@@ -57,19 +57,18 @@ for page in data_files:
         data = s3.get_object(Bucket=bucket, Key=npz['Key'])['Body'].read()
         data = dict(numpy.load(io.BytesIO(data), allow_pickle=True))
         training_x.append(data['data'])
-        training_y.append(numpy.ones(data['data'].shape[0]) * class_lookup[data['class_name'].item()])
+        if train_or_predict == 'train':
+            training_y.append(numpy.ones(data['data'].shape[0]) * class_lookup[data['class_name'].item()])
 
-X = numpy.vstack(training_x)
-Y = numpy.hstack(training_y)
-Y = Y.astype('uint8')
+# Stack data and add to numpy savez ready dict.
+to_save = {
+    'X': numpy.vstack(training_x)
+}
+if train_or_predict == 'train':
+    to_save['Y'] = numpy.hstack(training_y).astype('uint8')
 
 # Store data in single npz file (used for training and re-training).
 output = io.BytesIO()
-to_save = {
-    'X': X
-}
-if train_or_predict == 'train':
-    to_save['Y'] = Y
 numpy.savez_compressed(output, **to_save)
 # Rewind buffer.
 output.seek(0)
