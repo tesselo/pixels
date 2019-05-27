@@ -12,6 +12,7 @@ from pixels import core, utils
 
 # Get logger.
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID', 'test')
@@ -48,7 +49,8 @@ config.pop('predict')
 # Loop through steps.
 results = []
 for step in steps:
-    logger.info('Working on geom {}, step {}'.format(geom_index, step))
+    logger.info('Working on geom {}, step {} to {}.'.format(geom_index, step[0].date(), step[1].date()))
+
     # Get geom from index.
     geom = geom_collection['features'][geom_index]
     if 'properties' not in geom:
@@ -83,8 +85,8 @@ for step in steps:
     results.append(bands)
 
 # Make a sanity check for the shape of the collected data.
-if len(set([x['bands'].shape for x in results])) > 1:
-    print('Failed packing for geom', geom_index, set([x['bands'].shape for x in results]))
+if len(set([dat.shape for dat in results])) > 1:
+    logger.warning('Failed packing for geom {} {}'.format(geom_index, set([dat.shape for dat in results])))
 
 # Reshape data to RNN input structure (pixels x timesteps x bands).
 results = numpy.array(results)
