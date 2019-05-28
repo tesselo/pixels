@@ -1,8 +1,11 @@
 import os
 
-import requests
 from dateutil import parser
 from rasterio.features import bounds
+from requests import Session
+from requests.adapters import HTTPAdapter
+from requests.auth import HTTPBasicAuth
+from requests.packages.urllib3.util import Retry
 
 from pixels import scihub
 from pixels.const import (
@@ -83,10 +86,11 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
 
     # Construct query url.
     url = QUERY_URL.format(search=search)
-
+    # Construct requests session with retries.
+    sess = Session()
+    sess.mount('https://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2, status_forcelist=[400, 408, 500, 502, 503, 504, 521, 522, 524])))
     # Get data and convert to dict from json.
-    result = requests.get(url, auth=requests.auth.HTTPBasicAuth(os.environ.get('ESA_SCIHUB_USERNAME'), os.environ.get('ESA_SCIHUB_PASSWORD')), verify=False).json()
-
+    result = sess.get(url, auth=HTTPBasicAuth(os.environ.get('ESA_SCIHUB_USERNAME'), os.environ.get('ESA_SCIHUB_PASSWORD')), verify=False).json()
     # Parse raw data if requested.
     if not raw:
         result = parse_scihub_data(result)
