@@ -7,7 +7,6 @@ from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util import Retry
 
-from pixels import scihub
 from pixels.const import (
     BASE_SEARCH, MODE_EW, MODE_IW, MODE_SM, MODE_WV, PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2, PREFIX_S1, PREFIX_S2,
     PRODUCT_GRD, PRODUCT_L1C, PRODUCT_L2A, PRODUCT_OCN, PRODUCT_SLC, QUERY_URL, QUERY_URL_MAX_LENGTH,
@@ -201,64 +200,3 @@ def parse_s2_entry(entry, date):
         'prefix': prefix, 'mgrs': tileid, 'processing_level': processing_level,
         'platform_name': platform_name,
     }
-
-
-def pixels(geom, start, end, platform=[PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2], max_cloud_cover_percentage=100, mode='latest_pixel', scale=10, s2_bands=['B04']):
-    """
-    {
-    'geom': {geojson},
-    'start': '2018-12-11',
-    'end': '2019-02-14',
-    'platform': ['Sentinel-1', 'Sentinel-2', ],
-    'max-cloud-cover-percentage': 100,
-    'mode': ['query_only', 'latest_pixel', 'composite', 'all_images', ]
-    }
-
-    """
-    result = {
-        'config': {
-            'geom': geom,
-            'start': start,
-            'end': end,
-            'platform': platform,
-            'max_cloud_cover_percentage': max_cloud_cover_percentage,
-        },
-    }
-    if PLATFORM_SENTINEL_1 in platform:
-        dat = {}
-        dat['scenes'] = search(
-            geom=geom,
-            start=start,
-            end=end,
-            platform=PLATFORM_SENTINEL_1,
-            product_type=PRODUCT_GRD,
-            s1_acquisition_mode=MODE_IW,
-        )
-        if mode in ['latest_pixel', 'composite']:  # For sentinel-1 latest pixel and composite are equivalent.
-            dat[mode] = scihub.latest_pixel(geom, dat['scenes'], scale=scale)
-        elif mode != 'query_only':
-            dat['stacks'] = [scihub.get_pixels(geom, entry) for entry in dat['scenes']]
-
-        result[PLATFORM_SENTINEL_1] = dat
-
-    if PLATFORM_SENTINEL_2 in platform:
-        dat = {}
-        dat['scenes'] = search(
-            geom=geom,
-            start=start,
-            end=end,
-            platform=PLATFORM_SENTINEL_2,
-            product_type=PRODUCT_L1C,
-            max_cloud_cover_percentage=max_cloud_cover_percentage,
-        )
-        if mode == 'latest_pixel':
-            dat[mode] = scihub.latest_pixel(geom, dat['scenes'], scale=scale, bands=s2_bands)
-        elif mode != 'query_only':
-            dat['stacks'] = [scihub.get_pixels(geom, entry, bands=s2_bands) for entry in dat['scenes']]
-
-        if mode == 'composite':
-            dat[mode] = scihub.s2_composite(dat['stacks'])
-
-        result[PLATFORM_SENTINEL_2] = dat
-
-    return result
