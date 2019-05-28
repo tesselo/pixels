@@ -343,7 +343,7 @@ def validate_configuration(config):
     if file_format not in const.REQUEST_FORMATS:
         raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(file_format, const.REQUEST_FORMATS))
 
-    if not composite and not latest_pixel:
+    if (composite and latest_pixel) or not (composite or latest_pixel):
         raise PixelsFailed('Choose either latest pixel or composite mode.')
 
     if delay and search_only:

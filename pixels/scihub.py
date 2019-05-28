@@ -119,16 +119,10 @@ def latest_pixel(geom, data, scale=10, bands=None):
     return rst_result
 
 
-def s2_composite(stacks, index_based=True):
+def s2_composite(stacks):
     """
     Compute a composite for a stack of S2 input data.
     """
-    # Cloud Extraction Indices, these are range indices for 2d arrays that are
-    # needed to extract values by index when doing the cloud removal.
-    with next(iter(stacks[0].values())).open() as rst:
-        width = rst.width
-        height = rst.height
-    CLOUD_IDX1, CLOUD_IDX2 = numpy.indices((width, height))
     # Convert rasters to numpy array.
     Xs = []
     # Prepare cloud probabilities holder.

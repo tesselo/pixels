@@ -42,15 +42,15 @@ def handler(config):
     if config['latest_pixel']:
         logger.info('Getting latest pixels stack.')
         stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
-    else:
+    elif config['composite']:
+        logger.info('Computing composite from pixel stacks.')
+        # Get pixel stack for all scenes in the search space.
         for entry in query_result:
             logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
             entry['pixels'] = scihub.get_pixels(config['geom'], entry, scale=config['scale'], bands=config['bands'])
-
-        if config['composite']:
-            logger.info('Computing composite from pixel stacks.')
-            stack = [entry['pixels'] for entry in query_result]
-            stack = scihub.s2_composite(stack)
+        # Compute composite.
+        stack = [entry['pixels'] for entry in query_result]
+        stack = scihub.s2_composite(stack)
 
     # Clip to geometry if requested:
     if config['clip_to_geom']:
