@@ -26,8 +26,8 @@ def handler(config):
         end=config['end'],
         platform=config['platform'],
         product_type=config['product_type'],
-        s1_acquisition_mode=None,
-        s1_polarisation_mode=None,
+        s1_acquisition_mode=config.get('s1_acquisition_mode', None),
+        s1_polarisation_mode=config.get('s1_polarisation_mode', None),
         max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
     )
 

@@ -8,9 +8,8 @@ from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util import Retry
 
 from pixels.const import (
-    BASE_SEARCH, MODE_EW, MODE_IW, MODE_SM, MODE_WV, PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2, PREFIX_S1, PREFIX_S2,
-    PRODUCT_GRD, PRODUCT_L1C, PRODUCT_L2A, PRODUCT_OCN, PRODUCT_SLC, QUERY_URL, QUERY_URL_MAX_LENGTH,
-    SEARCH_SENTINEL_1, SEARCH_SENTINEL_2, WGS84
+    BASE_SEARCH, PLATFORM_SENTINEL_1, PLATFORM_SENTINEL_2, PREFIX_S1, PREFIX_S2, PRODUCT_L1C, PRODUCT_L2A, QUERY_URL,
+    QUERY_URL_MAX_LENGTH, SEARCH_SENTINEL_1, SEARCH_SENTINEL_2, WGS84
 )
 from pixels.utils import filter_key, geometry_to_wkt, reproject_feature
 
@@ -21,15 +20,8 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     """
     # Handle Sentinel-1 vs Sentinel-2 case.
     if platform == PLATFORM_SENTINEL_1:
-        # Check inputs.
-        if s1_acquisition_mode not in [MODE_SM, MODE_IW, MODE_EW, MODE_WV]:
-            raise ValueError('Unknown acquisition mode "{}" for Sentinel-1'.format(s1_acquisition_mode))
-
-        if product_type not in [PRODUCT_GRD, PRODUCT_SLC, PRODUCT_OCN]:
-            raise ValueError('Unknown product type "{}" for Sentinel-1'.format(product_type))
         # Construct extra search key.
         extra = SEARCH_SENTINEL_1.format(sensoroperationalmode=s1_acquisition_mode)
-
     elif platform == PLATFORM_SENTINEL_2:
         # Convert cloud percentage to integer.
         max_cloud_cover_percentage = int(max_cloud_cover_percentage)

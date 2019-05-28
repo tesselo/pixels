@@ -46,17 +46,20 @@ def get_pixels(geom, entry, scale=10, bands=None):
 
     result = {}
     for band in bands:
-        if entry['processing_level'] == PROCESSING_LEVEL_S2_L1C:
-            extension = '{}.jp2'
+        if entry['platform_name'] == PLATFORM_SENTINEL_1:
+            prefix = band_prefix.format(band.lower())
+            print(prefix)
+        elif entry['processing_level'] == PROCESSING_LEVEL_S2_L1C:
+            prefix = band_prefix + '{}.jp2'.format(band)
         else:
             # Band 10 is not available in L2A.
             if band == 'B10':
                 continue
-            extension = 'R{}m/{{}}.jp2'.format(SENTINEL_2_RESOLUTION_LOOKUP[band])
+            prefix = band_prefix + 'R{}m/{}.jp2'.format(SENTINEL_2_RESOLUTION_LOOKUP[band], band)
 
         result[band] = warp_from_s3(
             bucket=bucket,
-            prefix=band_prefix + extension.format(band),
+            prefix=prefix,
             transform=transform,
             width=width,
             height=height,

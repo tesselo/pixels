@@ -192,8 +192,9 @@ def asyncresult(tag, file, basetag=None):
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
+@app.route('/tiles/<platform>/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
 @token_required
-def tiles(z, x, y):
+def tiles(z, x, y, platform='s2'):
     """
     TMS tiles endpoint.
     """
@@ -247,15 +248,27 @@ def tiles(z, x, y):
         "scale": scale,
         "start": start,
         "end": end,
-        "platform": const.PLATFORM_SENTINEL_2,
-        "product_type": const.PRODUCT_L2A,
-        "max_cloud_cover_percentage": max_cloud_cover_percentage,
         "search_only": False,
         "composite": False,
         "latest_pixel": True,
         "color": True,
         "format": const.REQUEST_FORMAT_PNG,
     }
+    if platform.lower() == 's2':
+        data.update({
+            "platform": const.PLATFORM_SENTINEL_2,
+            "product_type": const.PRODUCT_L2A,
+            "max_cloud_cover_percentage": max_cloud_cover_percentage,
+        })
+    elif platform.lower() == 's1':
+        data.update({
+            "platform": const.PLATFORM_SENTINEL_1,
+            "product_type": const.PRODUCT_GRD,
+            's1_acquisition_mode': const.MODE_IW,
+        })
+    else:
+        raise PixelsFailed('Platform "{}" not recognized, should be S1 or S2.'.format(platform))
+
     return pixels(data)
 
 

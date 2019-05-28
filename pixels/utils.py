@@ -311,6 +311,9 @@ def validate_configuration(config):
     max_cloud_cover_percentage = config.pop('max_cloud_cover_percentage', 100)
 
     # Sanity checks.
+    if 'platform' not in config:
+        raise PixelsFailed('Platform name is required. Please specify "platform" key.')
+
     if 'geom' not in config:
         raise PixelsFailed('Geom is required. Please specify "geom" key.')
 
@@ -343,9 +346,6 @@ def validate_configuration(config):
     if not composite and not latest_pixel:
         raise PixelsFailed('Choose either latest pixel or composite mode.')
 
-    if composite and config.get('platform', None) == const.PLATFORM_SENTINEL_1:
-        raise PixelsFailed('Cannot compute composite for Sentinel 1.')
-
     if delay and search_only:
         raise PixelsFailed('Search only mode works in synchronous mode only.')
 
@@ -360,6 +360,18 @@ def validate_configuration(config):
             config['interval_step'] = int(config['interval_step'])
         except ValueError:
             raise PixelsFailed('Interval step needs to be an integer.')
+
+    # Sentinel-1
+    if config.get('platform') == const.PLATFORM_SENTINEL_1:
+        if composite:
+            raise PixelsFailed('Cannot compute composite for Sentinel 1.')
+        if 's1_acquisition_mode' not in config:
+            raise ValueError('Sentinel-1 "s1_acquisition_mode" parameter is required')
+        elif config.get('s1_acquisition_mode') not in [const.MODE_SM, const.MODE_IW, const.MODE_EW, const.MODE_WV]:
+            raise ValueError('Unknown acquisition mode "{}" for Sentinel-1'.format(config.get('s1_acquisition_mode')))
+
+        if config.get('product_type') not in [const.PRODUCT_GRD, const.PRODUCT_SLC, const.PRODUCT_OCN]:
+            raise ValueError('Unknown product type "{}" for Sentinel-1'.format(config.get('product_type')))
 
     # Override color flag if PNG is requested, as in that case RGB bands are
     # required.
