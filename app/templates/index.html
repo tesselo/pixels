@@ -268,7 +268,10 @@
 		maxZoom: 18
 	});
 	// Satellite data.
-	var sentinel2 = L.tileLayer('/tiles/{z}/{x}/{y}.png?key=' + key, {
+	var sentinel1 = L.tileLayer('/tiles/S1/{z}/{x}/{y}.png?key=' + key, {
+		maxZoom: 18
+	});
+  var sentinel2 = L.tileLayer('/tiles/S2/{z}/{x}/{y}.png?key=' + key, {
 		maxZoom: 18
 	});
 	// Draw rectangles layer.
@@ -284,7 +287,8 @@
 	    "OSM": osm
 	};
 	var overlayMaps = {
-	    "Sentinel-2": sentinel2,
+      'Sentinel-1': sentinel1,
+      'Sentinel-2': sentinel2,
 			'Draw': drawnItems
 	};
 	L.control.layers(baseMaps, overlayMaps, { position: 'topright', collapsed: false }).addTo(map);
