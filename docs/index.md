@@ -54,13 +54,11 @@ In more detail, the configuration contains the following elements:
   - `start` Start date for querying images, as string.
   - `platform` The satellite platform to use. Currently only `Sentinel-2` is implemented.
   - `product_type` The processing level of the Sentinel-2 images. Either `S2MSI1C` (Level-1C) or `S2MSI2A` (Level-2A).
-  - `composite` A boolean switching on composite mode
-  - `latest_pixel` A boolean switching on latest pixel mode.
+  - `mode` The method to stitch images together. One of ['search_only' 'latest_pixel', 'composite', 'composite_incremental'].  With `search_only` the endpoint should only send back the list of images that match the search query. This will skip the image requests and only return an image search result as json. With `latest_pixel`, the latet available pixel over the target area will be retrieved. With `composite`, the cloud free pixel with the highest NDVI will be retrieved, with `composite_incremental`, the latest cloud free pixel will be retrieved. Composite mode works only for Sentinel-2.
   - `format` A string specifying the format. One of `['PNG', 'ZIP', 'NPZ', 'CSV']`. PNG will return a rendered png image, ZIP will pack all bands as GeoTIFF files in a zip archive, NPZ will will return a compressed numpy NPZ file, and CSV will return a CSV file with point coordinates and band values. Defaults to `ZIP`
   - `color` A boolean specifying if the visual bands should be combined into an RGB file for convenience.
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP files (with render=False).
-  - `search_only` A boolean specifying if the endpoint should only send back the list of images that match the search query. This will skip the image requests and only return an image search result as json.
   - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
 
 #### Example
@@ -90,9 +88,7 @@ config = {
     'platform': 'Sentinel-2',
     'product_type': 'S2MSI2A',
     'max_cloud_cover_percentage': 60,
-    'search_only': False,
-    'composite': True,
-    'latest_pixel': False,
+    'mode': 'latest_pixel'
     'color': True,
     'format': 'ZIP',
     'delay': True,

@@ -112,7 +112,7 @@ def pixels(data=None):
         return jsonify(message='No scenes found for the given search criteria.')
 
     # Return search query if requested.
-    if config['search_only']:
+    if config['mode'] == const.MODE_SEARCH_ONLY:
         return jsonify(output)
 
     if config['tag']:
@@ -122,7 +122,6 @@ def pixels(data=None):
             Key=config['tag'],
             Body=output,
         )
-        return jsonify(message='Wrote files to bucket.')
     elif config['color']:
         return send_file(output, mimetype='image/png')
     else:
@@ -248,9 +247,7 @@ def tiles(z, x, y, platform='s2'):
         "scale": scale,
         "start": start,
         "end": end,
-        "search_only": False,
-        "composite": False,
-        "latest_pixel": True,
+        "mode": const.MODE_LATEST_PIXEL,
         "color": True,
         "format": const.REQUEST_FORMAT_PNG,
     }

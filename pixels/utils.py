@@ -298,14 +298,12 @@ def validate_configuration(config):
         config['geom']['properties']['original_crs'] = 'EPSG:4326'
 
     # Get extract custom handler arguments.
-    composite = config.pop('composite', False)
-    latest_pixel = config.pop('latest_pixel', False)
+    mode = config.pop('mode', False)
     color = config.pop('color', False)
     bands = config.pop('bands', [])
     scale = config.pop('scale', 10)
     delay = config.pop('delay', False)
     tag = config.pop('tag', False)
-    search_only = config.pop('search_only', False)
     clip_to_geom = config.pop('clip_to_geom', False)
     file_format = config.pop('format', const.REQUEST_FORMAT_ZIP).upper()
     max_cloud_cover_percentage = config.pop('max_cloud_cover_percentage', 100)
@@ -343,16 +341,22 @@ def validate_configuration(config):
     if file_format not in const.REQUEST_FORMATS:
         raise PixelsFailed('Request format {} not recognized. Use one of {}'.format(file_format, const.REQUEST_FORMATS))
 
-    if (composite and latest_pixel) or not (composite or latest_pixel):
-        raise PixelsFailed('Choose either latest pixel or composite mode.')
+    if mode not in const.MODES:
+        raise PixelsFailed('Mode {} not recognized. Use one of {}.'.format(mode, const.MODES))
 
-    if delay and search_only:
+    if mode in (const.MODE_COMPOSITE, const.MODE_COMPOSITE_INCREMENTAL):
+        if config.get('platform') == const.PLATFORM_SENTINEL_1:
+            raise PixelsFailed('Cannot compute composite for Sentinel 1.')
+        elif config.get('platform') == const.PLATFORM_SENTINEL_2 and config['product_type'] != const.PRODUCT_L2A:
+            raise PixelsFailed('Mode {} is only valid for L2A product type.'.format(mode))
+
+    if delay and mode == const.MODE_SEARCH_ONLY:
         raise PixelsFailed('Search only mode works in synchronous mode only.')
 
     if 'interval' in config and config['interval'] not in const.TIMESERIES_INTERVALS:
         raise PixelsFailed('Timeseries interval {} not recognized. Use one of {}'.format(config['interval'], const.TIMESERIES_INTERVALS))
 
-    if 'interval' in config and search_only:
+    if 'interval' in config and mode == const.MODE_SEARCH_ONLY:
         raise PixelsFailed('Timeseries requests do not support search_only mode.')
 
     if 'interval_step' in config:
@@ -363,8 +367,6 @@ def validate_configuration(config):
 
     # Sentinel-1
     if config.get('platform') == const.PLATFORM_SENTINEL_1:
-        if composite:
-            raise PixelsFailed('Cannot compute composite for Sentinel 1.')
         if 's1_acquisition_mode' not in config:
             raise ValueError('Sentinel-1 "s1_acquisition_mode" parameter is required')
         elif config.get('s1_acquisition_mode') not in [const.MODE_SM, const.MODE_IW, const.MODE_EW, const.MODE_WV]:
@@ -379,13 +381,16 @@ def validate_configuration(config):
         color = True
 
     # For composite, we will require all bands to be retrieved.
-    if composite:
+    if mode == const.MODE_COMPOSITE:
         if config['product_type'] == const.PRODUCT_L2A:
             logger.info('Adding SCL and NDVI bands for composite mode.')
             bands = list(set(bands + ['SCL', 'B04', 'B08']))
         elif len(bands) != len(const.SENTINEL_2_BANDS):
             logger.info('Adding NDVI bands for composite mode.')
             bands = list(set(bands + ['B04', 'B08']))
+    elif mode == const.MODE_COMPOSITE_INCREMENTAL:
+        logger.info('Adding SCL band for composite incremental mode.')
+        bands = list(set(bands + ['SCL']))
 
     # For color, assure the RGB bands are present.
     if file_format == const.REQUEST_FORMAT_PNG and config['platform'] == const.PLATFORM_SENTINEL_2:
@@ -400,13 +405,11 @@ def validate_configuration(config):
         bands = [band.lower() for band in bands]
 
     # Store possible config overrides.
-    config['composite'] = composite
-    config['latest_pixel'] = latest_pixel
+    config['mode'] = mode
     config['color'] = color
     config['bands'] = bands
     config['scale'] = scale
     config['format'] = file_format
-    config['search_only'] = search_only
     config['clip_to_geom'] = clip_to_geom
     config['max_cloud_cover_percentage'] = max_cloud_cover_percentage
     config['delay'] = delay

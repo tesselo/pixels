@@ -4,9 +4,10 @@ from rasterio.io import MemoryFile
 
 def warp_from_s3(bucket, prefix, transform, width, height, crs):
     # Prepare creation parameters for memory raster.
+    dtype = 'uint8' if 'SCL' in prefix else 'uint16'
     creation_args = {
         'driver': 'GTiff',
-        'dtype': 'uint16',
+        'dtype': dtype,
         'nodata': 0,
         'count': 1,
         'crs': crs,
@@ -17,8 +18,11 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs):
     # Open memory destination file.
     memfile = MemoryFile()
     with memfile.open(**creation_args) as rst:
-        fake_data = numpy.random.random((1, height, width)) * 1e4
-        rst.write(fake_data.astype('uint16'))
+        if 'SCL' in prefix:
+            fake_data = (numpy.random.random((1, height, width)) > 0.01) * 5
+        else:
+            fake_data = numpy.random.random((1, height, width)) * 1e4
+        rst.write(fake_data.astype(dtype))
     # Return memfile.
     memfile.seek(0)
     return memfile

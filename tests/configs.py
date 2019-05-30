@@ -16,12 +16,14 @@ def gen_config(version):
 
 def gen_configs():
     versions = [
+        {'mode': 'composite', 'product_type': 'S2MSI2A'},
+        {'mode': 'composite_incremental', 'bands': ['SCL', 'B03'], 'product_type': 'S2MSI2A'},
         {'format': 'PNG'},
         {'format': 'ZIP'},
         {'format': 'CSV'},
-        {'composite': True, 'latest_pixel': False},
         {'bands': None},
         {'product_type': 'S2MSI2A'},
+        {'platform': 'Sentinel-1', 'product_type': 'GRD', 's1_acquisition_mode': 'IW'},
     ]
 
     return [gen_config(version) for version in versions]

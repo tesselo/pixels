@@ -6,9 +6,9 @@ from rasterio.io import MemoryFile
 
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A, MAX_PIXEL_SIZE,
-    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV,
-    SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA,
-    SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
+    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_INCLUDE, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV,
+    SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE,
+    SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.exceptions import PixelsFailed
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
@@ -48,7 +48,6 @@ def get_pixels(geom, entry, scale=10, bands=None):
     for band in bands:
         if entry['platform_name'] == PLATFORM_SENTINEL_1:
             prefix = band_prefix.format(band.lower())
-            print(prefix)
         elif entry['processing_level'] == PROCESSING_LEVEL_S2_L1C:
             prefix = band_prefix + '{}.jp2'.format(band)
         else:
@@ -67,6 +66,15 @@ def get_pixels(geom, entry, scale=10, bands=None):
         )
 
     return result
+
+
+def get_pixels_generator(geom, entries, scale, bands):
+    """
+    Get pixels from S3 incrementally.
+    """
+    for entry in entries:
+        logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
+        yield get_pixels(geom, entry, scale=scale, bands=bands)
 
 
 def latest_pixel(geom, data, scale=10, bands=None):
@@ -119,21 +127,21 @@ def latest_pixel(geom, data, scale=10, bands=None):
     return rst_result
 
 
-def s2_composite(stacks):
+def s2_composite(geom, entries, scale, bands):
     """
     Compute a composite for a stack of S2 input data.
     """
     # Convert rasters to numpy array.
     Xs = []
-    # Prepare cloud probabilities holder.
+    # Prepare cloud probabilities holder and target rasterfile.
     cloud_probs = []
+    raster_file_to_clone = None
+    bands_present = None
     # Compute cloud probabilities based on sen2cor sceneclass.
-    for stack in stacks:
-        """
-        Scene class pixels ranked by preference. The rank is flattened out so
-        that between categories that are similarly desireable, the relative NDVI
-        value is decisive.
-        """
+    for stack in get_pixels_generator(geom, entries, scale, bands):
+        # Scene class pixels ranked by preference. The rank is flattened out so
+        # that between categories that are similarly desireable, the relative NDVI
+        # value is decisive.
         X = [raster.open().read(1) for raster in stack.values()]
         if 'SCL' in stack:
             # Use SCL layer to select pixel ranks.
@@ -172,6 +180,10 @@ def s2_composite(stacks):
 
         Xs.append(X)
 
+        if raster_file_to_clone is None:
+            raster_file_to_clone = stack['B04']
+            bands_present = list(stack.keys())
+
     # Convert to numpy array.
     cloud_probs = numpy.array(cloud_probs)
 
@@ -180,9 +192,8 @@ def s2_composite(stacks):
 
     # Loop over all bands.
     result = {}
-    raster_file_to_clone = [val for key, val in stacks[0].items() if key != 'SCL'][0]
     with raster_file_to_clone.open() as raster_to_clone:
-        for i, band in enumerate(stacks[0].keys()):
+        for i, band in enumerate(bands_present):
             # Merge scene tiles for this band into a composite tile using the selector index.
             bnds = numpy.array([dat[i] for dat in Xs])
             # Construct final composite band array from selector index.
@@ -191,6 +202,57 @@ def s2_composite(stacks):
             result[band] = clone_raster(raster_to_clone, composite_data)
 
     return result
+
+
+def s2_composite_incremental(geom, entries, scale, bands):
+    """
+    Compute composite with minimal effort, sequentially removing cloudy or
+    shadow pixels.
+    """
+    if 'SCL' not in bands:
+        raise PixelsFailed('Only L2A for incremental mode.')
+
+    # Update target stack until all pixels.
+    targets = {}
+    clone_creation_args = None
+    for stack in get_pixels_generator(geom, entries, scale, bands):
+        # Open raster files from this stack.
+        data = {band: raster.open().read(1) for band, raster in stack.items()}
+        # Generate mask from exlude pixel class lookup.
+        mask = numpy.choose(data['SCL'], SCENE_CLASS_INCLUDE)
+        # Update targets with this data using mask.
+        for band, raster in data.items():
+            if band in targets:
+                # If targets already have data, update only empty pixels.
+                band_mask = numpy.logical_and(mask, targets[band] == 0)
+                targets[band][band_mask] = raster[band_mask]
+            else:
+                # Create new target array from raster.
+                targets[band] = raster
+                # Mask target array.
+                targets[band][mask == 0] = 0
+
+        # Store creation args from first raster used, assuming all others are
+        # identical.
+        if clone_creation_args is None:
+            clone_creation_args = stack['SCL'].open().meta
+
+        # Check if all pixels have been populated using one of the target bands.
+        if numpy.all(targets['SCL'] > 0):
+            break
+
+    # Convert target arrays to rasterio memfiles.
+    for band, data in targets.items():
+        memfile = MemoryFile()
+        # Set correct datatype.
+        clone_creation_args['dtype'] = 'uint8' if band == 'SCL' else 'uint16'
+        # Create memfile raster.
+        dst = memfile.open(**clone_creation_args)
+        # Write result to raster.
+        dst.write(data.reshape((1, ) + data.shape))
+        targets[band] = memfile
+
+    return targets
 
 
 def s2_color(stack, path=None):

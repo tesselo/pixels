@@ -35,22 +35,19 @@ def handler(config):
         return
 
     # Return only search query if requested.
-    if config['search_only']:
+    if config['mode'] == const.MODE_SEARCH_ONLY:
         return query_result
 
     # Get pixels.
-    if config['latest_pixel']:
+    if config['mode'] == const.MODE_LATEST_PIXEL:
         logger.info('Getting latest pixels stack.')
         stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
-    elif config['composite']:
+    elif config['mode'] == const.MODE_COMPOSITE:
         logger.info('Computing composite from pixel stacks.')
-        # Get pixel stack for all scenes in the search space.
-        for entry in query_result:
-            logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
-            entry['pixels'] = scihub.get_pixels(config['geom'], entry, scale=config['scale'], bands=config['bands'])
         # Compute composite.
-        stack = [entry['pixels'] for entry in query_result]
-        stack = scihub.s2_composite(stack)
+        stack = scihub.s2_composite(config['geom'], query_result, config['scale'], config['bands'])
+    elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL:
+        stack = scihub.s2_composite_incremental(config['geom'], query_result, config['scale'], config['bands'])
 
     # Clip to geometry if requested:
     if config['clip_to_geom']:

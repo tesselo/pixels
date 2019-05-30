@@ -26,6 +26,14 @@ TIMESERIES_INTERVALS = [TIMESERIES_MONTHLY, TIMESERIES_WEEKLY]
 
 PIXELS_MIN_ZOOM = 12
 
+# Modes.
+MODE_SEARCH_ONLY = 'search_only'
+MODE_LATEST_PIXEL = 'latest_pixel'
+MODE_COMPOSITE = 'composite'
+MODE_COMPOSITE_INCREMENTAL = 'composite_incremental'
+
+MODES = [MODE_SEARCH_ONLY, MODE_LATEST_PIXEL, MODE_COMPOSITE, MODE_COMPOSITE_INCREMENTAL]
+
 # ###################################################
 # Sentinel-1
 # ###################################################
@@ -133,4 +141,19 @@ SCENE_CLASS_RANK_FLAT = (
     7,   # CLOUD_HIGH_PROBABILITY
     6,   # THIN_CIRRUS
     4,   # SNOW
+)
+
+SCENE_CLASS_INCLUDE = (
+    0,   # NO_DATA
+    0,   # SATURATED_OR_DEFECTIVE
+    1,   # DARK_AREA_PIXELS
+    0,   # CLOUD_SHADOWS
+    1,   # VEGETATION
+    1,   # NOT_VEGETATED
+    1,   # WATER
+    1,   # UNCLASSIFIED
+    0,   # CLOUD_MEDIUM_PROBABILITY
+    0,   # CLOUD_HIGH_PROBABILITY
+    0,   # THIN_CIRRUS
+    1,   # SNOW
 )
