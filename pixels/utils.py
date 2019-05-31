@@ -284,7 +284,7 @@ def validate_configuration(config):
     dy = trsf_bounds[3] - trsf_bounds[1]
     area = abs(dx * dy)
     if area > const.MAX_AREA:
-        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max 100 km2).'.format(const.MAX_AREA / 1e6))
+        raise PixelsFailed('Input geometry bounding box area of {:0.1f} km2 is too large (max {:0.1f} km2).'.format(area / 1e6, const.MAX_AREA / 1e6))
 
     logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
 
