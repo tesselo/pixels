@@ -16,6 +16,7 @@ def gen_config(version):
 
 def gen_configs():
     versions = [
+        {'formulas': [{'name': 'ndvi', 'expression': '(B08 - B04) / (B04 + B08)'}], 'bands': ['B04', 'B08']},
         {'mode': 'composite', 'product_type': 'S2MSI2A'},
         {'mode': 'composite_incremental', 'bands': ['SCL', 'B03'], 'product_type': 'S2MSI2A'},
         {'format': 'PNG'},

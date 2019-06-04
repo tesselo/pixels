@@ -60,6 +60,7 @@ In more detail, the configuration contains the following elements:
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP files (with render=False).
   - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
+  - `formulas` A list of formula dictionaries, each with a `name` and an `expression`. The band names in the formula needs to match available bands, so also add those to the bands list. An example formulas list is the following: `[{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}, {"name": "NDWI", "expression": "(B8 - B11) / (B8 + B11)"}]`.
 
 #### Example
 
@@ -93,6 +94,7 @@ config = {
     'format': 'ZIP',
     'delay': True,
     'bands': ['B04', 'B03', 'B02', 'B08', 'B05'],
+    'formulas': [{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}],
 }
 
 endpoint = 'https://pixels.tesselo.com/data'

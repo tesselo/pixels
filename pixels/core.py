@@ -49,9 +49,13 @@ def handler(config):
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL:
         stack = scihub.s2_composite_incremental(config['geom'], query_result, config['scale'], config['bands'])
 
-    # Clip to geometry if requested:
+    # Clip to geometry if requested.
     if config['clip_to_geom']:
         stack = utils.clip_to_geom(stack, config['geom'])
+
+    # Add formulas if requested.
+    if 'formulas' in config:
+        stack = utils.algebra(stack, config['formulas'])
 
     # Convert to RGB color tif.
     if config['color']:

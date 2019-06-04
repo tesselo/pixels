@@ -14,6 +14,7 @@ from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
 from pixels import const
+from pixels.algebra import FormulaParser
 from pixels.exceptions import PixelsFailed
 
 # Get logger.
@@ -137,6 +138,8 @@ def clone_raster(rst, data):
     """
     # Get creation args from parent raster.
     creation_args = rst.meta.copy()
+    # Ensure correct data type.
+    creation_args['dtype'] = data.dtype
     # Create target raster and write band data to it.
     memfile = MemoryFile()
     with memfile.open(**creation_args) as dst:
@@ -270,6 +273,19 @@ def timeseries_steps(start, end, interval, interval_step):
         here_end += delta
 
 
+def algebra(stack, formulas):
+    """
+    Evaluate raster algebra formula on this stack.
+    """
+    parser = FormulaParser()
+    data = {key: rst.open().read().ravel() for key, rst in stack.items()}
+    for formula in formulas:
+        result = parser.evaluate(data, formula['expression'])
+        with next(iter(stack.values())).open() as rst:
+            stack[formula['name']] = clone_raster(rst, result)
+    return stack
+
+
 def validate_configuration(config):
     """
     Returns a validated configuration.
@@ -364,6 +380,15 @@ def validate_configuration(config):
             config['interval_step'] = int(config['interval_step'])
         except ValueError:
             raise PixelsFailed('Interval step needs to be an integer.')
+
+    # Formulas.
+    for formula in config.get('formulas', []):
+        if not isinstance(formula, dict):
+            raise PixelsFailed('Formulas key must be a list of formula dictionaries.')
+        if 'name' not in formula:
+            raise PixelsFailed('Each formlua requires a name.')
+        if 'expression' not in formula:
+            raise PixelsFailed('Each formula requires an expression.')
 
     # Sentinel-1
     if config.get('platform') == const.PLATFORM_SENTINEL_1:
