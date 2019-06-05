@@ -29,7 +29,7 @@ To customize the filters, use the endpoint as follows:
 
     https://pixels.tesselo.com/tiles/{z}/{x}/{y}.png?end=2018-11-04&start=2018-10-21&max_cloud_cover_percentage=10
 
-### Image generation enpdoint
+### Image Generation Endpoint
 The following endpoint allows requesting satellite image data in a flexible way. It requires a JSON configuration defining an image query.
 
     https://pixels.tesselo.com/data
@@ -89,7 +89,7 @@ config = {
     'platform': 'Sentinel-2',
     'product_type': 'S2MSI2A',
     'max_cloud_cover_percentage': 60,
-    'mode': 'latest_pixel'
+    'mode': 'latest_pixel',
     'color': True,
     'format': 'ZIP',
     'delay': True,
