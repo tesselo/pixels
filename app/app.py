@@ -109,7 +109,7 @@ def pixels(data=None):
 
     # Return if no scenes could be found.
     if output is None:
-        return jsonify(message='No scenes found for the given search criteria.')
+        raise PixelsFailed('No scenes found for the given search criteria.')
 
     # Return search query if requested.
     if config['mode'] == const.MODE_SEARCH_ONLY:

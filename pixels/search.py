@@ -94,7 +94,7 @@ def scihub_entries(data):
     Iterate over entries in this scihub query.
     """
     # If no results were found, return empty list.
-    if data['feed']['opensearch:totalResults'] == '0':
+    if data['feed']['opensearch:totalResults'] in ['0', None]:
         return []
     elif int(data['feed']['opensearch:totalResults']) > int(data['feed']['opensearch:itemsPerPage']):
         print('WARNING: More than 100 results found, result paginated.')
