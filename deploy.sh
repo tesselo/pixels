@@ -1,7 +1,7 @@
 # /bin/bash
 
 # Workon pixels-deploy
-source ~/.virtualenvs/pixels-deploy/bin/activate
+source ~/.virtualenvs/pixels-deploy-$1/bin/activate
 
 # Go to repo.
 cd ~/Documents/repos/pixels
@@ -18,7 +18,7 @@ cp -r app build
 cp zappa_settings.json build
 
 # Remove pyc files.
-find ~/.virtualenvs/pixels-deploy/ -name "*.pyc" -exec rm -f {} \;
+find ~/.virtualenvs/pixels-deploy-$1/ -name "*.pyc" -exec rm -f {} \;
 find build -name "*.pyc" -exec rm -f {} \;
 
 # Create docs template.

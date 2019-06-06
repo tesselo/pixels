@@ -1,12 +1,13 @@
 import unittest
+from unittest import mock
 
 import mock_functions
 from pixels import core, utils
 from tests.configs import gen_config, gen_configs
 
 
-@unittest.mock.patch('pixels.scihub.warp_from_s3', mock_functions.warp_from_s3)
-@unittest.mock.patch('pixels.core.search.search', mock_functions.search)
+@mock.patch('pixels.scihub.warp_from_s3', mock_functions.warp_from_s3)
+@mock.patch('pixels.core.search.search', mock_functions.search)
 class TestPixels(unittest.TestCase):
 
     def test_pixels(self):
