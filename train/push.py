@@ -7,7 +7,7 @@ import boto3
 
 # Get path from env.
 # project_id = os.environ.get('PROJECT_ID', 'test')
-project_id = 'celpa_2years'
+project_id = 'clftests'
 # project_id = 'test'
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 
@@ -18,7 +18,7 @@ config = json.loads(config['Body'].read())
 
 # Compute nr of jobs from config.
 nr_of_geoms_train = len(config['train']['features'])
-nr_of_geoms_predict = len(config['predict']['features'])
+# nr_of_geoms_predict = len(config['predict']['features'])
 
 # Setup the job dict.
 job = {
@@ -52,9 +52,11 @@ all_jobs = []
 # Push training collection job.
 job['jobName'] = 'collect-train-{}'.format(project_id)
 job['containerOverrides']['command'] = ['collect.py']
-job['arrayProperties'] = {'size': nr_of_geoms_train}
-# collect_train_result = batch.submit_job(**job)
-# all_jobs.append(collect_train_result)
+job['containerOverrides']['memory'] = 1024 * 60
+job['containerOverrides']['vcpus'] = 16
+# job['arrayProperties'] = {'size': nr_of_geoms_train}
+collect_train_result = batch.submit_job(**job)
+all_jobs.append(collect_train_result)
 
 # Push training pack job.
 job['jobName'] = 'pack-train-{}'.format(project_id)

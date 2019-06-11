@@ -382,7 +382,10 @@
 						});
 					},
 					error: function(err, code, msg){
-						$('.query-result').html('<pre><code>' + JSON.stringify(response, null, 4) + '</pre></code>').each(function (i, e) {
+            var err_data = err.responseJSON
+            err_data.error = err.statusText
+            err_data.status = err.status
+						$('.query-result').html('<pre><code>' + JSON.stringify(err_data, null, 4) + '</pre></code>').each(function (i, e) {
 						    hljs.highlightBlock(e);
 						});
 					}

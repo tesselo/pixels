@@ -44,10 +44,16 @@ def handler(config):
         stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE:
         logger.info('Computing composite from pixel stacks.')
-        # Compute composite.
         stack = scihub.s2_composite(config['geom'], query_result, config['scale'], config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL:
+        logger.info('Computing incremental composite from pixel stacks.')
         stack = scihub.s2_composite_incremental(config['geom'], query_result, config['scale'], config['bands'])
+    elif config['mode'] == const.MODE_COMPOSITE_NN:
+        logger.info('Computing Neural Network based composite from pixel stacks.')
+        stack = scihub.s2_composite_nn(config['geom'], query_result, config['scale'], config['bands'], config['product_type'])
+    elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL_NN:
+        logger.info('Computing Neural Network based incremental composite from pixel stacks.')
+        stack = scihub.s2_composite_incremental_nn(config['geom'], query_result, config['scale'], config['bands'], config['product_type'])
 
     # Clip to geometry if requested.
     if config['clip_to_geom']:

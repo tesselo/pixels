@@ -2,6 +2,8 @@ import copy
 import json
 import os
 
+from pixels import const
+
 path = os.path.dirname(os.path.abspath(__file__))
 
 with open(os.path.join(path, 'config.json')) as fl:
@@ -17,14 +19,18 @@ def gen_config(version):
 def gen_configs():
     versions = [
         {'formulas': [{'name': 'ndvi', 'expression': '(B08 - B04) / (B04 + B08)'}], 'bands': ['B04', 'B08']},
-        {'mode': 'composite', 'product_type': 'S2MSI2A'},
-        {'mode': 'composite_incremental', 'bands': ['SCL', 'B03'], 'product_type': 'S2MSI2A'},
+        {'mode': const.MODE_COMPOSITE, 'bands': const.SENTINEL_2_BANDS, 'product_type': 'S2MSI2A'},
+        {'mode': const.MODE_COMPOSITE_NN, 'bands': ['SCL'] + const.SENTINEL_2_BANDS, 'product_type': 'S2MSI1C'},
+        {'mode': const.MODE_COMPOSITE, 'bands': const.SENTINEL_2_BANDS, 'product_type': 'S2MSI2A'},
+        {'mode': const.MODE_COMPOSITE_NN, 'bands': ['SCL'] + const.SENTINEL_2_BANDS, 'product_type': 'S2MSI1C'},
         {'format': 'PNG'},
         {'format': 'ZIP'},
         {'format': 'CSV'},
-        {'bands': None},
+        {'bands': []},
         {'product_type': 'S2MSI2A'},
         {'platform': 'Sentinel-1', 'product_type': 'GRD', 's1_acquisition_mode': 'IW'},
+        {'mode': const.MODE_COMPOSITE_NN},
+        {'mode': const.MODE_COMPOSITE_INCREMENTAL_NN},
     ]
 
     return [gen_config(version) for version in versions]

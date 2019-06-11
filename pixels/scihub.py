@@ -1,4 +1,6 @@
 import logging
+import os
+import pickle
 
 import numpy
 from rasterio.errors import RasterioIOError
@@ -6,9 +8,9 @@ from rasterio.io import MemoryFile
 
 from pixels.const import (
     AWS_DATA_BUCKET_SENTINEL_1_L1C, AWS_DATA_BUCKET_SENTINEL_2_L1C, AWS_DATA_BUCKET_SENTINEL_2_L2A, MAX_PIXEL_SIZE,
-    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, SCENE_CLASS_INCLUDE, SCENE_CLASS_RANK_FLAT, SENTINEL_1_BANDS_HH_HV,
-    SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE, SENTINEL_2_BANDS, SENTINEL_2_DTYPE,
-    SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
+    PLATFORM_SENTINEL_1, PROCESSING_LEVEL_S2_L1C, PRODUCT_L1C, SCENE_CLASS_INCLUDE, SCENE_CLASS_RANK_FLAT,
+    SENTINEL_1_BANDS_HH_HV, SENTINEL_1_BANDS_VV, SENTINEL_1_BANDS_VV_VH, SENTINEL_1_POLARISATION_MODE,
+    SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.exceptions import PixelsFailed
 from pixels.utils import clone_raster, compute_transform, warp_from_s3
@@ -125,6 +127,220 @@ def latest_pixel(geom, data, scale=10, bands=None):
         rst_result[key.upper()] = memfile
 
     return rst_result
+
+
+def s2_composite_nn(geom, entries, scale, bands, product_type):
+    """
+    Compute a composite for a stack of S2 input data.
+    """
+    # Load cloud classifier. Legend: {'1': 'Clear', '2': 'Water', '3': 'Snow', '4': 'Shadow', '5': 'Cirrus', '6': 'Cloud'}
+    if product_type == PRODUCT_L1C:
+        clf_name = 'classifier-l1c.pickle'
+    else:
+        clf_name = 'classifier-694-l2a.pickle'
+
+    with open(os.path.join(os.path.dirname(__file__), 'clf', clf_name), 'rb') as fl:
+        clf = pickle.load(fl)
+
+    # Convert rasters to numpy array.
+    Xs = []
+    # Prepare cloud probabilities holder and target rasterfile.
+    cloud_probs = []
+    raster_file_to_clone = None
+    bands_present = None
+    clone_creation_args = None
+    # Compute cloud probabilities based on sen2cor sceneclass.
+    for stack in get_pixels_generator(geom, entries, scale, bands):
+        # Store creation args from first raster used, assuming all others are
+        # identical.
+        if clone_creation_args is None:
+            with next(iter(stack.values())).open() as rst:
+                clone_creation_args = rst.meta
+        # Read raster files from this stack.
+        data = {}
+        for band, raster in stack.items():
+            with raster.open() as rst:
+                data[band] = rst.read().ravel()
+        # Estimate cloud probablities for this stack.
+        if product_type == PRODUCT_L1C:
+            X = numpy.array([data[band] for band in SENTINEL_2_BANDS])
+        else:
+            X = numpy.array([data[band] for band in SENTINEL_2_BANDS if band != 'B10'])
+
+        Yh = clf.predict_proba(X.T).T
+
+        # Cloud probability is defined as P(shadow) + P(cirrus) + P(cloud)
+        clouds = Yh[3] + Yh[4] + Yh[5]
+
+        # Convert cloud probs to float.
+        clouds = clouds.astype('float')
+
+        # Set cloud prob high for nodata pixels.
+        clouds[X[0] == SENTINEL_2_NODATA] = 999999
+
+        cloud_probs.append(clouds)
+
+        Xs.append(X)
+
+        if raster_file_to_clone is None:
+            raster_file_to_clone = stack['B04']
+            bands_present = list(stack.keys())
+
+    # Convert to numpy array.
+    cloud_probs = numpy.array(cloud_probs)
+
+    # Compute an array of scene indices with the lowest cloud probability.
+    selector_index = numpy.argmin(cloud_probs, axis=0)
+
+    # Loop over all bands.
+    result = {}
+    bands_present = [band for band in SENTINEL_2_BANDS if (product_type == PRODUCT_L1C or band != 'B10')]
+    with raster_file_to_clone.open() as raster_to_clone:
+        for i, band in enumerate(bands_present):
+            # Merge scene tiles for this band into a composite tile using the selector index.
+            bnds = numpy.array([dat[i] for dat in Xs])
+            # Construct final composite band array from selector index.
+            composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
+            # Create band target raster.
+            result[band] = clone_raster(raster_to_clone, composite_data)
+
+    return result
+
+
+def s2_composite_incremental_nn(geom, entries, scale, bands, product_type):
+    """
+    Compute composite with minimal effort, sequentially removing cloudy or
+    shadow pixels.
+    """
+    # Load cloud classifier. Legend: {'1': 'Clear', '2': 'Water', '3': 'Snow', '4': 'Shadow', '5': 'Cirrus', '6': 'Cloud'}
+    CLOUD_INDEX_CUTOFF = 0.5
+
+    if product_type == PRODUCT_L1C:
+        clf_name = 'classifier-l1c.pickle'
+    else:
+        clf_name = 'classifier-694-l2a.pickle'
+
+    with open(os.path.join(os.path.dirname(__file__), 'clf', clf_name), 'rb') as fl:
+        clf = pickle.load(fl)
+
+    # Update target stack until all pixels.
+    targets = {}
+    clone_creation_args = None
+    for stack in get_pixels_generator(geom, entries, scale, bands):
+        # Store creation args from first raster used, assuming all others are
+        # identical.
+        if clone_creation_args is None:
+            with next(iter(stack.values())).open() as rst:
+                clone_creation_args = rst.meta
+        # Read raster files from this stack.
+        data = {}
+        for band, raster in stack.items():
+            with raster.open() as rst:
+                data[band] = rst.read(1)
+        # Construct data array for cloud prediction.
+        if product_type == PRODUCT_L1C:
+            X = numpy.array([data[band].ravel() for band in SENTINEL_2_BANDS])
+        else:
+            X = numpy.array([data[band].ravel() for band in SENTINEL_2_BANDS if band != 'B10'])
+        # Estimate cloud probablities for this stack.
+        Yh = clf.predict_proba(X.T).T
+        # Cloud probability is defined as P(shadow) + P(cirrus) + P(cloud)
+        cloud_probability_index = Yh[3] + Yh[4] + Yh[5]
+        cloud_probability_index = cloud_probability_index.reshape((clone_creation_args['height'], clone_creation_args['width']))
+        # Generate mask from exlude pixel class lookup.
+        mask = cloud_probability_index < CLOUD_INDEX_CUTOFF
+        # Update targets with this data using mask.
+        for band, raster in data.items():
+            if band in targets:
+                # If targets already have data, update only empty pixels.
+                band_mask = numpy.logical_and(mask, targets[band] == 0)
+                targets[band][band_mask] = raster[band_mask]
+            else:
+                # Create new target array from raster.
+                targets[band] = raster
+                # Mask target array.
+                targets[band][mask == 0] = 0
+
+        # Check if all pixels have been populated using one of the target bands.
+        if numpy.all(next(iter(targets.values())) > 0):
+            break
+
+    # Convert target arrays to rasterio memfiles.
+    for band, data in targets.items():
+        memfile = MemoryFile()
+        # Set correct datatype.
+        clone_creation_args['dtype'] = 'uint8' if band in ['SCL', 'NN6', 'NN1', 'NN2', 'NN3', 'NN4', 'NN5'] else 'uint16'
+        # Create memfile raster.
+        dst = memfile.open(**clone_creation_args)
+        # Write result to raster.
+        dst.write(data.reshape((1, clone_creation_args['height'], clone_creation_args['width'])))
+        targets[band] = memfile
+
+    return targets
+
+
+def s2_color(stack, path=None):
+    """
+    Create RGB using the visual spectrum of an S2 stack.
+    """
+    data = numpy.array([
+        stack['B04'].open().read(1),
+        stack['B03'].open().read(1),
+        stack['B02'].open().read(1),
+    ])
+    creation_args = stack['B04'].open().meta.copy()
+    creation_args['count'] = 3
+
+    # Open memory destination file.
+    memfile = MemoryFile()
+    dst = memfile.open(**creation_args)
+    dst.write(data)
+
+    return memfile
+
+
+def s1_color(stack, path=None):
+    """
+    Create RGB using the two S1 backscatter polarisation channels.
+    """
+
+    if SENTINEL_1_BANDS_VV[0] in stack:
+        B0 = stack[SENTINEL_1_BANDS_VV_VH[0]]
+        B1 = stack[SENTINEL_1_BANDS_VV_VH[1]]
+    else:
+        B0 = stack[SENTINEL_1_BANDS_HH_HV[0]]
+        B1 = stack[SENTINEL_1_BANDS_HH_HV[1]]
+
+    B0 = B0.open().read(1)
+    B1 = B1.open().read(1)
+
+    orig_dtype = B0.dtype
+
+    # Transform the data to provide an interpretable visual result.
+    B0 *= 10
+    B1 *= 10
+    B0 = numpy.log(B0)
+    B1 = numpy.log(B1)
+
+    B0 = (B0 / 20) * SENTINEL_2_RGB_CLIPPER
+    B1 = (B1 / 20) * SENTINEL_2_RGB_CLIPPER
+    B2 = (B0 / B1) * 40
+
+    data = numpy.array([B0, B1, B2]).astype(orig_dtype)
+
+    if isinstance(stack[SENTINEL_1_BANDS_VV_VH[0]], MemoryFile):
+        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].open().meta.copy()
+    else:
+        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].meta.copy()
+
+    creation_args['count'] = 3
+
+    # Open memory destination file.
+    memfile = MemoryFile()
+    dst = memfile.open(**creation_args)
+    dst.write(data)
+
+    return memfile
 
 
 def s2_composite(geom, entries, scale, bands):
@@ -253,71 +469,3 @@ def s2_composite_incremental(geom, entries, scale, bands):
         targets[band] = memfile
 
     return targets
-
-
-def s2_color(stack, path=None):
-    """
-    Create RGB using the visual spectrum of an S2 stack.
-    """
-    data = numpy.array([
-        stack['B04'].open().read(1),
-        stack['B03'].open().read(1),
-        stack['B02'].open().read(1),
-    ])
-    if isinstance(stack['B04'], MemoryFile):
-        creation_args = stack['B04'].open().meta.copy()
-    else:
-        creation_args = stack['B04'].meta.copy()
-
-    creation_args['count'] = 3
-
-    # Open memory destination file.
-    memfile = MemoryFile()
-    dst = memfile.open(**creation_args)
-    dst.write(data)
-
-    return memfile
-
-
-def s1_color(stack, path=None):
-    """
-    Create RGB using the two S1 backscatter polarisation channels.
-    """
-
-    if SENTINEL_1_BANDS_VV[0] in stack:
-        B0 = stack[SENTINEL_1_BANDS_VV_VH[0]]
-        B1 = stack[SENTINEL_1_BANDS_VV_VH[1]]
-    else:
-        B0 = stack[SENTINEL_1_BANDS_HH_HV[0]]
-        B1 = stack[SENTINEL_1_BANDS_HH_HV[1]]
-
-    B0 = B0.open().read(1)
-    B1 = B1.open().read(1)
-
-    orig_dtype = B0.dtype
-
-    # Transform the data to provide an interpretable visual result.
-    B0 *= 10
-    B1 *= 10
-    B0 = numpy.log(B0)
-    B1 = numpy.log(B1)
-
-    B0 = (B0 / 20) * SENTINEL_2_RGB_CLIPPER
-    B1 = (B1 / 20) * SENTINEL_2_RGB_CLIPPER
-    B2 = (B0 / B1) * 40
-
-    data = numpy.array([B0, B1, B2]).astype(orig_dtype)
-
-    if isinstance(stack[SENTINEL_1_BANDS_VV_VH[0]], MemoryFile):
-        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].open().meta.copy()
-    else:
-        creation_args = stack[SENTINEL_1_BANDS_VV_VH[0]].meta.copy()
-
-    creation_args['count'] = 3
-
-    # Open memory destination file.
-    memfile = MemoryFile()
-    dst = memfile.open(**creation_args)
-    dst.write(data)
-
-    return memfile

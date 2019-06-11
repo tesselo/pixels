@@ -262,12 +262,13 @@ def timeseries_steps(start, end, interval, interval_step):
         end = parser.parse(end)
     # Compute time delta.
     delta = relativedelta(**{interval.lower(): int(interval_step)})
+    one_day = relativedelta(days=1)
     # Create intermediate timestamps.
     here_start = start
     here_end = start + delta
     # Loop through timesteps.
-    while here_end <= end:
-        yield here_start, here_end
+    while (here_end - one_day) <= end:
+        yield here_start, here_end - one_day
         # Increment intermediate timestamps.
         here_start += delta
         here_end += delta
@@ -360,11 +361,9 @@ def validate_configuration(config):
     if mode not in const.MODES:
         raise PixelsFailed('Mode {} not recognized. Use one of {}.'.format(mode, const.MODES))
 
-    if mode in (const.MODE_COMPOSITE, const.MODE_COMPOSITE_INCREMENTAL):
+    if mode in (const.MODE_COMPOSITE, const.MODE_COMPOSITE_INCREMENTAL, const.MODE_COMPOSITE_NN, const.MODE_COMPOSITE_INCREMENTAL_NN):
         if config.get('platform') == const.PLATFORM_SENTINEL_1:
             raise PixelsFailed('Cannot compute composite for Sentinel 1.')
-        elif config.get('platform') == const.PLATFORM_SENTINEL_2 and config['product_type'] != const.PRODUCT_L2A:
-            raise PixelsFailed('Mode {} is only valid for L2A product type.'.format(mode))
 
     if delay and mode == const.MODE_SEARCH_ONLY:
         raise PixelsFailed('Search only mode works in synchronous mode only.')
@@ -405,6 +404,16 @@ def validate_configuration(config):
     if file_format == const.REQUEST_FORMAT_PNG:
         color = True
 
+    # Band 10 is not available for L2A.
+    if config['product_type'] == const.PRODUCT_L2A and 'B10' in bands:
+        logger.info('Band B10 is not available for L2A mode, removing it from list.')
+        bands = [band for band in bands if band != 'B10']
+
+    # Band SCL is not available for L1C.
+    if config['product_type'] == const.PRODUCT_L1C and 'SCL' in bands:
+        logger.info('Band SCL is not available for L2A mode, removing it from list.')
+        bands = [band for band in bands if band != 'SCL']
+
     # For composite, we will require all bands to be retrieved.
     if mode == const.MODE_COMPOSITE:
         if config['product_type'] == const.PRODUCT_L2A:
@@ -416,6 +425,12 @@ def validate_configuration(config):
     elif mode == const.MODE_COMPOSITE_INCREMENTAL:
         logger.info('Adding SCL band for composite incremental mode.')
         bands = list(set(bands + ['SCL']))
+    elif mode in (const.MODE_COMPOSITE_NN, const.MODE_COMPOSITE_INCREMENTAL_NN):
+        logger.info('Adding all bands for composite mode.')
+        if config['product_type'] == const.PRODUCT_L2A:
+            bands = list(set(bands + ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']))
+        elif len(bands) != len(const.SENTINEL_2_BANDS):
+            bands = const.SENTINEL_2_BANDS
 
     # For color, assure the RGB bands are present.
     if file_format == const.REQUEST_FORMAT_PNG and config['platform'] == const.PLATFORM_SENTINEL_2:
