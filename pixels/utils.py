@@ -1,7 +1,7 @@
 import logging
+import math
 import uuid
 from copy import deepcopy
-from math import ceil, pi
 
 import numpy
 import rasterio
@@ -21,16 +21,18 @@ from pixels.exceptions import PixelsFailed
 logger = logging.getLogger(__name__)
 
 
-def generate_unique_key(frmt, ts_tag=''):
+def generate_unique_key(frmt, ts_tag='', ts_tag_is_main_key=False):
     """
     Generate a unique S3 file key to upload files to.
     """
     if ts_tag:
         ts_tag = '{}/'.format(ts_tag)
 
-    return '{}{}/pixels.{}'.format(
+    tag = '' if ts_tag_is_main_key else '{}/'.format(uuid.uuid4())
+
+    return '{}{}pixels.{}'.format(
         ts_tag,
-        uuid.uuid4(),
+        tag,
         frmt.lower(),
     )
 
@@ -52,8 +54,8 @@ def compute_transform(geom, scale):
     """
     extent = bounds(geom)
     transform = Affine(scale, 0, extent[0], 0, -scale, extent[3])
-    width = ceil((extent[2] - extent[0]) / scale)
-    height = ceil((extent[3] - extent[1]) / scale)
+    width = math.ceil((extent[2] - extent[0]) / scale)
+    height = math.ceil((extent[3] - extent[1]) / scale)
 
     return transform, width, height, geom['crs']
 
@@ -63,7 +65,7 @@ def tile_scale(z):
     Calculate tile pixel size scale for given zoom level.
     """
     TILESIZE = 256
-    WEB_MERCATOR_WORLDSIZE = 2 * pi * 6378137
+    WEB_MERCATOR_WORLDSIZE = 2 * math.pi * 6378137
     scale = WEB_MERCATOR_WORLDSIZE / 2.0 ** z / TILESIZE
     return round(scale, 8)
 
@@ -96,7 +98,7 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs):
         proj_args = {
             'dst_transform': transform,
             'dst_crs': crs,
-            'resampling': Resampling.nearest,
+            'resampling': Resampling.cubic,
         }
 
         if src.crs:
@@ -152,7 +154,7 @@ def tile_bounds(z, x, y):
     """
     Calculate the bounding box of a specific tile.
     """
-    WEB_MERCATOR_WORLDSIZE = 2 * pi * 6378137
+    WEB_MERCATOR_WORLDSIZE = 2 * math.pi * 6378137
 
     WEB_MERCATOR_TILESHIFT = WEB_MERCATOR_WORLDSIZE / 2.0
 
@@ -164,6 +166,23 @@ def tile_bounds(z, x, y):
     ymax = WEB_MERCATOR_TILESHIFT - y * zscale
 
     return [xmin, ymin, xmax, ymax]
+
+
+def tile_index(lng, lat, zoom):
+    """
+    Calcluate tile index from lat/lon for a given zoom level.
+    """
+    lat = math.radians(lat)
+    n = 2.0 ** zoom
+    xtile = int(math.floor((lng + 180.0) / 360.0 * n))
+
+    try:
+        ytile = int(math.floor((1.0 - math.log(
+            math.tan(lat) + (1.0 / math.cos(lat))) / math.pi) / 2.0 * n))
+    except ValueError:
+        raise ValueError("Y can not be computed for latitude {} radians".format(lat))
+    else:
+        return xtile, ytile, zoom
 
 
 def clip_to_geom(stack, geom):

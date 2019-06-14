@@ -230,7 +230,8 @@ TILE_LAYER_TEMPLATE = '''
 </Layer>
 '''
 
-URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;max_cloud_cover_percentage=50'
+LATEST_PIXEL_URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;max_cloud_cover_percentage=50'
+COMPOSITE_URL_TEMPLATE = '{host}composite/{projectid}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}'
 
 
 def gen(key, host):
@@ -245,7 +246,7 @@ def gen(key, host):
             if end > datetime.datetime.now().date():
                 break
             title = 'Latest Pixel ' + end.strftime('%B %Y')
-            url = URL_TEMPLATE.format(
+            url = LATEST_PIXEL_URL_TEMPLATE.format(
                 host=host,
                 key=key,
                 end=end,
@@ -256,6 +257,29 @@ def gen(key, host):
                 identifier=end.strftime('%Y%m'),
                 url=url,
             )
+
+    return WMTS_BASE_TEMPLATE.format(
+        layers=xml,
+        mat=TILE_MATRIX_SET_TEMPLATE,
+    )
+
+
+def gen_composite(key, host, projectid):
+    """
+    WMTS Endpoint for one project.
+    """
+    xml = ''
+    title = 'Composite {}'.format(projectid)
+    url = COMPOSITE_URL_TEMPLATE.format(
+        host=host,
+        key=key,
+        projectid=projectid,
+    )
+    xml += TILE_LAYER_TEMPLATE.format(
+        title=title,
+        identifier=projectid,
+        url=url,
+    )
 
     return WMTS_BASE_TEMPLATE.format(
         layers=xml,

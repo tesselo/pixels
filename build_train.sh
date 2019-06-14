@@ -11,6 +11,7 @@ cp -r pixels build
 cp train/collect.py build
 cp train/pack.py build
 cp train/train.py build
+cp train/pyramid.py build
 
 # Remove pyc files.
 find build -name "*.pyc" -exec rm -f {} \;

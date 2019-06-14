@@ -9,10 +9,12 @@ import zipfile
 from io import BytesIO
 
 import boto3
+import numpy
+import rasterio
 from dateutil import parser
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 from zappa.async import task
 
 from pixels import const, core, utils, wmts
@@ -99,7 +101,8 @@ def pixels(data=None):
     if config['delay'] and not config['tag']:
         logger.info('Working in delay mode.')
         # Add tag to config and call async task with tag specified.
-        config['tag'] = utils.generate_unique_key(config['format'])
+        config['tag'] = utils.generate_unique_key(config['format'], ts_tag=config.get('base_path', ''), ts_tag_is_main_key='base_path' in config)
+        print(config['tag'])
         url = '{}async/{}?key={}'.format(request.host_url, config['tag'], request.args['key'])
         pixels_task(config)
         return jsonify(message='Getting pixels asynchronously. Your files will be ready at the link below soon.', url=url)
@@ -419,3 +422,73 @@ def timeseries_result(tag):
         }
     )
     return redirect(url)
+
+
+@app.route('/composite/<projectid>/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
+@token_required
+def composite(projectid, z, x, y):
+    """
+    Show tiles from TMS creation.
+    """
+
+    return_empty = z != 14
+
+    if not return_empty:
+        try:
+            with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B04.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                red = rst.read(1)
+            with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B03.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                green = rst.read(1)
+            with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B02.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                blue = rst.read(1)
+        except rasterio.errors.RasterioIOError:
+            return_empty = True
+
+    output = BytesIO()
+    if return_empty:
+        path = os.path.dirname(os.path.abspath(__file__))
+        # Open the ref image.
+        img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
+        # Write zoom message into image.
+        if z != '14':
+            msg = 'Zoom is {} | Zoom should be {}'.format(z, 14)
+        else:
+            msg = 'No Data'
+        draw = ImageDraw.Draw(img)
+        text_width, text_height = draw.textsize(msg)
+        draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
+        # Save image to io buffer.
+        img.save(output, format='PNG')
+    else:
+        pixpix = numpy.array([
+            numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+            numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+            numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+            numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
+        ]).astype('uint8')
+
+        # Create image object and enhance color scheme.
+        img = Image.fromarray(pixpix.T)
+        img = ImageEnhance.Contrast(img).enhance(1.2)
+        img = ImageEnhance.Brightness(img).enhance(1.8)
+        img = ImageEnhance.Color(img).enhance(1.4)
+
+        # Save image to io buffer.
+        img.save(output, format=const.REQUEST_FORMAT_PNG)
+
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype='image/png'
+    )
+
+
+@app.route('/composite/<projectid>/wmts', methods=['GET'])
+@token_required
+def composite_wmts(projectid):
+    """
+    WMTS endpoint for projects.
+    """
+    key = request.args.get('key')
+    xml = wmts.gen_composite(key, request.host_url, projectid)
+    return Response(xml, mimetype="text/xml")

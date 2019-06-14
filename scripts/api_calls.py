@@ -1,3 +1,5 @@
+import uuid
+
 import requests
 
 from pixels import const
@@ -32,6 +34,7 @@ data = {
     "color": False,
     "format": 'ZIP',
     "delay": True,
+    "base_path": '{}/14/23/23'.format(uuid.uuid4()),
     "bands": ["B04", "B08"],
     "formulas": [{"name": "ndvi", "expression": "(B08 - B04) / (B04 + B08)"}],
 }

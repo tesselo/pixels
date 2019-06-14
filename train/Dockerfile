@@ -13,7 +13,8 @@ RUN apt-get -y update\
   rasterio==1.0.22\
   Pillow==6.0.0\
   requests==2.21\
-  pyproj==1.9.6
+  pyproj==1.9.6\
+  shapely==1.6.4.post2
 
 ADD fetch_and_run.sh /usr/local/bin/fetch_and_run.sh
 RUN chmod +x /usr/local/bin/fetch_and_run.sh
