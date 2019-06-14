@@ -58,7 +58,7 @@ In more detail, the configuration contains the following elements:
   - `format` A string specifying the format. One of `['PNG', 'ZIP', 'NPZ', 'CSV']`. PNG will return a rendered png image, ZIP will pack all bands as GeoTIFF files in a zip archive, NPZ will will return a compressed numpy NPZ file, and CSV will return a CSV file with point coordinates and band values. Defaults to `ZIP`
   - `color` A boolean specifying if the visual bands should be combined into an RGB file for convenience.
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
-  - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP files (with render=False).
+  - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP, Numpy or CSV files.
   - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
   - `formulas` A list of formula dictionaries, each with a `name` and an `expression`. The band names in the formula needs to match available bands, so also add those to the bands list. An example formulas list is the following: `[{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}, {"name": "NDWI", "expression": "(B8 - B11) / (B8 + B11)"}]`.
 
