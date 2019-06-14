@@ -17,7 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw, ImageEnhance
 from zappa.async import task
 
-from pixels import const, core, utils, wmts
+from pixels import algebra, const, core, utils, wmts
 from pixels.exceptions import PixelsFailed
 
 # Flask setup
@@ -424,16 +424,95 @@ def timeseries_result(tag):
     return redirect(url)
 
 
+def hex_to_rgba(value, alpha=255):
+    """
+    Converts a HEX color string to a RGBA 4-tuple.
+    """
+    if value is None:
+        return [None, None, None]
+
+    value = value.lstrip('#')
+
+    # Check length and input string property
+    if len(value) not in [1, 2, 3, 6] or not value.isalnum():
+        raise PixelsFailed('Invalid color, could not convert hex to rgb.')
+
+    # Repeat values for shortened input
+    value = (value * 6)[:6]
+
+    # Convert to rgb
+    return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16), alpha
+
+
+def rescale_to_channel_range(data, dfrom, dto, dover=None):
+    """
+    Rescales an array to the color interval provided. Assumes that the data is normalized.
+    This is used as a helper function for continuous colormaps.
+    """
+    # If the interval is zero dimensional, return constant array.
+    if dfrom == dto:
+        return numpy.ones(data.shape) * dfrom
+
+    if dover is None:
+        # Invert data going from smaller to larger if origin color is bigger
+        # than target color.
+        if dto < dfrom:
+            data = 1 - data
+        return data * abs(dto - dfrom) + min(dto, dfrom)
+    else:
+        # Divide data in upper and lower half.
+        lower_half = data < 0.5
+        # Recursive calls to scaling upper and lower half separately.
+        data[lower_half] = rescale_to_channel_range(data[lower_half] * 2, dfrom, dover)
+        data[numpy.logical_not(lower_half)] = rescale_to_channel_range((data[numpy.logical_not(lower_half)] - 0.5) * 2, dover, dto)
+
+    return data
+
+
 @app.route('/composite/<projectid>/<int:z>/<int:x>/<int:y>.png', methods=['GET'])
 @token_required
 def composite(projectid, z, x, y):
     """
     Show tiles from TMS creation.
     """
-
     return_empty = z != 14
+    # Look for a json string in data argument.
+    formula = request.args.get('formula', None)
+    if formula and not return_empty:
+        parser = algebra.FormulaParser()
+        data = {}
+        for band in const.SENTINEL_2_BANDS:
+            if band in formula:
+                try:
+                    with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif'.format(const.BUCKET, projectid, z, x, y, band)) as rst:
+                        data[band] = rst.read(1).T
+                except rasterio.errors.RasterioIOError:
+                    return_empty = True
 
-    if not return_empty:
+        if not return_empty:
+            index = parser.evaluate(data, formula)
+
+            dmin = float(request.args.get('min', -1))
+            dmax = float(request.args.get('max', 1))
+
+            if dmax == dmin:
+                norm = index == dmin
+            else:
+                norm = (index - dmin) / (dmax - dmin)
+
+            color_from = hex_to_rgba(request.args.get('from', '#00'))
+            color_to = hex_to_rgba(request.args.get('to', '#FF'))
+            color_over = hex_to_rgba(request.args.get('over', None))
+
+            red = rescale_to_channel_range(norm.copy(), color_from[0], color_to[0], color_over[0])
+            green = rescale_to_channel_range(norm.copy(), color_from[1], color_to[1], color_over[1])
+            blue = rescale_to_channel_range(norm.copy(), color_from[2], color_to[2], color_over[2])
+
+            # Compute alpha channel from mask if available.
+            alpha = numpy.all([dat != 0 for dat in data.values()], axis=0) * 255
+
+            pixpix = numpy.array([red, green, blue, alpha], dtype='uint8')
+    else:
         try:
             with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B04.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
                 red = rst.read(1)
@@ -444,29 +523,31 @@ def composite(projectid, z, x, y):
         except rasterio.errors.RasterioIOError:
             return_empty = True
 
+        if not return_empty:
+            pixpix = numpy.array([
+                numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
+            ]).astype('uint8')
+
     output = BytesIO()
     if return_empty:
         path = os.path.dirname(os.path.abspath(__file__))
         # Open the ref image.
         img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
         # Write zoom message into image.
-        if z != '14':
-            msg = 'Zoom is {} | Zoom should be {}'.format(z, 14)
-        else:
+        if z == 14:
             msg = 'No Data'
+        else:
+            msg = 'Zoom is {} | Zoom should be {}'.format(z, 14)
+
         draw = ImageDraw.Draw(img)
         text_width, text_height = draw.textsize(msg)
         draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
         # Save image to io buffer.
         img.save(output, format='PNG')
     else:
-        pixpix = numpy.array([
-            numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-            numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-            numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-            numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
-        ]).astype('uint8')
-
         # Create image object and enhance color scheme.
         img = Image.fromarray(pixpix.T)
         img = ImageEnhance.Contrast(img).enhance(1.2)
