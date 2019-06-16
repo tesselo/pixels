@@ -12,12 +12,6 @@ from shapely.geometry import Polygon, shape
 
 from pixels import utils
 
-##############################
-# How to open zipped raster in S3 with rasterio.
-# with rasterio.open('zip+s3://tesselo-pixels-results/clftests/tiles/14/4547/6540/pixels.zip!B08.tif') as rst:
-#     print(rst.meta, rst.read())
-##############################
-
 # Get logger.
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
