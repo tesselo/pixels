@@ -91,10 +91,22 @@ for i in range(array_index * tile_group_size, min(len(tiles), (array_index + 1) 
     else:
         raise ValueError('Geom type {} not supported'.format(tile['geom'].geom_type))
 
-    logger.info('Working on tile {z}/{x}/{y}'.format(**tile))
+    # Add override to ensure target raster is full tile (important at edge).
+    scale = utils.tile_scale(zoom)
+    tbounds = utils.tile_bounds(tile['z'], tile['x'], tile['y'])
 
-    # Fix scale to zoom level.
-    config['scale'] = utils.tile_scale(zoom)
+    config['target_geotransform'] = {
+        'width': 256,
+        'height': 256,
+        'scale_x': scale,
+        'skew_x': 0.0,
+        'origin_x': tbounds[0],
+        'skew_y': 0.0,
+        'scale_y': -scale,
+        'origin_y': tbounds[3],
+    }
+
+    logger.info('Working on tile {z}/{x}/{y}'.format(**tile))
 
     # Verify config.
     config = utils.validate_configuration(config)
