@@ -449,6 +449,8 @@ def validate_configuration(config):
             logger.info('Adding NDVI bands for composite mode.')
             bands = list(set(bands + ['B04', 'B08']))
     elif mode == const.MODE_COMPOSITE_INCREMENTAL:
+        if config['product_type'] != const.PRODUCT_L2A:
+            raise PixelsFailed('Composite incremental mode is only available for L2A.')
         logger.info('Adding SCL band for composite incremental mode.')
         bands = list(set(bands + ['SCL']))
     elif mode in (const.MODE_COMPOSITE_NN, const.MODE_COMPOSITE_INCREMENTAL_NN):
