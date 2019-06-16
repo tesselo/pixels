@@ -31,6 +31,7 @@ def gen_configs():
         {'platform': 'Sentinel-1', 'product_type': 'GRD', 's1_acquisition_mode': 'IW'},
         {'mode': const.MODE_COMPOSITE_NN},
         {'mode': const.MODE_COMPOSITE_INCREMENTAL_NN},
+        {'target_geotransform': {'width': 112, 'height': 70, 'scale_x': 10.0, 'skew_x': 0.0, 'origin_x': -881338, 'skew_y': 0.0, 'scale_y': -10.0, 'origin_y': 5139587}},
     ]
 
     return [gen_config(version) for version in versions]

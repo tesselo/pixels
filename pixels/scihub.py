@@ -13,17 +13,16 @@ from pixels.const import (
     SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.exceptions import PixelsFailed
-from pixels.utils import clone_raster, compute_transform, warp_from_s3
+from pixels.utils import clone_raster, warp_from_s3
 
 # Get logger.
 logger = logging.getLogger(__name__)
 
 
-def get_pixels(geom, entry, scale=10, bands=None):
+def get_pixels(transform, width, height, crs, entry, bands=None):
     """
     Get pixel values from S3.
     """
-    transform, width, height, crs = compute_transform(geom, scale=scale)
     # Sanity checks.
     if width > MAX_PIXEL_SIZE:
         raise PixelsFailed('Max raster width exceeded ({} > {}).'.format(width, MAX_PIXEL_SIZE))
@@ -70,16 +69,16 @@ def get_pixels(geom, entry, scale=10, bands=None):
     return result
 
 
-def get_pixels_generator(geom, entries, scale, bands):
+def get_pixels_generator(transform, width, height, crs, entries, bands):
     """
     Get pixels from S3 incrementally.
     """
     for entry in entries:
         logger.info('Getting scene pixels for {}.'.format(entry['prefix']))
-        yield get_pixels(geom, entry, scale=scale, bands=bands)
+        yield get_pixels(transform, width, height, crs, entry, bands=bands)
 
 
-def latest_pixel(geom, data, scale=10, bands=None):
+def latest_pixel(transform, width, height, crs, data, bands=None):
     """
     Construct the latest pixel composite from the query result.
 
@@ -90,7 +89,7 @@ def latest_pixel(geom, data, scale=10, bands=None):
     for entry in data:
         logger.info('Adding entry {} to latest pixel stack.'.format(entry['prefix']))
         try:
-            data = get_pixels(geom, entry, scale=scale, bands=bands)
+            data = get_pixels(transform, width, height, crs, entry, bands=bands)
         except RasterioIOError:
             # Catch error if a specific scene was not registered in S3 bucket.
             logger.warning('Not all bands found in S3 for scene key {}.'.format(entry['prefix']))
@@ -129,7 +128,7 @@ def latest_pixel(geom, data, scale=10, bands=None):
     return rst_result
 
 
-def s2_composite_nn(geom, entries, scale, bands, product_type):
+def s2_composite_nn(transform, width, height, crs, entries, bands, product_type):
     """
     Compute a composite for a stack of S2 input data.
     """
@@ -150,7 +149,7 @@ def s2_composite_nn(geom, entries, scale, bands, product_type):
     bands_present = None
     clone_creation_args = None
     # Compute cloud probabilities based on sen2cor sceneclass.
-    for stack in get_pixels_generator(geom, entries, scale, bands):
+    for stack in get_pixels_generator(transform, width, height, crs, entries, bands):
         # Store creation args from first raster used, assuming all others are
         # identical.
         if clone_creation_args is None:
@@ -207,7 +206,7 @@ def s2_composite_nn(geom, entries, scale, bands, product_type):
     return result
 
 
-def s2_composite_incremental_nn(geom, entries, scale, bands, product_type):
+def s2_composite_incremental_nn(transform, width, height, crs, entries, bands, product_type):
     """
     Compute composite with minimal effort, sequentially removing cloudy or
     shadow pixels.
@@ -226,7 +225,7 @@ def s2_composite_incremental_nn(geom, entries, scale, bands, product_type):
     # Update target stack until all pixels.
     targets = {}
     clone_creation_args = None
-    for stack in get_pixels_generator(geom, entries, scale, bands):
+    for stack in get_pixels_generator(transform, width, height, crs, entries, bands):
         # Store creation args from first raster used, assuming all others are
         # identical.
         if clone_creation_args is None:
@@ -343,7 +342,7 @@ def s1_color(stack, path=None):
     return memfile
 
 
-def s2_composite(geom, entries, scale, bands):
+def s2_composite(transform, width, height, crs, entries, bands):
     """
     Compute a composite for a stack of S2 input data.
     """
@@ -354,7 +353,7 @@ def s2_composite(geom, entries, scale, bands):
     raster_file_to_clone = None
     bands_present = None
     # Compute cloud probabilities based on sen2cor sceneclass.
-    for stack in get_pixels_generator(geom, entries, scale, bands):
+    for stack in get_pixels_generator(transform, width, height, crs, entries, bands):
         # Scene class pixels ranked by preference. The rank is flattened out so
         # that between categories that are similarly desireable, the relative NDVI
         # value is decisive.
@@ -420,7 +419,7 @@ def s2_composite(geom, entries, scale, bands):
     return result
 
 
-def s2_composite_incremental(geom, entries, scale, bands):
+def s2_composite_incremental(transform, width, height, crs, entries, bands):
     """
     Compute composite with minimal effort, sequentially removing cloudy or
     shadow pixels.
@@ -431,7 +430,7 @@ def s2_composite_incremental(geom, entries, scale, bands):
     # Update target stack until all pixels.
     targets = {}
     clone_creation_args = None
-    for stack in get_pixels_generator(geom, entries, scale, bands):
+    for stack in get_pixels_generator(transform, width, height, crs, entries, bands):
         # Open raster files from this stack.
         data = {band: raster.open().read(1) for band, raster in stack.items()}
         # Generate mask from exlude pixel class lookup.

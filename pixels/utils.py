@@ -408,6 +408,13 @@ def validate_configuration(config):
         if 'expression' not in formula:
             raise PixelsFailed('Each formula requires an expression.')
 
+    # Geotransform.
+    if 'target_geotransform' in config:
+        if not isinstance(config['target_geotransform'], dict):
+            raise PixelsFailed('Target geotransform should be a dictionary.')
+        if not config['target_geotransform'].keys() == {"width": 1, "height": 1, "origin_x": 0, "scale_x": 1, "skew_x": 0, "origin_y": 0, "skew_y": 0, "scale_y": -1}.keys():
+            raise PixelsFailed('Target geotransform invalid.')
+
     # Sentinel-1
     if config.get('platform') == const.PLATFORM_SENTINEL_1:
         if 's1_acquisition_mode' not in config:

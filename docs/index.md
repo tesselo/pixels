@@ -49,7 +49,7 @@ Either POST a JSON object, or encode a JSON object string and pass the object th
 In more detail, the configuration contains the following elements:
 
   - `geom` a GeoJSON-like feature with a polygon geometry. The bouding box of this geometry will be used as image location. The input feature requires a Coordinate Reference System (CRS) to be specified in the `crs` attribute. The structure is required to be `EPSG:X`, where `X` is a valid EPSG identifier (see example below). The CRS should either be a projected coordinate system or WGS84 (EPSG:4326). If data is passed in WGS84, the geometry is internally reprojected to the Web Mercator projection (EPSG:3857) and the scale recieved is assumed to be in that projection.
-  - `scale` The pixel resolution of the output rasters. The scale needs to be in the units of the CRS of the input geometry. Defaults to 10.
+  - `scale` The pixel resolution of the output rasters. The scale needs to be in the units of the CRS of the input geometry. Defaults to 10. This parameter is ignored if `target_geotransform` is specified.
   - `end` End date for querying images, as string.
   - `start` Start date for querying images, as string.
   - `platform` The satellite platform to use. Currently only `Sentinel-2` is implemented.
@@ -61,6 +61,7 @@ In more detail, the configuration contains the following elements:
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP, Numpy or CSV files.
   - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
   - `formulas` A list of formula dictionaries, each with a `name` and an `expression`. The band names in the formula needs to match available bands, so also add those to the bands list. An example formulas list is the following: `[{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}, {"name": "NDWI", "expression": "(B8 - B11) / (B8 + B11)"}]`.
+  - `target_geotransform` A geotransform dictionary to override the target raster configuration. By default the target raster properties will be computed from the input geometry and scale. The dictionary is expected to be of the form `{"width": 1, "height": 1, "origin_x": 0, "scale_x": 1, "skew_x": 0, "origin_y": 0, "skew_y": 0, "scale_y": -1}`. The coordinates and scale need to match the `crs` specified in the geometry.
 
 #### Example
 

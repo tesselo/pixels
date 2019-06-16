@@ -5,6 +5,7 @@ from io import BytesIO
 
 import numpy
 from PIL import Image, ImageEnhance
+from rasterio import Affine
 
 from pixels import const, scihub, search, utils
 
@@ -38,22 +39,32 @@ def handler(config):
     if config['mode'] == const.MODE_SEARCH_ONLY:
         return query_result
 
+    # Compute affine transform from input.
+    if 'target_geotransform' in config:
+        trf = config['target_geotransform']
+        transform = Affine(trf['scale_x'], trf['skew_x'], trf['origin_x'], trf['skew_y'], trf['scale_y'], trf['origin_y'])
+        width = trf['width']
+        height = trf['height']
+        crs = config['geom']['crs']
+    else:
+        transform, width, height, crs = utils.compute_transform(config['geom'], config['scale'])
+
     # Get pixels.
     if config['mode'] == const.MODE_LATEST_PIXEL:
         logger.info('Getting latest pixels stack.')
-        stack = scihub.latest_pixel(config['geom'], query_result, scale=config['scale'], bands=config['bands'])
+        stack = scihub.latest_pixel(transform, width, height, crs, query_result, bands=config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE:
         logger.info('Computing composite from pixel stacks.')
-        stack = scihub.s2_composite(config['geom'], query_result, config['scale'], config['bands'])
+        stack = scihub.s2_composite(transform, width, height, crs, query_result, config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL:
         logger.info('Computing incremental composite from pixel stacks.')
-        stack = scihub.s2_composite_incremental(config['geom'], query_result, config['scale'], config['bands'])
+        stack = scihub.s2_composite_incremental(transform, width, height, crs, query_result, config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE_NN:
         logger.info('Computing Neural Network based composite from pixel stacks.')
-        stack = scihub.s2_composite_nn(config['geom'], query_result, config['scale'], config['bands'], config['product_type'])
+        stack = scihub.s2_composite_nn(transform, width, height, crs, query_result, config['bands'], config['product_type'])
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL_NN:
         logger.info('Computing Neural Network based incremental composite from pixel stacks.')
-        stack = scihub.s2_composite_incremental_nn(config['geom'], query_result, config['scale'], config['bands'], config['product_type'])
+        stack = scihub.s2_composite_incremental_nn(transform, width, height, crs, query_result, config['bands'], config['product_type'])
 
     # Clip to geometry if requested.
     if config['clip_to_geom']:
