@@ -485,7 +485,7 @@ def composite(projectid, z, x, y):
             if band in formula:
                 try:
                     with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif'.format(const.BUCKET, projectid, z, x, y, band)) as rst:
-                        data[band] = rst.read(1).T
+                        data[band] = rst.read(1).T.astype('float')
                 except rasterio.errors.RasterioIOError:
                     return_empty = True
 
@@ -500,8 +500,8 @@ def composite(projectid, z, x, y):
             else:
                 norm = (index - dmin) / (dmax - dmin)
 
-            color_from = hex_to_rgba(request.args.get('from', '#00'))
-            color_to = hex_to_rgba(request.args.get('to', '#FF'))
+            color_from = hex_to_rgba(request.args.get('from', '00'))
+            color_to = hex_to_rgba(request.args.get('to', 'FF'))
             color_over = hex_to_rgba(request.args.get('over', None))
 
             red = rescale_to_channel_range(norm.copy(), color_from[0], color_to[0], color_over[0])
@@ -524,12 +524,15 @@ def composite(projectid, z, x, y):
             return_empty = True
 
         if not return_empty:
-            pixpix = numpy.array([
-                numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
-            ]).astype('uint8')
+            pixpix = numpy.array(
+                [
+                    numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                    numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                    numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
+                    numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255,
+                ],
+                dtype='uint8',
+            )
 
     output = BytesIO()
     if return_empty:
@@ -544,11 +547,13 @@ def composite(projectid, z, x, y):
         # Save image to io buffer.
         img.save(output, format='PNG')
     else:
-        # Create image object and enhance color scheme.
+        # Create image object.
         img = Image.fromarray(pixpix.T)
-        img = ImageEnhance.Contrast(img).enhance(1.2)
-        img = ImageEnhance.Brightness(img).enhance(1.8)
-        img = ImageEnhance.Color(img).enhance(1.4)
+        # Enhance color scheme for RGB mode.
+        if not formula:
+            img = ImageEnhance.Contrast(img).enhance(1.2)
+            img = ImageEnhance.Brightness(img).enhance(1.8)
+            img = ImageEnhance.Color(img).enhance(1.4)
 
         # Save image to io buffer.
         img.save(output, format=const.REQUEST_FORMAT_PNG)
