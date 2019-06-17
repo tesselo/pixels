@@ -475,7 +475,7 @@ def composite(projectid, z, x, y):
     """
     Show tiles from TMS creation.
     """
-    return_empty = z != 14
+    return_empty = False
     # Look for a json string in data argument.
     formula = request.args.get('formula', None)
     if formula and not return_empty:
@@ -537,11 +537,7 @@ def composite(projectid, z, x, y):
         # Open the ref image.
         img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
         # Write zoom message into image.
-        if z == 14:
-            msg = 'No Data'
-        else:
-            msg = 'Zoom is {} | Zoom should be {}'.format(z, 14)
-
+        msg = 'No Data'
         draw = ImageDraw.Draw(img)
         text_width, text_height = draw.textsize(msg)
         draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
