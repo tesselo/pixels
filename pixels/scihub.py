@@ -13,7 +13,7 @@ from pixels.const import (
     SENTINEL_2_BANDS, SENTINEL_2_DTYPE, SENTINEL_2_NODATA, SENTINEL_2_RESOLUTION_LOOKUP, SENTINEL_2_RGB_CLIPPER
 )
 from pixels.exceptions import PixelsFailed
-from pixels.utils import clone_raster, warp_from_s3
+from pixels.utils import choose, clone_raster, warp_from_s3
 
 # Get logger.
 logger = logging.getLogger(__name__)
@@ -197,9 +197,9 @@ def s2_composite_nn(transform, width, height, crs, entries, bands, product_type)
     with raster_file_to_clone.open() as raster_to_clone:
         for i, band in enumerate(bands_present):
             # Merge scene tiles for this band into a composite tile using the selector index.
-            bnds = numpy.array([dat[i] for dat in Xs])
+            bnds = [dat[i] for dat in Xs]
             # Construct final composite band array from selector index.
-            composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
+            composite_data = choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
             # Create band target raster.
             result[band] = clone_raster(raster_to_clone, composite_data)
 
@@ -362,7 +362,7 @@ def s2_composite(transform, width, height, crs, entries, bands):
             # Use SCL layer to select pixel ranks.
             with stack['SCL'].open() as rst:
                 scl = rst.read(1).astype(SENTINEL_2_DTYPE)
-            clouds = numpy.choose(scl, SCENE_CLASS_RANK_FLAT)
+            clouds = choose(scl, SCENE_CLASS_RANK_FLAT)
         else:
             # Prepare zeros cloud array.
             clouds = numpy.zeros(X[0].shape)
@@ -410,9 +410,9 @@ def s2_composite(transform, width, height, crs, entries, bands):
     with raster_file_to_clone.open() as raster_to_clone:
         for i, band in enumerate(bands_present):
             # Merge scene tiles for this band into a composite tile using the selector index.
-            bnds = numpy.array([dat[i] for dat in Xs])
+            bnds = [dat[i] for dat in Xs]
             # Construct final composite band array from selector index.
-            composite_data = numpy.choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
+            composite_data = choose(selector_index, bnds).astype(SENTINEL_2_DTYPE)
             # Create band target raster.
             result[band] = clone_raster(raster_to_clone, composite_data)
 
@@ -434,7 +434,7 @@ def s2_composite_incremental(transform, width, height, crs, entries, bands):
         # Open raster files from this stack.
         data = {band: raster.open().read(1) for band, raster in stack.items()}
         # Generate mask from exlude pixel class lookup.
-        mask = numpy.choose(data['SCL'], SCENE_CLASS_INCLUDE)
+        mask = choose(data['SCL'], SCENE_CLASS_INCLUDE)
         # Update targets with this data using mask.
         for band, raster in data.items():
             if band in targets:

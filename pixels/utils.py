@@ -306,6 +306,17 @@ def algebra(stack, formulas):
     return stack
 
 
+def choose(selector, choices):
+    """
+    A simplified version of the numpy choose function to workaround the 32
+    choices limit.
+    """
+    if isinstance(choices[0], (int, float)):
+        return numpy.array([choices[selector[idx]] for idx in numpy.lib.index_tricks.ndindex(selector.shape)]).reshape(selector.shape)
+    else:
+        return numpy.array([choices[selector[idx]][idx] for idx in numpy.lib.index_tricks.ndindex(selector.shape)]).reshape(selector.shape)
+
+
 def validate_configuration(config):
     """
     Returns a validated configuration.
