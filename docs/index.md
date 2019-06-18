@@ -200,19 +200,16 @@ Name, Resolution
     
 SCL Code Values (note some duplicated/ambiguous):
 
-Code, Description
-    1,   VEGETATION
-    2,   NOT_VEGETATED
-    3,   WATER
-    4,   SNOW
-    5,   DARK_AREA_PIXELS
-    5,   CLOUD_SHADOWS
-    5,   UNCLASSIFIED
-    6,   CLOUD_MEDIUM_PROBABILITY
-    6,   THIN_CIRRUS
-    7,   SATURATED_OR_DEFECTIVE
-    7,   CLOUD_HIGH_PROBABILITY
-    8,   NO_DATA
+Code|Description
+---|:---------:|
+    1|   VEGETATION
+    2|   NOT_VEGETATED
+    3|   WATER
+    4|   SNOW
+    5|   DARK_AREA_PIXELS, or CLOUD_SHADOWS, or UNCLASSIFIED
+    6|   CLOUD_MEDIUM_PROBABILITY, or THIN_CIRRUS
+    7|   SATURATED_OR_DEFECTIVE, or CLOUD_HIGH_PROBABILITY
+    8|   NO_DATA
 
 
 #### Sentinel-1 Data
