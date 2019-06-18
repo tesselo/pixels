@@ -166,7 +166,54 @@ Which returns something like:
      'url': 'https://pixels.tesselo.com/timeseries/fad167b4-59ce-484c-9adc-ad2ccb9cbb48/data.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535',
 }
 ```
-### Platforms and Products Available
+### Platform and Products Detail
+
+#### Sentinel-2 Data
+
+##### Products
+Two major products are currently available, representing Top and Bottom-of-atmosphere reflectances as 16 bit integers ranging from 1-5000.  The value 0 represents "no data"
+
+Product Code, Type, Description
+S2MSI1C, Level-1C, Top-of-atmosphere reflectances in cartographic geometry
+S2MSI2A, Level-2A, Bottom-of-atmosphere reflectance in cartographic geometry
+
+##### Bands    
+All 13 Sentinel-2 bands are available, as well as an ESA classification accessible as 'SCL'
+Bands are named using upper case B, followed by a zero-padded number, except for B8A.
+Band resolutions in meters are as follows:
+
+Name, Resolution
+    'B01': '60',
+    'B02': '10',
+    'B03': '10',
+    'B04': '10',
+    'B05': '20',
+    'B06': '20',
+    'B07': '20',
+    'B08': '10',
+    'B8A': '20',
+    'B09': '60',
+    'B10': '60',
+    'B11': '20',
+    'B12': '20',
+    'SCL': '20',
+    
+SCL Code Values (note some duplicated/ambiguous):
+
+Code, Description
+    1,   VEGETATION
+    2,   NOT_VEGETATED
+    3,   WATER
+    4,   SNOW
+    5,   DARK_AREA_PIXELS
+    5,   CLOUD_SHADOWS
+    5,   UNCLASSIFIED
+    6,   CLOUD_MEDIUM_PROBABILITY
+    6,   THIN_CIRRUS
+    7,   SATURATED_OR_DEFECTIVE
+    7,   CLOUD_HIGH_PROBABILITY
+    8,   NO_DATA
+
 
 #### Sentinel-1 Data
 Full ESA documentation is available here:
