@@ -166,3 +166,17 @@ Which returns something like:
      'url': 'https://pixels.tesselo.com/timeseries/fad167b4-59ce-484c-9adc-ad2ccb9cbb48/data.zip?key=829c0f290b9f0f0d49fd2501e5792f8413305535',
 }
 ```
+### Platforms and Products Available
+
+#### Sentinel-1 Data
+Full ESA documentation is available here:
+https://sentinel.esa.int/web/sentinel/missions/sentinel-1/data-products
+
+Within Tesselo Pixel, the platform type is "Sentinel-1" and the product type either SLR or GRD.  Several data collection modes are also available. IW is SENTINEL-1's primary operational mode over land
+
+##### SLC
+<p>Level-1 Single Look Complex (SLC) products consist of focused SAR data geo-referenced using orbit and attitude data from the satellite and provided in zero-Doppler slant-range geometry. The products include a single look in each dimension using the full transmit signal bandwidth and consist of complex samples preserving the phase information.<p>
+    
+##### GRD
+Level-1 Ground Range Detected (GRD) products consist of focused SAR data that has been detected, multi-looked and projected to ground range using an Earth ellipsoid model. Phase information is lost. The resulting product has approximately square spatial resolution pixels and square pixel spacing with reduced speckle at the cost of worse spatial resolution.
+
