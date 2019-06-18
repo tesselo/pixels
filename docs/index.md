@@ -173,43 +173,45 @@ Which returns something like:
 ##### Products
 Two major products are currently available, representing Top and Bottom-of-atmosphere reflectances as 16 bit integers ranging from 1-5000.  The value 0 represents "no data"
 
-Product Code, Type, Description
-S2MSI1C, Level-1C, Top-of-atmosphere reflectances in cartographic geometry
-S2MSI2A, Level-2A, Bottom-of-atmosphere reflectance in cartographic geometry
+|Product Code|Type|Description|
+---|:---------:|---|:---------:|
+|S2MSI1C|Level-1C|Top-of-atmosphere reflectances in cartographic geometry|
+|S2MSI2A|Level-2A|Bottom-of-atmosphere reflectance in cartographic geometry|
 
 ##### Bands    
 All 13 Sentinel-2 bands are available, as well as an ESA classification accessible as 'SCL'
 Bands are named using upper case B, followed by a zero-padded number, except for B8A.
 Band resolutions in meters are as follows:
 
-Name, Resolution
-    'B01': '60',
-    'B02': '10',
-    'B03': '10',
-    'B04': '10',
-    'B05': '20',
-    'B06': '20',
-    'B07': '20',
-    'B08': '10',
-    'B8A': '20',
-    'B09': '60',
-    'B10': '60',
-    'B11': '20',
-    'B12': '20',
-    'SCL': '20',
+Name|Resolution
+---|:---------:|
+|B01| 60|
+|B02| 10|
+|B03| 10|
+|B04| 10|
+|B05| 20|
+|B06| 20|
+|B07| 20|
+|B08| 10|
+|B8A| 20|
+|B09| 60|
+|B10| 60|
+|B11| 20|
+|B12| 20|
+|SCL| 20|
     
 SCL Code Values (note some duplicated/ambiguous):
 
 Code|Description
 ---|:---------:|
-    1|   VEGETATION
-    2|   NOT_VEGETATED
-    3|   WATER
-    4|   SNOW
-    5|   DARK_AREA_PIXELS, or CLOUD_SHADOWS, or UNCLASSIFIED
-    6|   CLOUD_MEDIUM_PROBABILITY, or THIN_CIRRUS
-    7|   SATURATED_OR_DEFECTIVE, or CLOUD_HIGH_PROBABILITY
-    8|   NO_DATA
+|    1|   VEGETATION|
+|    2|   NOT_VEGETATED|
+|    3|   WATER|
+|    4|   SNOW|
+|    5|   DARK_AREA_PIXELS, or CLOUD_SHADOWS, or UNCLASSIFIED|
+|    6|   CLOUD_MEDIUM_PROBABILITY, or THIN_CIRRUS|
+|    7|   SATURATED_OR_DEFECTIVE, or CLOUD_HIGH_PROBABILITY|
+|    8|   NO_DATA|
 
 
 #### Sentinel-1 Data
