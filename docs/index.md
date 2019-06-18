@@ -174,7 +174,7 @@ Which returns something like:
 Two major products are currently available, representing Top and Bottom-of-atmosphere reflectances as 16 bit integers ranging from 1-5000.  The value 0 represents "no data"
 
 |Product Code|Type|Description|
----|:---------:|---|:---------:|
+--- | --- | --- | ---- |
 |S2MSI1C|Level-1C|Top-of-atmosphere reflectances in cartographic geometry|
 |S2MSI2A|Level-2A|Bottom-of-atmosphere reflectance in cartographic geometry|
 
