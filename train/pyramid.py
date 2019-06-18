@@ -10,18 +10,20 @@ from shapely.geometry import Polygon, shape
 
 from pixels import core, utils
 
-# Get logger.
-logger = logging.getLogger(__name__)
+# General log setup.
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
+    level=logging.WARNING,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+# Get logger and set info level for this one.
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'clftests')
+project_id = os.environ.get('PROJECT_ID')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 100))
+tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 50))
 
 # Get batch index from env.
 array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
