@@ -1,4 +1,5 @@
 import datetime
+from urllib.parse import quote
 
 WMTS_BASE_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
 <Capabilities xmlns="http://www.opengis.net/wmts/1.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml" xsi:schemaLocation="http://www.opengis.net/wmts/1.0 http://schemas.opengis.net/wmts/1.0/wmtsGetCapabilities_response.xsd" version="1.0.0">
@@ -269,16 +270,20 @@ def gen_composite(key, host, projectid):
     WMTS Endpoint for one project.
     """
     xml = ''
-    title = 'Composite {}'.format(projectid)
     url = COMPOSITE_URL_TEMPLATE.format(
         host=host,
         key=key,
         projectid=projectid,
     )
     xml += TILE_LAYER_TEMPLATE.format(
-        title=title,
-        identifier=projectid,
+        title='Composite RGB {}'.format(projectid),
+        identifier=projectid + '_rgb',
         url=url,
+    )
+    xml += TILE_LAYER_TEMPLATE.format(
+        title='Composite NDVI {}'.format(projectid),
+        identifier=projectid + '_ndvi',
+        url=url + '&amp;formula={}&amp;to=006837&amp;from=a50026&amp;over=ffffbf&amp;min=-1&amp;max=1'.format(quote('(B08-B04)/(B08+B04)')),
     )
 
     return WMTS_BASE_TEMPLATE.format(
