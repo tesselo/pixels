@@ -51,19 +51,19 @@ def handler(config):
 
     # Get pixels.
     if config['mode'] == const.MODE_LATEST_PIXEL:
-        logger.info('Getting latest pixels stack.')
+        logger.info('Getting latest pixels stack with {} entries.'.format(len(query_result)))
         stack = scihub.latest_pixel(transform, width, height, crs, query_result, bands=config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE:
-        logger.info('Computing composite from pixel stacks.')
+        logger.info('Computing composite from pixel stacks with {} entries.'.format(len(query_result)))
         stack = scihub.s2_composite(transform, width, height, crs, query_result, config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL:
-        logger.info('Computing incremental composite from pixel stacks.')
+        logger.info('Computing incremental composite from pixel stacks with {} entries.'.format(len(query_result)))
         stack = scihub.s2_composite_incremental(transform, width, height, crs, query_result, config['bands'])
     elif config['mode'] == const.MODE_COMPOSITE_NN:
-        logger.info('Computing Neural Network based composite from pixel stacks.')
+        logger.info('Computing Neural Network based composite from pixel stacks with {} entries.'.format(len(query_result)))
         stack = scihub.s2_composite_nn(transform, width, height, crs, query_result, config['bands'], config['product_type'])
     elif config['mode'] == const.MODE_COMPOSITE_INCREMENTAL_NN:
-        logger.info('Computing Neural Network based incremental composite from pixel stacks.')
+        logger.info('Computing Neural Network based incremental composite from pixel stacks with {} entries.'.format(len(query_result)))
         stack = scihub.s2_composite_incremental_nn(transform, width, height, crs, query_result, config['bands'], config['product_type'])
 
     # Clip to geometry if requested.
