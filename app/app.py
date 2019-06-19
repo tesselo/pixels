@@ -476,6 +476,7 @@ def composite(projectid, z, x, y):
     Show tiles from TMS creation.
     """
     return_empty = False
+    sentinel_1 = False
     # Look for a json string in data argument.
     formula = request.args.get('formula', None)
     if formula and not return_empty:
@@ -520,8 +521,33 @@ def composite(projectid, z, x, y):
                 green = rst.read(1)
             with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B02.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
                 blue = rst.read(1)
+            mask = numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
         except rasterio.errors.RasterioIOError:
-            return_empty = True
+            try:
+                with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VV.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                    red = rst.read(1)
+                with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VH.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                    green = rst.read(1)
+            except rasterio.errors.RasterioIOError:
+                try:
+                    with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HH.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                        red = rst.read(1)
+                    with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HV.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+                        green = rst.read(1)
+                except:
+                    return_empty = True
+            if not return_empty:
+                mask = numpy.all((red != 0, green != 0), axis=0).T * 255
+
+                # Transform the data to provide an interpretable visual result.
+                red = numpy.log(red)
+                green = numpy.log(green)
+
+                red = (red / 7) * const.SENTINEL_2_RGB_CLIPPER
+                green = (green / 7) * const.SENTINEL_2_RGB_CLIPPER
+                blue = (red / green) * const.SENTINEL_2_RGB_CLIPPER / 2
+
+                sentinel_1 = True
 
         if not return_empty:
             pixpix = numpy.array(
@@ -529,7 +555,7 @@ def composite(projectid, z, x, y):
                     numpy.clip(red, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
                     numpy.clip(green, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
                     numpy.clip(blue, 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
-                    numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255,
+                    mask,
                 ],
                 dtype='uint8',
             )
@@ -540,7 +566,10 @@ def composite(projectid, z, x, y):
         # Open the ref image.
         img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
         # Write zoom message into image.
-        msg = 'No Data'
+        if z > 14:
+            msg = 'Zoom is {} | Max zoom is 14'.format(z)
+        else:
+            msg = 'No Data'
         draw = ImageDraw.Draw(img)
         text_width, text_height = draw.textsize(msg)
         draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
@@ -550,7 +579,7 @@ def composite(projectid, z, x, y):
         # Create image object.
         img = Image.fromarray(pixpix.T)
         # Enhance color scheme for RGB mode.
-        if not formula:
+        if not formula and not sentinel_1:
             img = ImageEnhance.Contrast(img).enhance(1.2)
             img = ImageEnhance.Brightness(img).enhance(1.8)
             img = ImageEnhance.Color(img).enhance(1.4)
