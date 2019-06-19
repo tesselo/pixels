@@ -316,14 +316,12 @@ def s1_color(stack, path=None):
     orig_dtype = B0.dtype
 
     # Transform the data to provide an interpretable visual result.
-    B0 *= 10
-    B1 *= 10
     B0 = numpy.log(B0)
     B1 = numpy.log(B1)
 
-    B0 = (B0 / 20) * SENTINEL_2_RGB_CLIPPER
-    B1 = (B1 / 20) * SENTINEL_2_RGB_CLIPPER
-    B2 = (B0 / B1) * 40
+    B0 = (B0 / 7) * SENTINEL_2_RGB_CLIPPER
+    B1 = (B1 / 7) * SENTINEL_2_RGB_CLIPPER
+    B2 = (B0 / B1) * SENTINEL_2_RGB_CLIPPER / 2
 
     data = numpy.array([B0, B1, B2]).astype(orig_dtype)
 

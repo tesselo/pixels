@@ -93,11 +93,13 @@ def handler(config):
             numpy.clip(stack['RGB'].open().read(3), 0, const.SENTINEL_2_RGB_CLIPPER).T * 255 / const.SENTINEL_2_RGB_CLIPPER,
         ]).astype('uint8')
 
-        # Create image object and enhance color scheme.
+        # Create image object
         img = Image.fromarray(pixpix.T)
-        img = ImageEnhance.Contrast(img).enhance(1.2)
-        img = ImageEnhance.Brightness(img).enhance(1.8)
-        img = ImageEnhance.Color(img).enhance(1.4)
+        # Enhance color scheme for Sentinel-2 true color rendering.
+        if config.get('platform', None) == const.PLATFORM_SENTINEL_2:
+            img = ImageEnhance.Contrast(img).enhance(1.2)
+            img = ImageEnhance.Brightness(img).enhance(1.8)
+            img = ImageEnhance.Color(img).enhance(1.4)
 
         # Save image to io buffer.
         img.save(output, format=const.REQUEST_FORMAT_PNG)
