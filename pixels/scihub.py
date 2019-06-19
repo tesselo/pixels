@@ -393,17 +393,27 @@ def s2_composite(transform, width, height, crs, entries, bands):
 
         cloud_probs.append(clouds)
 
-        Xs.append(X)
+        Xs.append(numpy.array(X))
 
         if raster_file_to_clone is None:
             raster_file_to_clone = stack['B04']
             bands_present = list(stack.keys())
 
-    # Convert to numpy array.
-    cloud_probs = numpy.array(cloud_probs)
+    # If enough scenes are available, use the medioid over non-cloudy marked
+    # pixels as selector.
+    if len(Xs) >= 3:
+        logger.info('Using medioid based calculation for composite.')
+        for index, X in enumerate(Xs):
+            # Compute sum of pairwise euclidian distances.
+            pow = numpy.power([X.astype('float') - Xi.astype('float') for Xi in Xs], 2)
+            dist = numpy.sum(pow, axis=(0, 1)) / len(Xs)
+            # Add high distance for cloudy or shadow pixels.
+            dist[cloud_probs[index] > 5] = 1e100 + cloud_probs[index][cloud_probs[index] > 5]
+            # Override the cloud probability array with medioid based values.
+            cloud_probs[index] = dist
 
     # Compute an array of scene indices with the lowest cloud probability.
-    selector_index = numpy.argmin(cloud_probs, axis=0)
+    selector_index = numpy.argmin(numpy.array(cloud_probs), axis=0)
 
     # Loop over all bands.
     result = {}
