@@ -16,7 +16,7 @@ WMTS_BASE_TEMPLATE = '''<?xml version="1.0" encoding="UTF-8"?>
         {layers}
         {mat}
         </Contents>
-        <ServiceMetadataURL xlink:href="https://pixels.tesselo.com/wmts"/>
+        <ServiceMetadataURL xlink:href="{metadata_url}"/>
 </Capabilities>
 '''
 
@@ -260,6 +260,7 @@ def gen(key, host):
             )
 
     return WMTS_BASE_TEMPLATE.format(
+        metadata_url='{}wmts'.format(host),
         layers=xml,
         mat=TILE_MATRIX_SET_TEMPLATE,
     )
@@ -287,6 +288,7 @@ def gen_composite(key, host, projectid):
     )
 
     return WMTS_BASE_TEMPLATE.format(
+        metadata_url='{}composite/{}/wmts'.format(host, projectid),
         layers=xml,
         mat=TILE_MATRIX_SET_TEMPLATE,
     )
