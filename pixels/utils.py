@@ -98,7 +98,7 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs):
         proj_args = {
             'dst_transform': transform,
             'dst_crs': crs,
-            'resampling': Resampling.cubic,
+            'resampling': Resampling.nearest if 'SCL.jp2' in prefix else Resampling.cubic,
         }
 
         if src.crs:
