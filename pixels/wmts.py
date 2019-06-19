@@ -277,12 +277,12 @@ def gen_composite(key, host, projectid):
     )
     xml += TILE_LAYER_TEMPLATE.format(
         title='Composite RGB {}'.format(projectid),
-        identifier=projectid + '_rgb',
+        identifier=projectid + 'rgb',
         url=url,
     )
     xml += TILE_LAYER_TEMPLATE.format(
         title='Composite NDVI {}'.format(projectid),
-        identifier=projectid + '_ndvi',
+        identifier=projectid + 'ndvi',
         url=url + '&amp;formula={}&amp;to=006837&amp;from=a50026&amp;over=ffffbf&amp;min=-1&amp;max=1'.format(quote('(B08-B04)/(B08+B04)')),
     )
 
