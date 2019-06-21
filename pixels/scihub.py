@@ -402,9 +402,12 @@ def s2_composite(transform, width, height, crs, entries, bands):
     if len(Xs) >= 3:
         logger.info('Using medioid based calculation for composite.')
         for index, X in enumerate(Xs):
-            # Compute sum of pairwise euclidian distances.
-            pow = numpy.power([X.astype('float') - Xi.astype('float') for Xi in Xs], 2)
-            dist = numpy.sum(pow, axis=(0, 1)) / len(Xs)
+            # Compute sum of pairwise euclidian distances, but don't let cloudy
+            # pixels contribute to the distances. Like this the medioid is not
+            # influenced by cloudy pixels.
+            pow = numpy.power([(X.astype('float') - Xj.astype('float')) * (cloud_probs[j] <= 5) for j, Xj in enumerate(Xs)], 2)
+            # Sum of
+            dist = numpy.sqrt(numpy.sum(pow, axis=(0, 1)) / len(Xs))
             # Add high distance for cloudy or shadow pixels.
             dist[cloud_probs[index] > 5] = 1e100 + cloud_probs[index][cloud_probs[index] > 5]
             # Override the cloud probability array with medioid based values.
