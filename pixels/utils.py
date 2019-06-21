@@ -185,13 +185,13 @@ def tile_index(lng, lat, zoom):
         return xtile, ytile, zoom
 
 
-def clip_to_geom(stack, geom):
+def clip_to_geom(stack, geom, all_touched=True):
     """
     Clip all rasters in this stack to the geometry.
     """
     # Compute mask from geom.
     with next(iter(stack.values())).open() as rst:
-        mask = rasterize([geom['geometry']], out_shape=rst.shape, transform=rst.transform, all_touched=True).astype('bool')
+        mask = rasterize([geom['geometry']], out_shape=rst.shape, transform=rst.transform, all_touched=all_touched).astype('bool')
     # If all pixels were included, return early.
     if numpy.all(mask):
         return stack
