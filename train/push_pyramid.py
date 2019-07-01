@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'socotra-2016')
+project_id = os.environ.get('PROJECT_ID', 'florence-s2')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 50))
 

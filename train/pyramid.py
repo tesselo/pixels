@@ -5,8 +5,6 @@ import logging
 import os
 
 import boto3
-from rasterio.features import bounds
-from shapely.geometry import Polygon, shape
 
 from pixels import core, utils
 
@@ -22,6 +20,7 @@ logger.setLevel(logging.INFO)
 
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID')
+project_id = 'clftests'##########
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 50))
 
@@ -42,34 +41,13 @@ counter = 0
 zoom = 14
 
 for geom in config['geom']['features']:
-    # Compute tile range.
-    geombounds = bounds(utils.reproject_feature(geom, 'EPSG:4326'))
     zoom = 14
-    minimumTile = utils.tile_index(geombounds[0], geombounds[3], zoom)
-    maximumTile = utils.tile_index(geombounds[2], geombounds[1], zoom)
-    # Instanciate
-    geom_shape = shape(utils.reproject_feature(geom, 'EPSG:3857')['geometry'])
-    logger.info('{} - {}'.format(minimumTile, maximumTile))
-    for x in range(minimumTile[0], maximumTile[0] + 1):
-        for y in range(minimumTile[1], maximumTile[1] + 1):
-            # Compute tile bounds.
-            tbounds = utils.tile_bounds(zoom, x, y)
-            # Instanciate tile polygon.
-            tile = Polygon([
-                [tbounds[0], tbounds[1]],
-                [tbounds[2], tbounds[1]],
-                [tbounds[2], tbounds[3]],
-                [tbounds[0], tbounds[3]],
-                [tbounds[0], tbounds[1]],
-            ])
-            # Compute intersection geometry.
-            intersection = tile.intersection(geom_shape)
-            if intersection:
-                tiles.append({'z': zoom, 'x': x, 'y': y, 'geom': intersection})
-            # Track interection counts.
-            if counter % 500 == 0:
-                logger.info('Counted {} {}'.format(counter, tbounds))
-            counter += 1
+    for x, y, intersection in utils.tile_range(geom, zoom, intersection=True):
+        tiles.append({'z': zoom, 'x': x, 'y': y, 'geom': intersection})
+        # Track interection counts.
+        if counter % 500 == 0:
+            logger.info('Counted {}'.format(counter))
+        counter += 1
 
 logger.info('Found {} tiles'.format(len(tiles)))
 
