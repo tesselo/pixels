@@ -1,105 +1,104 @@
-import io
+import logging
 
 import numpy
 import rasterio
 from rasterio import Affine
 from rasterio.io import MemoryFile
-from rasterio.warp import Resampling, reproject
 
-from pixels import utils
+from pixels import algebra, const, utils
 
-scale = utils.tile_scale(14)
-tbounds = utils.tile_bounds(14, 4562, 6532)
+logger = logging.getLogger(__name__)
 
-trf = {
-    'width': 256,
-    'height': 256,
-    'scale_x': scale,
-    'skew_x': 0.0,
-    'origin_x': tbounds[0],
-    'skew_y': 0.0,
-    'scale_y': -scale,
-    'origin_y': tbounds[3],
+# project_id='florence-s2'
+project_id = 'clftests'
+formula = '(B08-B04)/(B08+B04)'
+zoom = 14
+scale = utils.tile_scale(zoom)
+tbounds = utils.tile_bounds(zoom, 4562, 6532)
+geom = {
+    'type': 'Feature',
+    'crs': 'EPSG:3857',
+    'geometry': {
+        'type': 'Polygon',
+        'coordinates': [[
+            [tbounds[0], tbounds[1]],
+            [tbounds[2], tbounds[1]],
+            [tbounds[2], tbounds[3]],
+            [tbounds[0], tbounds[3]],
+            [tbounds[0], tbounds[1]],
+        ]]
+    },
 }
-transform = Affine(trf['scale_x'], trf['skew_x'], trf['origin_x'], trf['skew_y'], trf['scale_y'], trf['origin_y'])
-width = trf['width']
-height = trf['height']
-crs = 'epsg:3857'
 
-# Setup XML file for opening composite as TMS layer.
-fl = io.BytesIO(b"""<GDAL_WMS>
-<Service name="TMS">
-    <ImageFormat>image/tiff</ImageFormat>
-    <ServerUrl>{host}/composite/{project_id}/${{z}}/${{x}}/${{y}}.tif?key=829c0f290b9f0f0d49fd2501e5792f8413305535&amp;formula={formula}</ServerUrl>
-    <SRS>EPSG:3857</SRS>
-</Service>
-<DataWindow>
-    <UpperLeftX>-20037508.34</UpperLeftX>
-    <UpperLeftY>20037508.34</UpperLeftY>
-    <LowerRightX>20037508.34</LowerRightX>
-    <LowerRightY>-20037508.34</LowerRightY>
-    <TileLevel>14</TileLevel>
-    <TileCountX>1</TileCountX>
-    <TileCountY>1</TileCountY>
-    <YOrigin>top</YOrigin>
-</DataWindow>
-<DataType>Float64</DataType>
-<Projection>EPSG:3857</Projection>
-<BlockSizeX>256</BlockSizeX>
-<BlockSizeY>256</BlockSizeY>
-<BandsCount>1</BandsCount>
-</GDAL_WMS>
-""".format(
-    host='http://127.0.0.1:5000',
-    project_id='florence-s2',
-    formula='(B08-B04)/(B08%2BB04)'),
-)
+result = []
+for x, y, intersection in utils.tile_range(geom, zoom, intersection=True):
+    print(const.BUCKET, project_id, zoom, x, y, formula)
+    # Get pixels for all bands present in formula.
+    data = {}
+    for band in const.SENTINEL_2_BANDS:
+        if band in formula:
+            try:
+                with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif'.format(const.BUCKET, project_id, zoom, x, y, band)) as rst:
+                    data[band] = rst.read(1).T.astype('float')
+            except rasterio.errors.RasterioIOError:
+                data = None
+                break
 
-# Open WMS service xml.
-with rasterio.open(fl, driver='WMS') as src:
-    print(src.meta)
+    if not data:
+        logger.warning('No data found for tile {} {} {}'.format(zoom, x, y))
+        continue
 
-    creation_args = src.meta.copy()
-    creation_args.update({
+    parser = algebra.FormulaParser()
+    index = parser.evaluate(data, formula)
+
+    width = 256
+    height = 256
+    scale_x = scale
+    skew_x = 0.0
+    origin_x = tbounds[0]
+    skew_y = 0.0
+    scale_y = -scale
+    origin_y = tbounds[3]
+
+    transform = Affine(scale_x, skew_x, origin_x, skew_y, scale_y, origin_y)
+
+    creation_args = {
         'driver': 'GTiff',
-        'crs': crs,
+        'crs': 'epsg:3857',
         'transform': transform,
         'width': width,
         'height': height,
         'dtype': 'float64',
-    })
-    # Prepare projection arguments.
-    proj_args = {
-        'dst_transform': transform,
-        'dst_crs': crs,
-        'resampling': Resampling.cubic,
-        'src_crs': src.crs,
+        'count': 1,
     }
+
     # Get raster algebra from api destination.
     memfile = MemoryFile()
     with memfile.open(**creation_args) as dst:
-        for i in range(1, src.count + 1):
-            proj_args.update({
-                'source': rasterio.band(src, i),
-                'destination': rasterio.band(dst, i),
-            })
-            reproject(**proj_args)
+        dst.write(index.reshape(1, height, width))
     memfile.seek(0)
 
     # Clip pixels to geom.
-    clipped = utils.clip_to_geom({'index': memfile}, geom)
+    clipped = utils.clip_to_geom({'index': memfile}, geom)['index']
 
     # Open pixels as array.
     with clipped.open() as clrst:
-        data = clrst.read().ravel()
+        result.append(clrst.read().ravel())
 
-    # Compute index stats from pixels.
-    stats = {
-        'min': numpy.min(data),
-        'max': numpy.max(data),
-        'avg': numpy.average(data),
-        'std': numpy.std(data),
-        't0': len(data),
-        't1': numpy.sum(data),
-        't2': numpy.sum(numpy.square(data)),
-    }
+# Stack data.
+result = numpy.hstack(result)
+
+# Remove nan values.
+result = result[numpy.logical_not(numpy.isnan(result))]
+
+# Compute index stats from pixels.
+stats = {
+    'min': numpy.min(result),
+    'max': numpy.max(result),
+    'avg': numpy.mean(result),
+    'std': numpy.nanstd(result),
+    't0': len(result),
+    't1': numpy.sum(result),
+    't2': numpy.sum(numpy.square(result)),
+}
+print(stats)
