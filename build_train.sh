@@ -8,12 +8,12 @@ mkdir build
 cp -r pixels build
 
 # Copy batch scripts.
-cp train/collect.py build
-cp train/pack.py build
-cp train/train.py build
-cp train/pyramid/pyramid.py build
-cp train/pyramid/pyramid_up.py build
-cp train/pyramid/tile_range.py build
+cp batch/collect.py build
+cp batch/pack.py build
+cp batch/train.py build
+cp batch/pyramid/pyramid.py build
+cp batch/pyramid/pyramid_up.py build
+cp batch/pyramid/tile_range.py build
 
 # Remove pyc files.
 find build -name "*.pyc" -exec rm -f {} \;
