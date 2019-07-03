@@ -174,7 +174,7 @@ class FormulaParser(object):
             # Convert all data to numpy arrays
             if not isinstance(var, numpy.ndarray):
                 with var.open() as rst:
-                    self.variable_map[key] = rst.read().ravel()
+                    self.variable_map[key] = rst.read().ravel().astype(const.ALGEBRA_PIXEL_TYPE_NUMPY)
 
     def evaluate(self, data={}, formula=None):
         """
