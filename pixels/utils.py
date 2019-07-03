@@ -335,6 +335,9 @@ def validate_configuration(config):
 
     logger.info('Geometry area bbox is {:0.1f} km2.'.format(area / 1e6))
 
+    # Ensure config is in upper case letters.
+    config['geom']['crs'] = config['geom']['crs'].upper()
+
     # Override the original geometry if it was in 4326.
     if config['geom']['crs'] == 'EPSG:4326':
         config['geom'] = trsf_geom
