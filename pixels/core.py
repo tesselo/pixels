@@ -161,7 +161,6 @@ def handler(config):
                 ','.join(attrs.keys()),
                 ','.join(stack.keys()),
             )
-            print('header', header)
         else:
             header = 'x,y,{}'.format(','.join(stack.keys()))
 
