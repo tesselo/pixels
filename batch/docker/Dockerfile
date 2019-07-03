@@ -14,7 +14,10 @@ RUN apt-get -y update\
   Pillow==6.0.0\
   requests==2.21\
   pyproj==1.9.6\
-  shapely==1.6.4.post2
+  shapely==1.6.4.post2\
+  geopandas==0.5.0\
+  Fiona==1.8.6\
+  geodaisy==0.1.1
 
 ADD fetch_and_run.sh /usr/local/bin/fetch_and_run.sh
 RUN chmod +x /usr/local/bin/fetch_and_run.sh
