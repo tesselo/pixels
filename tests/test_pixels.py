@@ -39,7 +39,7 @@ class TestPixels(unittest.TestCase):
             'nodata': 0,
             'count': 1,
             'crs': 'epsg:4326',
-            'transform': Affine(1, 0, 0, 0, 1, 0),
+            'transform': Affine(1, 0, 0, 0, -1, 0),
             'width': width,
             'height': height,
         }
