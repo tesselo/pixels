@@ -22,6 +22,7 @@
     "B12"
   ],
   "clip_to_geom": true,
+  "clip_all_touched": false,
   "interval": "weeks",
   "interval_step": 1,
   "geom": {
