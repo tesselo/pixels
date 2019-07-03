@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID')
-project_id = 'clftests'##########
+
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 50))
 

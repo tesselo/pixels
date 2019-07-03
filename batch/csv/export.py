@@ -15,9 +15,10 @@ from pixels import core, utils
 # General log setup.
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
+    level=logging.WARNING,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
 # Get logger and set info level for this one.
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,6 +28,8 @@ project_id = os.environ.get('PROJECT_ID', 'pge_placer')
 filename = os.environ.get('GEO_FILE_NAME', 'pge_buff200_placer.gpkg')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 1000))
+start = os.environ.get('START_DATE', '2019-05-01')
+end = os.environ.get('END_DATE', '2019-05-31')
 
 # Get batch index from env.
 array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
@@ -48,14 +51,14 @@ result = []
 
 # Loop through rows and call pixels.
 for index, row in pge_buf200_placer_df.iloc[(array_index * tile_group_size):((array_index + 1) * tile_group_size)].iterrows():
-    print('Working on feature ID', index)
+    logger.info('Working on feature ID {}'.format(index))
     config = {
-        'start': '2019-05-01',
-        'end': '2019-05-31',
+        'start': start,
+        'end': end,
         'platform': 'Sentinel-2',
         'product_type': 'S2MSI2A',
         'max_cloud_cover_percentage': 90,
-        'mode': 'latest_pixel',
+        'mode': 'composite',
         'color': False,
         'format': 'CSV',
         'delay': False,
@@ -106,8 +109,10 @@ result = '\n'.join([header] + result)
 with io.BytesIO(bytes(result, 'utf-8')) as output:
     s3.put_object(
         Bucket=bucket,
-        Key='{project_id}/result_{idx}.csv'.format(
+        Key='{project_id}/result_{start}_{end}_{idx}.csv'.format(
             project_id=project_id,
+            start=start,
+            end=end,
             idx=array_index,
         ),
         Body=output,
