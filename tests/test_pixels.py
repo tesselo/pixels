@@ -32,7 +32,7 @@ class TestPixels(unittest.TestCase):
             core.handler(config)
 
     def test_algebra(self):
-        height = width = 256
+        height = width = 512
         creation_args = {
             'driver': 'GTiff',
             'dtype': 'uint16',
@@ -45,12 +45,12 @@ class TestPixels(unittest.TestCase):
         }
         # Open memory destination file.
         memfile_b8 = MemoryFile()
-        fake_data_b8 = (numpy.random.random((1, height, width)) * 1e4).astype('uint16')
+        fake_data_b8 = (numpy.random.random((1, height, width)) * 1e3).astype('uint16')
         with memfile_b8.open(**creation_args) as rst:
             rst.write(fake_data_b8)
 
         memfile_b4 = MemoryFile()
-        fake_data_b4 = (numpy.random.random((1, height, width)) * 1e4).astype('uint16')
+        fake_data_b4 = (numpy.random.random((1, height, width)) * 1e3).astype('uint16')
         with memfile_b4.open(**creation_args) as rst:
             rst.write(fake_data_b4)
         # Evaluate formula.
@@ -61,6 +61,9 @@ class TestPixels(unittest.TestCase):
         expected = ((fake_data_b8.astype('float64') - fake_data_b4.astype('float64')) / (fake_data_b8.astype('float64') + fake_data_b4.astype('float64'))).ravel()
         # Arrays are equal.
         numpy.testing.assert_array_equal(result, expected)
+        # Results are within expected range.
+        self.assertFalse(numpy.any(result > 1.0))
+        self.assertFalse(numpy.any(result < -1.0))
 
 
 if __name__ == '__main__':
