@@ -12,7 +12,6 @@ from rasterio import Affine
 from rasterio.features import bounds, rasterize
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
-from shapely.geometry import Polygon, shape
 
 from pixels import const
 from pixels.algebra import FormulaParser
@@ -184,52 +183,6 @@ def tile_index(lng, lat, zoom):
         raise ValueError("Y can not be computed for latitude {} radians".format(lat))
     else:
         return xtile, ytile, zoom
-
-
-def tile_range(geom, zoom, intersection=False, tolerance=0):
-    """
-    Compute tile range of TMS tiles intersecting with the input geometry at the
-    given zoom level.
-    """
-    # Compute general tile bounds.
-    geombounds = rasterio.features.bounds(reproject_feature(geom, 'EPSG:4326'))
-    minimumTile = tile_index(geombounds[0], geombounds[3], zoom)
-    maximumTile = tile_index(geombounds[2], geombounds[1], zoom)
-    logger.info('Tile range is {} - {}'.format(minimumTile, maximumTile))
-
-    # Convert geometry to shape.
-    geom_shape = shape(reproject_feature(geom, 'EPSG:3857')['geometry'])
-
-    # Loop through all tiles but only yeald the intersecting ones.
-    for x in range(minimumTile[0], maximumTile[0] + 1):
-        for y in range(minimumTile[1], maximumTile[1] + 1):
-
-            # Compute tile bounds.
-            tbounds = tile_bounds(zoom, x, y)
-
-            if tolerance:
-                tbounds[0] += tolerance
-                tbounds[2] += tolerance
-                tbounds[1] -= tolerance
-                tbounds[3] -= tolerance
-
-            # Instanciate tile polygon.
-            tile = Polygon([
-                [tbounds[0], tbounds[1]],
-                [tbounds[2], tbounds[1]],
-                [tbounds[2], tbounds[3]],
-                [tbounds[0], tbounds[3]],
-                [tbounds[0], tbounds[1]],
-            ])
-
-            # Yield tile index if the tile intersects with the geometry. Also
-            # include tile intersection geometry if requested.
-            if intersection:
-                tile_intersection = tile.intersection(geom_shape)
-                if tile_intersection:
-                    yield x, y, tile_intersection
-            elif tile.intersects(geom_shape):
-                yield x, y
 
 
 def clip_to_geom(stack, geom, all_touched=True):

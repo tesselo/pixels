@@ -13,6 +13,7 @@ from rasterio import Affine
 from rasterio.warp import Resampling
 
 from pixels import const, utils
+from tile_range import tile_range
 
 # Get logger.
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ config = json.loads(config['Body'].read())
 tiles = []
 counter = 0
 for geom in config['geom']['features']:
-    for x, y in utils.tile_range(geom, zoom, intersection=False):
+    for x, y in tile_range(geom, zoom, intersection=False):
         tiles.append({'z': zoom, 'x': x, 'y': y})
         # Track interection counts.
         if counter % 500 == 0:

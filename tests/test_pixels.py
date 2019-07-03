@@ -62,5 +62,6 @@ class TestPixels(unittest.TestCase):
         # Arrays are equal.
         numpy.testing.assert_array_equal(result, expected)
 
+
 if __name__ == '__main__':
     unittest.main()

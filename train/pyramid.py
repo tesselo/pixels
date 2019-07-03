@@ -7,6 +7,7 @@ import os
 import boto3
 
 from pixels import core, utils
+from tile_range import tile_range
 
 # General log setup.
 logging.basicConfig(
@@ -42,7 +43,7 @@ zoom = 14
 
 for geom in config['geom']['features']:
     zoom = 14
-    for x, y, intersection in utils.tile_range(geom, zoom, intersection=True):
+    for x, y, intersection in tile_range(geom, zoom, intersection=True):
         tiles.append({'z': zoom, 'x': x, 'y': y, 'geom': intersection})
         # Track interection counts.
         if counter % 500 == 0:

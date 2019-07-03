@@ -6,6 +6,7 @@ from rasterio import Affine
 from rasterio.io import MemoryFile
 
 from pixels import algebra, const, utils
+from tile_range import tile_range
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ geom = {
 }
 
 result = []
-for x, y, intersection in utils.tile_range(geom, zoom, intersection=True, tolerance=10):
+for x, y, intersection in tile_range(geom, zoom, intersection=True, tolerance=10):
     print(const.BUCKET, project_id, zoom, x, y, formula)
     # Get pixels for all bands present in formula.
     data = {}
