@@ -31,7 +31,7 @@ geom = {
 }
 
 result = []
-for x, y, intersection in utils.tile_range(geom, zoom, intersection=True):
+for x, y, intersection in utils.tile_range(geom, zoom, intersection=True, tolerance=10):
     print(const.BUCKET, project_id, zoom, x, y, formula)
     # Get pixels for all bands present in formula.
     data = {}

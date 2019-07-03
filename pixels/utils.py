@@ -186,7 +186,7 @@ def tile_index(lng, lat, zoom):
         return xtile, ytile, zoom
 
 
-def tile_range(geom, zoom, intersection=False):
+def tile_range(geom, zoom, intersection=False, tolerance=0):
     """
     Compute tile range of TMS tiles intersecting with the input geometry at the
     given zoom level.
@@ -203,8 +203,15 @@ def tile_range(geom, zoom, intersection=False):
     # Loop through all tiles but only yeald the intersecting ones.
     for x in range(minimumTile[0], maximumTile[0] + 1):
         for y in range(minimumTile[1], maximumTile[1] + 1):
+
             # Compute tile bounds.
             tbounds = tile_bounds(zoom, x, y)
+
+            if tolerance:
+                tbounds[0] += tolerance
+                tbounds[2] += tolerance
+                tbounds[1] -= tolerance
+                tbounds[3] -= tolerance
 
             # Instanciate tile polygon.
             tile = Polygon([
