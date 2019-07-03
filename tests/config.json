@@ -26,7 +26,9 @@
   "interval_step": 1,
   "geom": {
     "type": "Feature",
-    "properties": {},
+    "properties": {
+      "name": "test"
+    },
     "geometry": {
       "type": "Polygon",
       "coordinates": [

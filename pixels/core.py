@@ -1,6 +1,7 @@
 import json
 import logging
 import zipfile
+from collections import OrderedDict
 from io import BytesIO
 
 import numpy
@@ -148,11 +149,27 @@ def handler(config):
             coords_x = numpy.array([dat[0] for dat in coords[0]])
             coords_y = numpy.array([dat[1] for dat in coords[0]])
 
-        # Get pixel values by band.
-        stack = {key: val.open().read(1).ravel() for key, val in stack.items() if key != 'RGB'}
-        header = 'x,y,{}'.format(','.join(stack.keys()))
-        data = numpy.array([coords_x, coords_y] + list(stack.values())).T
-        numpy.savetxt(output, data, delimiter=',', header=header, comments='')
+        # List geom properties as columns.
+        attrs = OrderedDict({key: numpy.array([val] * len(coords_x)) for key, val in config['geom']['properties'].items() if key != 'original_crs'})
+
+        # Get pixel values by band in an ordered dict.
+        stack = OrderedDict({key: val.open().read(1).ravel() for key, val in stack.items() if key != 'RGB'})
+
+        # Construct csv header.
+        if attrs:
+            header = 'x,y,{},{}'.format(
+                ','.join(attrs.keys()),
+                ','.join(stack.keys()),
+            )
+            print('header', header)
+        else:
+            header = 'x,y,{}'.format(','.join(stack.keys()))
+
+        # Construct csv data frame.
+        data = numpy.rec.fromarrays([coords_x, coords_y] + list(attrs.values()) + list(stack.values())).T
+        fmt = ['%.18e'] * 2 + ['%s'] * len(attrs) + ['%.18e'] * len(stack)
+        # Save to memfile.
+        numpy.savetxt(output, data, delimiter=',', header=header, comments='', fmt=fmt)
 
     # Rewind buffer.
     output.seek(0)
