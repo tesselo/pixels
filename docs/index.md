@@ -60,6 +60,7 @@ In more detail, the configuration contains the following elements:
   - `bands` Which bands to include in the result, if a ZIP file is requested. If RGB is requested, the visual bands will be added automatically, if composite is requested, all bands will be included by default.
   - `delay` A boolean specifying if the result should be computed in asynchronous mode. If `true`, the enpdoint will return a unique link to download the data as soon as its finished. Recommended for larger areas and for ZIP, Numpy or CSV files.
   - `clip_to_geom` A boolean specifying if the output raster should be clipped against the geometry.
+  - `clip_all_touched` A boolean specifying whether to include all pixels touched by the geometry while clipping. This parameter is ignored if `clip_to_geom` is `false`. Defaults to `true`.
   - `formulas` A list of formula dictionaries, each with a `name` and an `expression`. The band names in the formula needs to match available bands, so also add those to the bands list. An example formulas list is the following: `[{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}, {"name": "NDWI", "expression": "(B8 - B11) / (B8 + B11)"}]`.
   - `target_geotransform` A geotransform dictionary to override the target raster configuration. By default the target raster properties will be computed from the input geometry and scale. The dictionary is expected to be of the form `{"width": 1, "height": 1, "origin_x": 0, "scale_x": 1, "skew_x": 0, "origin_y": 0, "skew_y": 0, "scale_y": -1}`. The coordinates and scale need to match the `crs` specified in the geometry.
 
@@ -95,6 +96,8 @@ config = {
     'format': 'ZIP',
     'delay': True,
     'bands': ['B04', 'B03', 'B02', 'B08', 'B05'],
+    'clip_to_geom': True,
+    'clip_all_touched': False,
     'formulas': [{"name": "NDVI", "expression": "(B08 - B04) / (B08 + B04)"}],
 }
 
@@ -178,7 +181,7 @@ Two major products are currently available, representing Top and Bottom-of-atmos
 |S2MSI1C|Level-1C|Top-of-atmosphere reflectances in cartographic geometry|
 |S2MSI2A|Level-2A|Bottom-of-atmosphere reflectance in cartographic geometry|
 
-##### Bands    
+##### Bands
 All 13 Sentinel-2 bands are available, as well as an ESA classification accessible as 'SCL'
 Bands are named using upper case B, followed by a zero-padded number, except for B8A.
 Band resolutions in meters are as follows:
@@ -199,7 +202,7 @@ Name|Resolution
 |B11| 20|
 |B12| 20|
 |SCL| 20|
-    
+
 SCL Code Values (note some duplicated/ambiguous):
 
 Code|Description
@@ -222,7 +225,6 @@ Within Tesselo Pixel, the platform type is "Sentinel-1" and the product type eit
 
 ##### SLC
 <p>Level-1 Single Look Complex (SLC) products consist of focused SAR data geo-referenced using orbit and attitude data from the satellite and provided in zero-Doppler slant-range geometry. The products include a single look in each dimension using the full transmit signal bandwidth and consist of complex samples preserving the phase information.<p>
-    
+
 ##### GRD
 Level-1 Ground Range Detected (GRD) products consist of focused SAR data that has been detected, multi-looked and projected to ground range using an Earth ellipsoid model. Phase information is lost. The resulting product has approximately square spatial resolution pixels and square pixel spacing with reduced speckle at the cost of worse spatial resolution.
-

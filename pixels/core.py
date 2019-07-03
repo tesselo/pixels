@@ -69,7 +69,7 @@ def handler(config):
 
     # Clip to geometry if requested.
     if config['clip_to_geom']:
-        stack = utils.clip_to_geom(stack, config['geom'])
+        stack = utils.clip_to_geom(stack, config['geom'], config.get('clip_all_touched', True))
 
     # Add formulas if requested.
     if 'formulas' in config:
