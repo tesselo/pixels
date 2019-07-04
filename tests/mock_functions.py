@@ -19,7 +19,7 @@ def warp_from_s3(bucket, prefix, transform, width, height, crs):
     memfile = MemoryFile()
     with memfile.open(**creation_args) as rst:
         if 'SCL' in prefix:
-            fake_data = (numpy.random.random((1, height, width)) > 0.01) * 5
+            fake_data = numpy.random.random((1, height, width)) * 12
         else:
             fake_data = numpy.random.random((1, height, width)) * 1e4
         rst.write(fake_data.astype(dtype))

@@ -13,18 +13,19 @@ from shapely.geometry import Polygon, shape
 from pixels import utils
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID', 'pge_placer')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 100))
+tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 10))
 
 # Fetch config.
 s3 = boto3.client('s3')
 config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 config = json.loads(config['Body'].read())
+#config=json.load(open('/home/tam/Desktop/pixelsrnn/pge_placer/config.json'))
 
 # Compute tile index from config.
 current_job = None
@@ -39,7 +40,7 @@ for zoom in range(14, -1, -1):
         maximumTile = mercantile.tile(geombounds[2], geombounds[1], zoom)
         # Instanciate
         geom_shape = shape(utils.reproject_feature(geom, 'EPSG:3857')['geometry'])
-        logger.info('{} - {}'.format(minimumTile, maximumTile))
+        print('{} - {}'.format(minimumTile, maximumTile))
         for x in range(minimumTile.x, maximumTile.x + 1):
             for y in range(minimumTile.y, maximumTile.y + 1):
                 # Compute tile bounds.
@@ -58,13 +59,13 @@ for zoom in range(14, -1, -1):
                     tiles.append({'z': zoom, 'x': x, 'y': y, 'geom': intersection})
                 # Track interection counts.
                 if counter % 500 == 0:
-                    logger.info('Counted {} - {}'.format(counter, tbounds))
+                    print('Counted {} - {}'.format(counter, tbounds))
                 counter += 1
 
     nr_of_tiles = len(tiles)
     batch_array_size = math.ceil(nr_of_tiles / tile_group_size)
 
-    logger.info('Found {} tiles - array size is {} - tile group size is {}'.format(nr_of_tiles, batch_array_size, tile_group_size))
+    print('Found {} tiles - array size is {} - tile group size is {}'.format(nr_of_tiles, batch_array_size, tile_group_size))
 
     # Setup the job dict.
     job = {

@@ -22,10 +22,7 @@ logger.setLevel(logging.INFO)
 project_id = os.environ.get('PROJECT_ID', 'pge_placer')
 filename = os.environ.get('GEO_FILE_NAME', 'pge_buff200_placer.gpkg')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 1000))
-
-# Get batch index from env.
-array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
+tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 20))
 
 # Fetch geoms.
 dir = tempfile.mkdtemp()
@@ -42,7 +39,8 @@ batch_array_size = math.ceil(nr_of_geoms / tile_group_size)
 
 print('Found {} geoms - array size is {} - tile group size is {}'.format(nr_of_geoms, batch_array_size, tile_group_size))
 
-steps = [('2019-03-01', '2019-03-31'), ('2019-04-01', '2019-04-30'), ('2019-05-01', '2019-05-31'), ('2019-06-01', '2019-06-30')]
+#steps = [('2019-03-01', '2019-03-31'), ('2019-04-01', '2019-04-30'), ('2019-05-01', '2019-05-31'), ('2019-06-01', '2019-06-30')]
+steps = [('2019-05-01', '2019-05-31'), ]
 
 # Setup the job dict.
 all_jobs = []

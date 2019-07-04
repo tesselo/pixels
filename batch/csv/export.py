@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 project_id = os.environ.get('PROJECT_ID', 'pge_placer')
 filename = os.environ.get('GEO_FILE_NAME', 'pge_buff200_placer.gpkg')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 1000))
+tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 20))
 start = os.environ.get('START_DATE', '2019-05-01')
 end = os.environ.get('END_DATE', '2019-05-31')
 
@@ -109,7 +109,7 @@ result = '\n'.join([header] + result)
 with io.BytesIO(bytes(result, 'utf-8')) as output:
     s3.put_object(
         Bucket=bucket,
-        Key='{project_id}/result_{start}_{end}_{idx}.csv'.format(
+        Key='{project_id}/exports/result_{start}_{end}_{idx}.csv'.format(
             project_id=project_id,
             start=start,
             end=end,

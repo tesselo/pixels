@@ -14,6 +14,15 @@ from tests.configs import gen_config, gen_configs
 @mock.patch('pixels.core.search.search', mock_functions.search)
 class TestPixels(unittest.TestCase):
 
+    @unittest.skip('Not fixed')
+    def test_memory(self):
+        config = gen_config({'mode': 'latest_pixel'})
+        config = utils.validate_configuration(config)
+        for i in range(1000):
+            if i % 50 == 0:
+                print('here ---------- ', i)
+            core.handler(config)
+
     def test_pixels(self):
         for config in gen_configs():
             config = utils.validate_configuration(config)
