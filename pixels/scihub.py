@@ -340,7 +340,7 @@ def s1_color(stack, path=None):
     return memfile
 
 
-def s2_composite(transform, width, height, crs, entries, bands, medioid=True):
+def s2_composite(transform, width, height, crs, entries, bands, medioid=False):
     """
     Compute a composite for a stack of S2 input data.
     """
