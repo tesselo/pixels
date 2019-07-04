@@ -340,7 +340,7 @@ def s1_color(stack, path=None):
     return memfile
 
 
-def s2_composite(transform, width, height, crs, entries, bands, medioid=False):
+def s2_composite(transform, width, height, crs, entries, bands, medioid=True):
     """
     Compute a composite for a stack of S2 input data.
     """
@@ -401,17 +401,17 @@ def s2_composite(transform, width, height, crs, entries, bands, medioid=False):
     # pixels as selector.
     if medioid and len(Xs) >= 3:
         logger.info('Using medioid based calculation for composite.')
+        MEDIOID_INCLUDE_UNTIL = 5
         for index, X in enumerate(Xs):
             # Compute sum of pairwise euclidian distances, but don't let cloudy
             # pixels contribute to the distances. Like this the medioid is not
             # influenced by cloudy pixels.
-            pow = numpy.power([(X.astype('float') - Xj.astype('float')) * (cloud_probs[j] <= 5) for j, Xj in enumerate(Xs)], 2)
-            # Sum of
-            dist = numpy.sqrt(numpy.sum(pow, axis=(0, 1)) / len(Xs))
-            # Add high distance for cloudy or shadow pixels.
-            dist[cloud_probs[index] > 5] = 1e100 + cloud_probs[index][cloud_probs[index] > 5]
-            # Override the cloud probability array with medioid based values.
-            cloud_probs[index] = dist
+            pow = numpy.power([(X.astype('float') - Xj.astype('float')) * (cloud_probs[j] < MEDIOID_INCLUDE_UNTIL) for j, Xj in enumerate(Xs)], 2)
+            dist = numpy.sqrt(numpy.sum(pow, axis=(0, 1)) / len(pow))
+            # Add hight distances to cloud or shadow pixels.
+            cloud_probs[index] += 1e6 * (cloud_probs[index] >= MEDIOID_INCLUDE_UNTIL)
+            # Add true distance to all pixels.
+            cloud_probs[index] += dist
 
     # Compute an array of scene indices with the lowest cloud probability.
     selector_index = numpy.argmin(numpy.array(cloud_probs), axis=0)
