@@ -340,7 +340,7 @@ def s1_color(stack, path=None):
     return memfile
 
 
-def s2_composite(transform, width, height, crs, entries, bands):
+def s2_composite(transform, width, height, crs, entries, bands, medioid=False):
     """
     Compute a composite for a stack of S2 input data.
     """
@@ -399,7 +399,7 @@ def s2_composite(transform, width, height, crs, entries, bands):
 
     # If enough scenes are available, use the medioid over non-cloudy marked
     # pixels as selector.
-    if len(Xs) >= 3:
+    if medioid and len(Xs) >= 3:
         logger.info('Using medioid based calculation for composite.')
         for index, X in enumerate(Xs):
             # Compute sum of pairwise euclidian distances, but don't let cloudy
