@@ -31,6 +31,7 @@ def handler(config):
         s1_acquisition_mode=config.get('s1_acquisition_mode', None),
         s1_polarisation_mode=config.get('s1_polarisation_mode', None),
         max_cloud_cover_percentage=config['max_cloud_cover_percentage'],
+        sort_by_cloud_cover=config.get('sort_by_cloud_cover', True),
     )
 
     if not len(query_result):

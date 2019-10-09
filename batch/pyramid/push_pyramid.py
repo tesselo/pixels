@@ -19,7 +19,7 @@ logger.setLevel(logging.INFO)
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID', 'pge_placer')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 10))
+tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 5))
 
 # Fetch config.
 s3 = boto3.client('s3')
@@ -99,8 +99,8 @@ for zoom in range(14, -1, -1):
     # Push training collection job.
     job['jobName'] = 'pyramid-{}'.format(project_id)
     job['containerOverrides']['command'] = ['pyramid.py' if zoom == 14 else 'pyramid_up.py']
-    job['containerOverrides']['memory'] = 1024 * 2 if zoom == 14 else 1014
-    job['containerOverrides']['vcpus'] = 2 if zoom == 14 else 1
+    job['containerOverrides']['memory'] = 1024
+    job['containerOverrides']['vcpus'] = 1
     if batch_array_size > 1:
         job['arrayProperties'] = {'size': batch_array_size}
     if current_job is not None:

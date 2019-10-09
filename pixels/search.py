@@ -14,7 +14,7 @@ from pixels.const import (
 from pixels.utils import filter_key, geometry_to_wkt, reproject_feature
 
 
-def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s1_polarisation_mode=None, max_cloud_cover_percentage=100, raw=False):
+def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s1_polarisation_mode=None, max_cloud_cover_percentage=100, raw=False, sort_by_cloud_cover=False):
     """
     Search the scihub for data.
     """
@@ -85,6 +85,9 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     # Parse raw data if requested.
     if not raw:
         result = parse_scihub_data(result)
+
+    if sort_by_cloud_cover:
+        result = sorted(result, key=lambda x: x['max_cloud_cover_percentage'])
 
     return result
 
