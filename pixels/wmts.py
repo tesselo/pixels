@@ -240,7 +240,7 @@ def gen(key, host, max_cloud_cover_percentage=100):
     Generate WMTS xml string.
     """
     xml = ''
-    for year in (2016, 2017, 2018, 2019):
+    for year in (2016, 2017, 2018, 2019, 2020):
         for month in range(1, 13):
             end = datetime.date(year=year, month=month, day=1)
             start = end - datetime.timedelta(weeks=4)
