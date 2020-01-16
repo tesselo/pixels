@@ -231,11 +231,11 @@ TILE_LAYER_TEMPLATE = '''
 </Layer>
 '''
 
-LATEST_PIXEL_URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;max_cloud_cover_percentage=50'
+LATEST_PIXEL_URL_TEMPLATE = '{host}tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}&amp;end={end}&amp;start={start}&amp;max_cloud_cover_percentage={cloud}'
 COMPOSITE_URL_TEMPLATE = '{host}composite/{projectid}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png?key={key}'
 
 
-def gen(key, host):
+def gen(key, host, max_cloud_cover_percentage=100):
     """
     Generate WMTS xml string.
     """
@@ -252,6 +252,7 @@ def gen(key, host):
                 key=key,
                 end=end,
                 start=start,
+                cloud=max_cloud_cover_percentage,
             )
             xml += TILE_LAYER_TEMPLATE.format(
                 title=title,

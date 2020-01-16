@@ -12,13 +12,13 @@ import boto3
 import numpy
 from dateutil import parser
 from flask import Flask, Response, has_request_context, jsonify, redirect, render_template, request, send_file
-from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw
 from rasterio import Affine
 from rasterio.io import MemoryFile
 from zappa.async import task
 
 from app import utils as app_utils
+from flask_sqlalchemy import SQLAlchemy
 from pixels import const, core, utils, wmts
 from pixels.exceptions import PixelsFailed
 
@@ -281,7 +281,8 @@ def wmtsview():
     WMTS endpoint with monthly latest pixel layers.
     """
     key = request.args.get('key')
-    xml = wmts.gen(key, request.host_url)
+    max_cloud_cover_percentage = request.args.get('max_cloud_cover_percentage', 100)
+    xml = wmts.gen(key, request.host_url, max_cloud_cover_percentage)
     return Response(xml, mimetype="text/xml")
 
 
