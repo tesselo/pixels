@@ -1,11 +1,15 @@
-import requests
-from pixels import const
-import json
-import zipfile
-import io
 import glob
-import numpy
+import io
+import json
 import os
+import zipfile
+
+import matplotlib.pyplot as plt
+import numpy
+import pandas
+import requests
+
+from pixels import const
 
 data = json.load(open('/media/tam/rhino/work/projects/tesselo/projects/neer/neer_parcels.json'))
 
@@ -104,8 +108,6 @@ for parcel in data_links.keys():
 table = numpy.array(table)
 numpy.savetxt('/media/tam/rhino/work/projects/tesselo/projects/neer/results/ndvi.csv', table, header='parcel,start,end,mean,max,min,std', fmt='%s', comments='', delimiter=',')
 
-import pandas
-import matplotlib.pyplot as plt
 df = pandas.read_csv('/media/tam/rhino/work/projects/tesselo/projects/neer/results/ndvi.csv')
 df['start'] =  pandas.to_datetime(df['start'])#, format='%d%b%Y:%H:%M:%S.%f')
 df['end'] =  pandas.to_datetime(df['end'])#, format='%d%b%Y:%H:%M:%S.%f')

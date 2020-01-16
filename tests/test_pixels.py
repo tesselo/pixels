@@ -4,10 +4,10 @@ from unittest import mock
 import numpy
 from rasterio import Affine
 from rasterio.io import MemoryFile
+from tests.configs import gen_config, gen_configs
 
 import mock_functions
 from pixels import algebra, core, utils
-from tests.configs import gen_config, gen_configs
 
 
 @mock.patch('pixels.scihub.warp_from_s3', mock_functions.warp_from_s3)
