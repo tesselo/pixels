@@ -117,9 +117,9 @@ requests.get(url)
 ### WMTS endpoint
 A set of predefined latest pixel maps can be viewed as an osgeo compliant [WMTS service](http://www.opengeospatial.org/standards/wmts). Use the following url as source for a WMTS layer in your favorite desktop GIS software such as QGIS or ArcGIS.
 
-    https://pixels.tesselo.com/wmts?key=mysecretkey
+    https://pixels.tesselo.com/wmts?key=mysecretkey&max_cloud_cover_percentage=30
 
-Authenication will be done through the `key` auth token, as with all the other endpoints. Simply include your key in the wmts url as shown in the example above.
+Authenication will be done through the `key` auth token, as with all the other endpoints. Simply include your key in the wmts url as shown in the example above. The underlying search max cloud cover percentage filter defaults to 100. If this should be more restrictive, this can be changed using the `max_cloud_cover_percentage` query parameter.
 
 ### Timeseries endpoint
 An endpoint to automatically generate data for time series analysis. It iteratively calls the data endpoint using dateranges.
