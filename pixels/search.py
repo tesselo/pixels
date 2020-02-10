@@ -86,7 +86,7 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     if not raw:
         result = parse_scihub_data(result)
 
-    if sort_by_cloud_cover:
+    if sort_by_cloud_cover and not platform == PLATFORM_SENTINEL_1:
         result = sorted(result, key=lambda x: x['max_cloud_cover_percentage'])
 
     return result
