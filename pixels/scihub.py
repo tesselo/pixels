@@ -321,7 +321,7 @@ def s1_color(stack, path=None):
 
     B0 = (B0 / 7) * SENTINEL_2_RGB_CLIPPER
     B1 = (B1 / 7) * SENTINEL_2_RGB_CLIPPER
-    B2 = (B0 / B1) * SENTINEL_2_RGB_CLIPPER / 2
+    B2 = B0 - B1
 
     data = numpy.array([B0, B1, B2]).astype(orig_dtype)
 
