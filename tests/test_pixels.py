@@ -1,5 +1,7 @@
 import unittest
 from unittest import mock
+import os
+import json
 
 import numpy
 from rasterio import Affine
@@ -8,6 +10,10 @@ from tests.configs import gen_config, gen_configs
 
 import mock_functions
 from pixels import algebra, core, utils
+
+COORDS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'coords.json')))
+GEOM = {"type": "Polygon", "coordinates": COORDS}
+GEOM_MULTI = {"type": "MultiPolygon", "coordinates": [COORDS]}
 
 
 @mock.patch('pixels.scihub.warp_from_s3', mock_functions.warp_from_s3)
@@ -73,6 +79,21 @@ class TestPixels(unittest.TestCase):
         # Results are within expected range.
         self.assertFalse(numpy.any(result > 1.0))
         self.assertFalse(numpy.any(result < -1.0))
+
+    def test_reproject_feature(self):
+        feat = {
+            'geometry': GEOM,
+            'crs': 'EPSG:3857',
+        }
+        result = utils.reproject_feature(feat, 'EPSG:4326')
+        self.assertEqual(result['crs'], 'EPSG:4326')
+        self.assertEqual(result['geometry']['coordinates'][0][0], (-7.273839640000012, 41.22875735999998))
+
+    def test_geometry_to_wkt(self):
+        result = utils.geometry_to_wkt(GEOM)
+        self.assertIn('POLYGON((-809720.1248367296 5046142.10146797', result)
+        result = utils.geometry_to_wkt(GEOM_MULTI)
+        self.assertIn('MULTIPOLYGON(((-809720.1248367296 5046142.10146797', result)
 
 
 if __name__ == '__main__':

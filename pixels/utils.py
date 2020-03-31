@@ -213,19 +213,19 @@ def reproject_coords(coords, src, tar):
     """
     Reproject a list of polygon coordinates.
     """
-    if len(coords) > 1:
-        raise ValueError('Polygons with interior rings are not supported.')
-
     if isinstance(src, str):
         src = Proj(init=src)
     if isinstance(tar, str):
         tar = Proj(init=tar)
 
     transformed_coords = []
-    for coord in coords[0]:
-        transformed_coords.append(transform(src, tar, coord[0], coord[1]))
+    for ring in coords:
+        transformed_ring = []
+        for coord in ring:
+            transformed_ring.append(transform(src, tar, coord[0], coord[1]))
+        transformed_coords.append(transformed_ring)
 
-    return [transformed_coords]
+    return transformed_coords
 
 
 def reproject_feature(feature, target_crs):
@@ -256,16 +256,23 @@ def geometry_to_wkt(geom):
     Convert a Polygon or MultiPolygon to WKT.
     """
     if geom['type'] == 'Polygon':
-        if len(geom['coordinates']) > 1:
-            raise ValueError('Polygons with interior rings are not supported.')
-        return 'POLYGON(({}))'.format(','.join(['{} {}'.format(*coord) for coord in geom['coordinates'][0]]))
+        rings = []
+        for ring in geom['coordinates']:
+            wkt_ring = ','.join(['{} {}'.format(*coord) for coord in ring])
+            rings.append('({})'.format(wkt_ring))
+        rings = ','.join(rings)
+        return 'POLYGON({})'.format(rings)
     elif geom['type'] == 'MultiPolygon':
-        wkt = ''
+        polys = []
         for poly in geom['coordinates']:
-            if len(poly) > 1:
-                raise ValueError('Polygons with interior rings are not supported.')
-            wkt += '(({}))'.format(','.join(['{} {}'.format(*coord) for coord in poly[0]]))
-        return 'MULTIPOLYGON({})'.format(wkt)
+            rings = []
+            for ring in poly:
+                wkt_ring = ','.join(['{} {}'.format(*coord) for coord in ring])
+                rings.append('({})'.format(wkt_ring))
+            rings = ','.join(rings)
+            polys.append('({})'.format(rings))
+        polys = ','.join(polys)
+        return 'MULTIPOLYGON({})'.format(polys)
     else:
         raise ValueError('Geometry type "{}" is not supported. Please use Polygon or MultiPolygon.')
 
