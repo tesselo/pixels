@@ -7,9 +7,9 @@ import os
 import tempfile
 
 import boto3
-
 import geopandas
 from geodaisy import GeoObject
+
 from pixels import core, utils
 
 # General log setup.

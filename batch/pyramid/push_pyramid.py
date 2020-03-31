@@ -6,10 +6,10 @@ import math
 import os
 
 import boto3
+import mercantile
 from rasterio.features import bounds
 from shapely.geometry import Polygon, shape
 
-import mercantile
 from pixels import utils
 
 # Get logger.

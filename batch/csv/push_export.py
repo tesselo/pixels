@@ -6,7 +6,6 @@ import os
 import tempfile
 
 import boto3
-
 import geopandas
 
 # General log setup.
