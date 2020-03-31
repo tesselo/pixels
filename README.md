@@ -25,11 +25,11 @@ find ./ -name "*.pyc" -exec rm -f {} \;
 ```shell
 # Deploy dev.
 workon pixels-deploy-dev
-zappa update dev
+./deploy.sh dev
 ```
 
 ```shell
 # Deploy production.
 workon pixels-deploy-production
-zappa update production
+./deploy.sh production
 ```
