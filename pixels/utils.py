@@ -251,7 +251,7 @@ def reproject_feature(feature, target_crs):
     return feat
 
 
-def geometry_to_wkt(geom):
+def geometry_to_wkt(geom, exterior_only=True):
     """
     Convert a Polygon or MultiPolygon to WKT.
     """
@@ -260,7 +260,10 @@ def geometry_to_wkt(geom):
         for ring in geom['coordinates']:
             wkt_ring = ','.join(['{} {}'.format(*coord) for coord in ring])
             rings.append('({})'.format(wkt_ring))
-        rings = ','.join(rings)
+        if exterior_only:
+            rings = rings[0]
+        else:
+            rings = ','.join(rings)
         return 'POLYGON({})'.format(rings)
     elif geom['type'] == 'MultiPolygon':
         polys = []
@@ -269,7 +272,10 @@ def geometry_to_wkt(geom):
             for ring in poly:
                 wkt_ring = ','.join(['{} {}'.format(*coord) for coord in ring])
                 rings.append('({})'.format(wkt_ring))
-            rings = ','.join(rings)
+            if exterior_only:
+                rings = rings[0]
+            else:
+                rings = ','.join(rings)
             polys.append('({})'.format(rings))
         polys = ','.join(polys)
         return 'MULTIPOLYGON({})'.format(polys)
