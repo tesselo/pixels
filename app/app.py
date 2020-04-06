@@ -262,6 +262,7 @@ def tiles(z, x, y, platform='s2'):
             "platform": const.PLATFORM_SENTINEL_2,
             "product_type": const.PRODUCT_L2A,
             "max_cloud_cover_percentage": max_cloud_cover_percentage,
+            "sort_by_cloud_cover": True,
         })
     elif platform.lower() == 's1':
         data.update({
