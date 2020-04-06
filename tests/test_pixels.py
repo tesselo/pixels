@@ -1,15 +1,15 @@
+import json
+import os
 import unittest
 from unittest import mock
-import os
-import json
 
 import numpy
 from rasterio import Affine
 from rasterio.io import MemoryFile
-from tests.configs import gen_config, gen_configs
 
 import mock_functions
 from pixels import algebra, core, utils
+from tests.configs import gen_config, gen_configs
 
 COORDS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'coords.json')))
 GEOM = {"type": "Polygon", "coordinates": COORDS}

@@ -8,7 +8,8 @@ from rasterio.io import MemoryFile
 from pixels import algebra, const, utils
 from tile_range import tile_range
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # project_id='florence-s2'
 project_id = 'clftests'

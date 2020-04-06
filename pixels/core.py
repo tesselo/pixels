@@ -11,7 +11,8 @@ from rasterio import Affine
 from pixels import const, scihub, search, utils
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def handler(config):

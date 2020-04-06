@@ -11,7 +11,7 @@ import numpy
 from pixels import core, utils
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Get path from env.

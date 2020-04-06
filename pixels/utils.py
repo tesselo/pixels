@@ -18,7 +18,8 @@ from pixels.algebra import FormulaParser
 from pixels.exceptions import PixelsFailed
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def generate_unique_key(frmt, ts_tag='', ts_tag_is_main_key=False):

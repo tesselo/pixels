@@ -16,7 +16,8 @@ from pixels.exceptions import PixelsFailed
 from pixels.utils import choose, clone_raster, warp_from_s3
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def get_pixels(transform, width, height, crs, entry, bands=None):

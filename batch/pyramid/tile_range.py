@@ -6,7 +6,8 @@ from shapely.geometry import Polygon, shape
 from pixels import utils
 
 # Get logger.
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def tile_range(geom, zoom, intersection=False, tolerance=0):

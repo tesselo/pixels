@@ -16,12 +16,8 @@ from pixels import const, utils
 from tile_range import tile_range
 
 # Get logger.
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Get path from env.
 project_id = os.environ.get('PROJECT_ID')
