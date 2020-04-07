@@ -47,20 +47,16 @@ def search(geom, start, end, platform, product_type, s1_acquisition_mode=None, s
     # Transform the geom coordinates into WGS84 for the Scihub search query.
     trsf_geom = reproject_feature(geom, WGS84)
 
-    # For multipolygons, use bounds as search can only be done for polygons. Or
-    # if geom query string is too long, use bounds as search argument. Any query
-    # of length above 8000 character will fail on scihub. So to be on the safe
-    # side, limit the geom only part length. If applicable, convert to bbox.
-    if trsf_geom['geometry']['type'] == 'MultiPolygon' or len(str(trsf_geom['geometry']['coordinates']).replace(' ', '')) > QUERY_URL_MAX_LENGTH:
-        bnd = bounds(trsf_geom)
-        trsf_geom['geometry']['type'] = 'Polygon'
-        trsf_geom['geometry']['coordinates'] = [[
-            [bnd[0], bnd[1]],
-            [bnd[2], bnd[1]],
-            [bnd[2], bnd[3]],
-            [bnd[0], bnd[3]],
-            [bnd[0], bnd[1]],
-        ]]
+    # Use geometry bounds for scihub search.
+    bnd = bounds(trsf_geom)
+    trsf_geom['geometry']['type'] = 'Polygon'
+    trsf_geom['geometry']['coordinates'] = [[
+        [bnd[0], bnd[1]],
+        [bnd[2], bnd[1]],
+        [bnd[2], bnd[3]],
+        [bnd[0], bnd[3]],
+        [bnd[0], bnd[1]],
+    ]]
 
     # Compute WKT for geom.
     geom_wkt = geometry_to_wkt(trsf_geom['geometry'])
