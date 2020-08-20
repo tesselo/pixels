@@ -5,9 +5,9 @@ import logging
 import os
 
 import boto3
+from tile_range import tile_range
 
 from pixels import core, utils
-from tile_range import tile_range
 
 # General log setup.
 logging.basicConfig(

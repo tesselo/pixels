@@ -3,11 +3,11 @@ import os
 import unittest
 from unittest import mock
 
+import mock_functions
 import numpy
 from rasterio import Affine
 from rasterio.io import MemoryFile
 
-import mock_functions
 from pixels import algebra, core, utils
 from tests.configs import gen_config, gen_configs
 

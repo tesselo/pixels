@@ -11,9 +11,9 @@ import numpy
 import rasterio
 from rasterio import Affine
 from rasterio.warp import Resampling
+from tile_range import tile_range
 
 from pixels import const, utils
-from tile_range import tile_range
 
 # Get logger.
 logger = logging.getLogger()

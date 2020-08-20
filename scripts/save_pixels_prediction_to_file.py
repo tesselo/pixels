@@ -3,9 +3,9 @@ import json
 import boto3
 import rasterio
 from rasterio.io import MemoryFile
+from train.train import load_data
 
 from pixels import utils
-from train.train import load_data
 
 bucket='tesselo-pixels-results'
 project_id='test'

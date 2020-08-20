@@ -4,9 +4,9 @@ import numpy
 import rasterio
 from rasterio import Affine
 from rasterio.io import MemoryFile
+from tile_range import tile_range
 
 from pixels import algebra, const, utils
-from tile_range import tile_range
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
