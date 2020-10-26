@@ -7,8 +7,8 @@ import boto3
 
 # Get path from env.
 # project_id = os.environ.get('PROJECT_ID', 'test')
-project_id = 'clftests'
-# project_id = 'test'
+# project_id = 'clftests'
+project_id = 'test'
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 
 # Fetch config.
@@ -17,7 +17,8 @@ config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 config = json.loads(config['Body'].read())
 
 # Compute nr of jobs from config.
-nr_of_geoms_train = len(config['train']['features'])
+# nr_of_geoms_train = len(config['train']['features'])
+nr_of_geoms_train = 2837
 # nr_of_geoms_predict = len(config['predict']['features'])
 
 # Setup the job dict.
@@ -34,7 +35,6 @@ job = {
             {'name': 'AWS_S3_BUCKET', 'value': bucket},
             {'name': 'BATCH_FILE_S3_URL', 'value': 's3://tesselo-pixels-scripts/batch.zip'},
             {'name': 'BATCH_FILE_TYPE', 'value': 'zip'},
-            {'name': 'CURL_CA_BUNDLE', 'value': '/etc/ssl/certs/ca-certificates.crt'},
         ],
         'vcpus': 1,
         'memory': 1024,
@@ -52,8 +52,8 @@ all_jobs = []
 # Push training collection job.
 job['jobName'] = 'collect-train-{}'.format(project_id)
 job['containerOverrides']['command'] = ['collect.py']
-job['containerOverrides']['memory'] = 1024 * 60
-job['containerOverrides']['vcpus'] = 16
+# job['containerOverrides']['memory'] = 1024 * 60
+# job['containerOverrides']['vcpus'] = 16
 # job['arrayProperties'] = {'size': nr_of_geoms_train}
 collect_train_result = batch.submit_job(**job)
 all_jobs.append(collect_train_result)
