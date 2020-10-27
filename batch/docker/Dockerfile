@@ -25,3 +25,11 @@ ADD fetch_and_run.sh /usr/local/bin/fetch_and_run.sh
 RUN chmod +x /usr/local/bin/fetch_and_run.sh
 WORKDIR /tmp
 ENTRYPOINT ["/usr/local/bin/fetch_and_run.sh"]
+
+RUN pip3 install\
+  awscli\
+  Pillow\
+  requests\
+  pyproj
+
+RUN pip3 install sat-stac
