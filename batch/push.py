@@ -18,7 +18,7 @@ config = json.loads(config['Body'].read())
 
 # Compute nr of jobs from config.
 # nr_of_geoms_train = len(config['train']['features'])
-nr_of_geoms_train = 2837
+nr_of_geoms_train = 100#2837
 # nr_of_geoms_predict = len(config['predict']['features'])
 
 # Setup the job dict.
@@ -54,7 +54,7 @@ job['jobName'] = 'collect-train-{}'.format(project_id)
 job['containerOverrides']['command'] = ['collect.py']
 # job['containerOverrides']['memory'] = 1024 * 60
 # job['containerOverrides']['vcpus'] = 16
-# job['arrayProperties'] = {'size': nr_of_geoms_train}
+job['arrayProperties'] = {'size': nr_of_geoms_train}
 collect_train_result = batch.submit_job(**job)
 all_jobs.append(collect_train_result)
 
