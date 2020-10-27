@@ -6,5 +6,3 @@ S2_BANDS = [
 ]
 
 SEARCH_ENDPOINT = 'https://earth-search.aws.element84.com/v0/search'
-
-POOL = 10

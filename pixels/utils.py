@@ -95,9 +95,3 @@ def timeseries_steps(start, end, interval, intervals_per_step=1):
         # Increment intermediate timestamps.
         here_start += delta
         here_end += delta
-
-
-def extract_crs(geojson):
-    bytes_geojson = io.BytesIO(bytes(json.dumps(geojson), encoding='utf8'))
-    with fiona.open(bytes_geojson, driver='GeoJSON') as fiona_geojson:
-        return CRS.from_dict(fiona_geojson.crs)

@@ -1,8 +1,5 @@
-import io
-import json
 import logging
 
-import fiona
 import rasterio
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
@@ -11,12 +8,14 @@ from rasterio.warp import Resampling, reproject
 from pixels.const import NODATA_VALUE
 from pixels.utils import compute_mask, compute_transform
 
+logger = logging.getLogger(__name__)
+
 
 def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touched=False, bands=None):
     """
     Get pixels from a source raster over the a geojson feature collection.
     """
-    logging.info('Retrieving {}'.format(source))
+    logger.info('Retrieving {}'.format(source))
 
     # Validate geojson by opening it with rasterio CRS class.
     dst_crs = CRS.from_dict(geojson['crs'])
@@ -42,6 +41,7 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
 
         # Prepare target raster transform from the geometry input.
         transform, width, height = compute_transform(geojson, scale)
+        logger.info('Target array shape is ({}, {})'.format(height, width))
 
         # Prepare creation parameters for memory raster.
         creation_args = src.meta.copy()
@@ -84,13 +84,13 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                     })
                     reproject(**proj_args)
 
-                # Get pixel values.
-                pixels = dst.read()
+                # Get pixel values of first band.
+                pixels = dst.read(1)
 
                 if clip:
                     mask = compute_mask(geojson, height, width, transform)
                     # Apply mask to all bands.
-                    pixels[:, mask] = NODATA_VALUE
+                    pixels[mask] = NODATA_VALUE
 
                 # Return re-creation args and pixel data.
                 return creation_args, pixels
