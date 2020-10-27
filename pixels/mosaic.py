@@ -3,12 +3,27 @@ from multiprocessing import Pool
 
 import numpy
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
 
+# Get logger
 logger = logging.getLogger(__name__)
+
+# Instanciate requests retry strategy.
+retry_strategy = Retry(
+    total=5,
+    status_forcelist=[413, 429, 500, 502, 503, 504],
+    method_whitelist=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
+    backoff_factor=1,
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+http = requests.Session()
+http.mount("https://", adapter)
+http.mount("http://", adapter)
 
 
 def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
@@ -23,7 +38,13 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
         "collections": ['sentinel-s2-l2a-cogs'],
         "limit": limit,
     }
-    response = requests.post(SEARCH_ENDPOINT, json=search).json()
+    response = http.post(SEARCH_ENDPOINT, json=search)
+    response.raise_for_status()
+    response = response.json()
+
+    if 'features' not in response:
+        print(response)
+        raise ValueError('No features in search response.')
 
     stack = None
     for item in response['features']:

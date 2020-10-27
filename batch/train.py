@@ -13,25 +13,39 @@ from rasterio.io import MemoryFile
 
 from pixels import utils
 
-# Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'test')
-bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-train_or_predict = 'predict' if os.environ.get('PREDICT', 'false').lower() == 'true' else 'train'
-# Fetch config.
-s3 = boto3.client('s3')
-config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
-config = json.loads(config['Body'].read())
-# Fetch data package.
-s3 = boto3.client('s3')
-data = s3.get_object(
-    Bucket=bucket,
-    Key='{project_id}/{train_or_predict}.npz'.format(
-        project_id=project_id,
-        train_or_predict=train_or_predict,
+def train():
+    # Setup boto client.
+    s3 = boto3.client('s3')
+    # Fetch config.
+    config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
+    config = json.loads(config['Body'].read())
+    # Fetch all data to memory.
+    bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
+    project_id = os.environ.get('PROJECT_ID', 'test')
+    paginator = s3.get_paginator('list_objects_v2')
+    pages = paginator.paginate(
+        Bucket=bucket,
+        Prefix='{}/training/'.format(project_id),
     )
-)['Body'].read()
-data = numpy.load(io.BytesIO(data), allow_pickle=True)
-X = data['X']
+    result = []
+    for page in pages:
+        for obj in page['Contents']:
+            print(obj['Size'])
+            data = s3.get_object(
+                Bucket=bucket,
+                Key=obj['Key']
+            )['Body'].read()
+            data = numpy.load(io.BytesIO(data), allow_pickle=True)
+            result.append(data)
+    # Create X and Y arrays from data.
+    X = Y = None
+    for data in result:
+        if X is None:
+            X = data[2]
+            Y = numpy.ones(X.shape[0])
+
+
+
 
 # Train or predict model.
 if train_or_predict == 'train':
