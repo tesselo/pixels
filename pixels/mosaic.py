@@ -4,16 +4,18 @@ from multiprocessing import Pool
 import numpy
 import requests
 
-from pixels.const import NODATA_VALUE, POOL, S2_BANDS, SEARCH_ENDPOINT
+from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
+
+logger = logging.getLogger(__name__)
 
 
 def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
     """
     Get the latest pixel for the input items over the input fetures.
     """
-    logging.info('Latest pixels for {}'.format(date))
+    logger.info('Latest pixels for {}'.format(date))
 
     search = {
         "intersects": compute_wgs83_bbox(geojson),
@@ -37,6 +39,7 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
                 data.append(retrieve(*band))
 
         # Create stack.
+        mask = None
         if stack is None:
             # Set first return as stack.
             stack = [dat[1] for dat in data]
@@ -63,7 +66,7 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
             creation_args['transform'],
         )
         for i in range(len(stack)):
-            stack[i][:, mask] = NODATA_VALUE
+            stack[i][mask] = NODATA_VALUE
 
     return creation_args, date, stack
 
