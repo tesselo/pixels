@@ -28,10 +28,6 @@ def collect():
     logger.info('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
         bucket, project_id, array_index, features_per_job
     ))
-    print('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
-        bucket, project_id, array_index, features_per_job
-    ))
-    return
 
     # Fetch config.
     config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')

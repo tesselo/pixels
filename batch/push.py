@@ -9,7 +9,7 @@ import boto3
 import fiona
 
 AWS_BATCH_ARRAY_SIZE_LIMIT = 10000
-MIN_FEATURES_PER_JOB = 10
+MIN_FEATURES_PER_JOB = 100
 
 # Get path from env.
 project_id = 'test'
@@ -57,7 +57,7 @@ def push_training_collection(bucket, project_id):
                 {'name': 'AWS_S3_BUCKET', 'value': bucket},
                 {'name': 'BATCH_FILE_S3_URL', 'value': 's3://tesselo-pixels-scripts/batch.zip'},
                 {'name': 'BATCH_FILE_TYPE', 'value': 'zip'},
-                {'name': 'BATCH_FEATURES_PER_JOB', 'value': '10'}
+                {'name': 'BATCH_FEATURES_PER_JOB', 'value': str(features_per_job)}
             ],
             'vcpus': 2,
             'memory': 1024 * 2,
