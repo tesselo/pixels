@@ -33,3 +33,5 @@ RUN pip3 install\
   pyproj
 
 RUN pip3 install sat-stac
+
+RUN pip3 install tensorflow
