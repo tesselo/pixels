@@ -8,7 +8,6 @@ import numpy
 import requests
 from fiona.transform import transform_geom
 from PIL import Image
-from satstac import Collection
 
 from pixels.mosaic import latest_pixel_s2
 from pixels.retrieve import retrieve
@@ -38,12 +37,17 @@ geojson = {
     ]
 }
 
+import logging
 # Search scenes.
+import os
+
+logging.basicConfig(level=logging.DEBUG)
+# os.environ["AWS_REQUEST_PAYER"] = "requester"
 search = {
     "limit": 10,
     "intersects": compute_wgs83_bbox(geojson),
     "datetime": "2019-08-01T00:00:00Z/2019-08-31T00:00:00Z",
-    "collections": ['sentinel-s2-l2a'],
+    "collections": ['sentinel-s2-l1c'],
 }
 endpoint = 'https://earth-search.aws.element84.com/v0/search'
 response = requests.post(endpoint, json=search).json()
