@@ -34,6 +34,7 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                     'Can not auto-determine target scale because'
                     'the geom crs does not match the source crs.'
                 )
+        logger.info('Source CRS is {}.'.format(src.crs))
 
         # If no band indices were provided, process all bands.
         if not bands:
