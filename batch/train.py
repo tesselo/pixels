@@ -98,10 +98,9 @@ Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 # model.add(layers.Dense(100, activation='relu'))
 # model.add(layers.Dense(len(valuemap), activation='softmax'))
 
-
 # model = Sequential()
 # model.add(layers.BatchNormalization())
-# model.add(layers.LSTM(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.3))
+# model.add(layers.GRU(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.5))
 # model.add(layers.BatchNormalization())
 # model.add(layers.Dense(100, activation='relu'))
 # model.add(layers.Dense(len(valuemap), activation='softmax'))
@@ -135,7 +134,6 @@ dropped3 = layers.Dropout(0.5)(normed3)
 output = layers.Dense(len(valuemap), activation='softmax')(dropped3)
 model = Model(inputs=visible, outputs=output)
 
-
 # Compile the model.
 config = {}
 compile_parms = config.get('keras_compile_arguments', {
@@ -147,7 +145,7 @@ model.compile(**compile_parms)
 
 # Fit the model.
 fit_parms = config.get('keras_fit_arguments', {
-    'epochs': 5,
+    'epochs': 10,
     'batch_size': 1000,
     'verbose': 1,
 })
@@ -158,7 +156,7 @@ model.fit(X_train, Y_train, **fit_parms)
 # Y_predicted = numpy.argmax(Y_predicted, axis=1) + 1
 
 print("Evaluate on test data")
-results = model.evaluate(X_test, Y_test, batch_size=5000)
+results = model.evaluate(X_test, Y_test, batch_size=1000)
 print("test loss, test acc:", results)
 
 # Compute accuracy matrix and coefficients.
