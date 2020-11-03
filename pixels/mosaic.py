@@ -43,7 +43,6 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     response = response.json()
 
     if 'features' not in response:
-        print(response)
         raise ValueError('No features in search response.')
 
     stack = None
