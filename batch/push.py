@@ -12,7 +12,6 @@ AWS_BATCH_ARRAY_SIZE_LIMIT = 10000
 MIN_FEATURES_PER_JOB = 100
 
 # Get path from env.
-project_id = 'test'
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 
 logger = logging.getLogger()
@@ -73,7 +72,7 @@ def push_training_collection(bucket, project_id):
     batch = boto3.client('batch', region_name='eu-central-1')
     return batch.submit_job(**job)
 
-push_training_collection('tesselo-pixels-results', 'test')
+push_training_collection('tesselo-pixels-results', 'esblidar')
 # Push training pack job.
 # job['jobName'] = 'pack-train-{}'.format(project_id)
 # job['containerOverrides']['command'] = ['pack.py']

@@ -6,6 +6,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+from pixels.clouds import choose
 from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
@@ -26,7 +27,7 @@ http.mount("https://", adapter)
 http.mount("http://", adapter)
 
 
-def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
+def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, max_cloud_cover=None):
     """
     Get the latest pixel for the input items over the input fetures.
     """
@@ -45,8 +46,13 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     if 'features' not in response:
         raise ValueError('No features in search response.')
 
+    # Filter by cloud cover.
+    items = response['features']
+    if max_cloud_cover is not None:
+        items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
+
     stack = None
-    for item in response['features']:
+    for item in items:
         # Prepare band list.
         band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
 
@@ -95,5 +101,35 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
     # Construct array of latest pixel calls with varying dates.
     dates = [(geojson, step[1], scale, bands, limit, clip, pool) for step in timeseries_steps(min_date, max_date, interval)]
     # Call pixels calls asynchronously.
-    with Pool(len(dates)) as p:
+    #with Pool(len(dates)) as p:###############3
+    with Pool(10) as p:
         return p.starmap(latest_pixel_s2, dates)
+
+
+def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
+    """
+    Get the latest pixel for the input items over the input fetures.
+    """
+    logger.info('Latest pixels for {}'.format(date))
+
+    search = {
+        "intersects": compute_wgs83_bbox(geojson),
+        "datetime": "{}/{}".format(start, end),  # Landsat 1 launch date.
+        "collections": ['sentinel-s2-l2a-cogs'],
+        "limit": limit,
+    }
+    response = http.post(SEARCH_ENDPOINT, json=search)
+    response.raise_for_status()
+    response = response.json()
+
+    if 'features' not in response:
+        raise ValueError('No features in search response.')
+
+    stack = None
+    for item in response['features']:
+        # Prepare band list.
+        band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
+
+        if pool:
+            with Pool(len(bands)) as p:
+                data = p.starmap(retrieve, band_list)
