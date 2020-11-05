@@ -11,9 +11,12 @@ import numpy
 
 from pixels.mosaic import latest_pixel_s2_stack
 
-# Get logger.
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 def collect():
@@ -22,7 +25,8 @@ def collect():
 
     # Get setup variables from env.
     bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-    project_id = os.environ.get('PROJECT_ID', 'test')
+    # project_id = os.environ.get('PROJECT_ID', 'test')
+    project_id = 'esblidar'
     array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
     features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 10))
     logger.info('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
