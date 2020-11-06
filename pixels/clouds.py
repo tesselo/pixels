@@ -56,7 +56,6 @@ def cloud_or_snow(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, composite=Tru
     brightness = B02 + B03 + B04
     meanB11B12 = (B11 + B12) / 2
 
-
     if composite:
         # Get all pixels that have only one valid observation.
         valid_input_counts = numpy.sum(numpy.logical_not(cloud_mask), axis=0)
@@ -100,11 +99,11 @@ def cloud_or_snow(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, composite=Tru
         return cloud_mask
 
 
-def choose(X):
-    """
-    Input should be a 3D tensor with (scenes, timesteps, bands).
-    """
-    pass
+# def choose(X):
+#     """
+#     Input should be a 3D tensor with (scenes, timesteps, bands).
+#     """
+#     pass
 #     ndvi = (B08 - B04) / (B08 + B04)
 #     brightness = B02 + B03 + B04
 #     meanB11B12 = (B11 + B12) / 2

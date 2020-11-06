@@ -11,7 +11,8 @@ import numpy
 
 from pixels.mosaic import latest_pixel_s2_stack
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
     level=logging.INFO,
@@ -28,7 +29,7 @@ def collect():
     # project_id = os.environ.get('PROJECT_ID', 'test')
     project_id = 'esblidar'
     array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
-    features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 10))
+    features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 1000))
     logger.info('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
         bucket, project_id, array_index, features_per_job
     ))
@@ -66,6 +67,7 @@ def collect():
             config['limit'],
             config['clip'],
             pool=False,
+            max_cloud_cover=config.get('max_cloud_cover', None),
         )
 
         # Combine data into numpy array.

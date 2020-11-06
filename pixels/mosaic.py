@@ -6,7 +6,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from pixels.clouds import choose
 from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
@@ -31,25 +30,30 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     """
     Get the latest pixel for the input items over the input fetures.
     """
-    logger.info('Latest pixels for {}'.format(date))
+    # Skip search if list of scenes was provided, otherwise assume input is a
+    # specific date to search with.
+    if isinstance(date, (list, tuple)):
+        logger.info('Latest pixels for {} item.'.format(len(date)))
+        items = date
+    else:
+        logger.info('Latest pixels for {}'.format(date))
+        search = {
+            "intersects": compute_wgs83_bbox(geojson),
+            "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
+            "collections": ['sentinel-s2-l2a-cogs'],
+            "limit": limit,
+        }
+        response = http.post(SEARCH_ENDPOINT, json=search)
+        response.raise_for_status()
+        response = response.json()
 
-    search = {
-        "intersects": compute_wgs83_bbox(geojson),
-        "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
-        "collections": ['sentinel-s2-l2a-cogs'],
-        "limit": limit,
-    }
-    response = http.post(SEARCH_ENDPOINT, json=search)
-    response.raise_for_status()
-    response = response.json()
+        if 'features' not in response:
+            raise ValueError('No scenes in search response.')
 
-    if 'features' not in response:
-        raise ValueError('No features in search response.')
-
-    # Filter by cloud cover.
-    items = response['features']
-    if max_cloud_cover is not None:
-        items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
+        # Filter by cloud cover.
+        items = response['features']
+        if max_cloud_cover is not None:
+            items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
 
     stack = None
     for item in items:
@@ -97,9 +101,37 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     return creation_args, date, stack
 
 
-def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', bands=S2_BANDS, limit=10, clip=False, pool=False):
-    # Construct array of latest pixel calls with varying dates.
-    dates = [(geojson, step[1], scale, bands, limit, clip, pool) for step in timeseries_steps(min_date, max_date, interval)]
+def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', bands=S2_BANDS, limit=10, clip=False, pool=False, max_cloud_cover=None):
+    """
+    Get the latest pixel at regular intervals between two dates.
+    """
+    if interval == 'all':
+        # Get all scenes of for this date range.
+        search = {
+            "intersects": compute_wgs83_bbox(geojson),
+            "datetime": "{}/{}".format(min_date, max_date),
+            "collections": ['sentinel-s2-l2a-cogs'],
+            "limit": 1000,
+        }
+        response = http.post(SEARCH_ENDPOINT, json=search)
+        response.raise_for_status()
+        response = response.json()
+
+        if 'features' not in response:
+            raise ValueError('No scenes in search response.')
+
+        # Filter by cloud cover.
+        items = response['features']
+        if max_cloud_cover is not None:
+            items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
+
+        logger.info('Getting {} scenes for this geom.'.format(len(items)))
+
+        limit = 5
+        dates = [(geojson, [item], scale, bands, limit, clip, pool) for item in items]
+    else:
+        # Construct array of latest pixel calls with varying dates.
+        dates = [(geojson, step[1], scale, bands, limit, clip, pool, max_cloud_cover) for step in timeseries_steps(min_date, max_date, interval)]
     # Call pixels calls asynchronously.
     #with Pool(len(dates)) as p:###############3
     with Pool(10) as p:
