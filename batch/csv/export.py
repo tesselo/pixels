@@ -40,7 +40,7 @@ s3 = boto3.client('s3')
 src = os.path.join(dir, filename)
 s3.download_file(Bucket=bucket, Key=project_id + '/' + filename, Filename=src)
 
-#src = '/home/tam/Desktop/pge_buf200ft_ca/pge_buff200_placer.gpkg'
+# src = '/home/tam/Desktop/pge_buf200ft_ca/pge_buff200_placer.gpkg'
 
 # Open geographic file.
 pge_buf200_placer_df = geopandas.read_file(src)
@@ -110,7 +110,7 @@ result = [row for row in result if ',nan' not in row]
 # Combine all rows to one large file.
 result = '\n'.join([header] + result)
 
-#with open('/home/tam/Desktop/bla.csv', 'w') as fl:
+# with open('/home/tam/Desktop/bla.csv', 'w') as fl:
 #    fl.write(result)
 
 # Upload result to bucket.

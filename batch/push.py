@@ -17,6 +17,7 @@ bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+
 def push_training_collection(bucket, project_id):
     """
     Push a training data collection job to Batch.
@@ -71,6 +72,7 @@ def push_training_collection(bucket, project_id):
     # Push training collection job.
     batch = boto3.client('batch', region_name='eu-central-1')
     return batch.submit_job(**job)
+
 
 push_training_collection('tesselo-pixels-results', 'esblidar')
 # Push training pack job.

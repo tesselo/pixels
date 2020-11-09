@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 
 import glob
-import io
-import json
 import os
 
 import boto3
-import h5py
 import numpy
-from rasterio.io import MemoryFile
 from tensorflow.keras import layers
-from tensorflow.keras.models import Model, Sequential, load_model, model_from_json
-from tensorflow.keras.utils import Sequence, plot_model, to_categorical
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.utils import to_categorical
 
-from pixels import utils
-from pixels.clouds import cloud_or_snow
+from pixels.clouds import cloud_or_snow_mask
 
 # Setup boto client.
 s3 = boto3.client('s3')
@@ -48,7 +43,7 @@ for path in glob.glob('/home/tam/Desktop/pixels_test/pixels_data/*.npz'):
         X = data['data']
         print('A', X.shape)
         # Data shape is ("scenes", bands, height, width)
-        cloud_mask = cloud_or_snow(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
+        cloud_mask = cloud_or_snow_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
         # Reorder the data to have
         X = X.swapaxes(0, 2).swapaxes(1, 3)
         print('B', X.shape)
@@ -59,7 +54,7 @@ for path in glob.glob('/home/tam/Desktop/pixels_test/pixels_data/*.npz'):
         X = X[numpy.sum(X, axis=(1, 2)) != 0]
         # Compute cloud and snow mask.
         # Assuming band order: ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
-        cloud_mask = cloud_or_snow(X[:, :, 8], X[:, :, 7], X[:, :, 6], X[:, :, 2], X[:, :, 1], X[:, :, 0], X[:, :, 9])
+        cloud_mask = cloud_or_snow_mask(X[:, :, 8], X[:, :, 7], X[:, :, 6], X[:, :, 2], X[:, :, 1], X[:, :, 0], X[:, :, 9])
         # Mute cloudy pixels by setting them to zero.
         X[cloud_mask] = 0
         Xs.append(X)
@@ -92,18 +87,18 @@ Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 
 # Build the model.
 
-# model = Sequential()
-# model.add(layers.BatchNormalization())
-# model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
-# model.add(layers.Dropout(0.5))
-# model.add(layers.BatchNormalization())
-# model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
-# model.add(layers.Dropout(0.3))
-# model.add(layers.BatchNormalization())
-# model.add(layers.MaxPooling1D(pool_size=2))
-# model.add(layers.Flatten())
-# model.add(layers.Dense(100, activation='relu'))
-# model.add(layers.Dense(len(valuemap), activation='softmax'))
+model = Sequential()
+model.add(layers.BatchNormalization())
+model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
+model.add(layers.Dropout(0.5))
+model.add(layers.BatchNormalization())
+model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
+model.add(layers.Dropout(0.3))
+model.add(layers.BatchNormalization())
+model.add(layers.MaxPooling1D(pool_size=2))
+model.add(layers.Flatten())
+model.add(layers.Dense(100, activation='relu'))
+model.add(layers.Dense(len(valuemap), activation='softmax'))
 
 model = Sequential()
 model.add(layers.BatchNormalization())
@@ -139,7 +134,7 @@ normed3 = layers.BatchNormalization()(hidden1)
 dropped3 = layers.Dropout(0.5)(normed3)
 # prediction output
 output = layers.Dense(len(valuemap), activation='softmax')(dropped3)
-# model = Model(inputs=visible, outputs=output)
+model = Model(inputs=visible, outputs=output)
 
 # Compile the model.
 config = {}
