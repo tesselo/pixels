@@ -25,7 +25,7 @@ tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 5))
 s3 = boto3.client('s3')
 config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 config = json.loads(config['Body'].read())
-#config=json.load(open('/home/tam/Desktop/pixelsrnn/pge_placer/config.json'))
+# config=json.load(open('/home/tam/Desktop/pixelsrnn/pge_placer/config.json'))
 
 # Compute tile index from config.
 current_job = None

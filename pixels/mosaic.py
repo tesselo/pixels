@@ -6,6 +6,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+from pixels.clouds import composite_index
 from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
@@ -132,17 +133,17 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
     else:
         # Construct array of latest pixel calls with varying dates.
         dates = [(geojson, step[1], scale, bands, limit, clip, pool, max_cloud_cover) for step in timeseries_steps(min_date, max_date, interval)]
+
     # Call pixels calls asynchronously.
-    #with Pool(len(dates)) as p:###############3
-    with Pool(10) as p:
+    with Pool(len(dates)) as p:
         return p.starmap(latest_pixel_s2, dates)
 
 
 def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
     """
-    Get the latest pixel for the input items over the input fetures.
+    Get the composite over the input features.
     """
-    logger.info('Latest pixels for {}'.format(date))
+    logger.info('Latest pixels for {}'.format(start))
 
     search = {
         "intersects": compute_wgs83_bbox(geojson),
@@ -157,7 +158,6 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     if 'features' not in response:
         raise ValueError('No features in search response.')
 
-    stack = None
     for item in response['features']:
         # Prepare band list.
         band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
@@ -165,3 +165,8 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
         if pool:
             with Pool(len(bands)) as p:
                 data = p.starmap(retrieve, band_list)
+
+        # Compute index of each band in the selection and pass to composite
+        # index calculator.
+        #### Unifinished
+        composite_index(data)

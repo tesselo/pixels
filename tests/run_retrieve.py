@@ -47,7 +47,7 @@ search = {
     "limit": 10,
     "intersects": compute_wgs83_bbox(geojson),
     "datetime": "2019-08-01T00:00:00Z/2019-08-31T00:00:00Z",
-    "collections": ['sentinel-s2-l1c'],
+    "collections": ['sentinel-s2-l2a-cogs'],
 }
 endpoint = 'https://earth-search.aws.element84.com/v0/search'
 response = requests.post(endpoint, json=search).json()
