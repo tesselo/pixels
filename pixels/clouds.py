@@ -7,7 +7,7 @@ def composite_index(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in):
     """
     Shortcut for composite index.
     """
-    return _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in)
+    return _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=False)
 
 
 def cloud_or_snow_mask(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in):
@@ -27,6 +27,10 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     https://usermanual.readthedocs.io/en/latest/pages/References.html#s2gmatbd
     https://usermanual.readthedocs.io/en/latest/_downloads/76c99b523c9067757b4b81a022345086/S2GM-SC2-ATBD-BC-v1.3.2.pdf
     """
+    # Nodata mask.
+    NODATA_VALUE = 0
+    nodata_mask = B02in == NODATA_VALUE
+
     # Rescale images.
     B02 = numpy.clip(B02in, 0, SCALE) / SCALE
     B03 = numpy.clip(B03in, 0, SCALE) / SCALE
@@ -63,7 +67,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     isLowProbCloud = A | B | C & D | E
 
     # Compute cloud mask.
-    cloud_mask = isSnow | isHighProbCloud | isLowProbCloud
+    cloud_mask = isSnow | isHighProbCloud | isLowProbCloud | nodata_mask
 
     # Return early for cloud mask mode.
     if cloud_only:
@@ -82,14 +86,14 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
 
     # Compute averages and min/max indexes.
     ndwiMean = numpy.nanmean(ndwi, axis=0)
-    ndwiMaxIndex = numpy.where(numpy.isnan(ndwiMean), numpy.nan, numpy.argmax(ndwi, axis=0)).astype('uint8')
+    ndwiMaxIndex = numpy.where(numpy.isnan(ndwiMean), numpy.nan, numpy.argmax(ndwi, axis=0))
 
     ndviMean = numpy.nanmean(ndvi, axis=0)
-    ndviMinIndex = numpy.where(numpy.isnan(ndviMean), numpy.nan, numpy.argmin(ndvi, axis=0)).astype('uint8')
-    ndviMaxIndex = numpy.where(numpy.isnan(ndviMean), numpy.nan, numpy.argmax(ndvi, axis=0)).astype('uint8')
+    ndviMinIndex = numpy.where(numpy.isnan(ndviMean), numpy.nan, numpy.argmin(ndvi, axis=0))
+    ndviMaxIndex = numpy.where(numpy.isnan(ndviMean), numpy.nan, numpy.argmax(ndvi, axis=0))
 
     tcbMean = numpy.nanmean(tcb, axis=0)
-    tcbMinIndex = numpy.where(numpy.isnan(tcbMean), numpy.nan, numpy.argmin(tcb, axis=0)).astype('uint8')
+    tcbMinIndex = numpy.where(numpy.isnan(tcbMean), numpy.nan, numpy.argmin(tcb, axis=0))
 
     # Prepare result array.
     result = -numpy.ones(ndvi.shape[1:])
@@ -97,8 +101,10 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     # Criteria 1
     # if mndwiMean < -0.55 & ndvi[ndviMaxIndex] - ndviMean < 0.05:
     #     index = ndviMaxIndex
+    import ipdb; ipdb.set_trace()
     selector = (ndwiMean < -0.55) & ((ndvi[ndviMaxIndex, idx1, idx2] - ndviMean) < 0.05)
     result[selector] = ndviMaxIndex[selector]
+    print('R1', numpy.sum(result==-1))
 
     # Criteria 2
     # elif (ndviMean < -0.3 & mndwiMean -mndwi[mndwiMinIndex] < 0.05):
@@ -106,6 +112,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = (ndviMean < -0.3) & ((ndwiMean - ndwi[ndwiMaxIndex, idx1, idx2]) < 0.05)
     selector = selector & (result == -1)
     result[selector] = ndwiMaxIndex[selector]
+    print('R2', numpy.sum(result==-1))
 
     # Criteria 3
     # elif (ndviMean > 0.6 & tcbMean < 0.45):
@@ -113,6 +120,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = (ndviMean > 0.6) & (tcbMean < 0.45)
     selector = selector & (result == -1)
     result[selector] = ndviMaxIndex[selector]
+    print('R3', numpy.sum(result==-1))
 
     # Criteria 4
     # elif (numpy.logical_not(cloudTest[tcbMinIndex])):
@@ -121,6 +129,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = numpy.logical_not(cloud_test[tcbMinIndex, idx1, idx2])
     selector = selector & (result == -1)
     result[selector] = tcbMinIndex[selector]
+    print('R4', numpy.sum(result==-1))
 
     # Criteria 5
     # elif (numpy.logical_not(snowTest[tcbMinIndex])):
@@ -131,6 +140,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = numpy.logical_not(isSnow[tcbMinIndex, idx1, idx2]) & (tcb[tcbMinIndex, idx1, idx2] < 1)
     selector = selector & (result == -1)
     result[selector] = tcbMinIndex[selector]
+    print('R5', numpy.sum(result==-1))
 
     # Criteria 6
     # elif (ndviMean < -0.2):
@@ -138,6 +148,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = ndviMean < -0.2
     selector = selector & (result == -1)
     result[selector] = ndwiMaxIndex[selector]
+    print('R6', numpy.sum(result==-1))
 
     # Criteria 7
     # elif (tcbMean > 0.45):
@@ -145,6 +156,7 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = tcbMean > 0.45
     selector = selector & (result == -1)
     result[selector] = ndviMinIndex[selector]
+    print('R7', numpy.sum(result==-1))
 
     # Criteria 8
     # else:

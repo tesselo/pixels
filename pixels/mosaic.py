@@ -143,7 +143,7 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     """
     Get the composite over the input features.
     """
-    logger.info('Latest pixels for {}'.format(start))
+    logger.info('Compositing pixels for {}'.format(start))
 
     search = {
         "intersects": compute_wgs83_bbox(geojson),
@@ -158,6 +158,11 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     if 'features' not in response:
         raise ValueError('No features in search response.')
 
+    print('Found {} input scenes.'.format(len(response['features'])))##
+    print('Cloud cover is {}.'.format([dat['properties']['eo:cloud_cover'] for dat in response['features']]))##
+
+    stack = []
+    creation_args = None
     for item in response['features']:
         # Prepare band list.
         band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
@@ -165,8 +170,20 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
         if pool:
             with Pool(len(bands)) as p:
                 data = p.starmap(retrieve, band_list)
-
-        # Compute index of each band in the selection and pass to composite
-        # index calculator.
-        #### Unifinished
-        composite_index(data)
+        else:
+            data = []
+            for band in band_list:
+                data.append(retrieve(*band))
+        # Get creation args from first result.
+        if creation_args is None:
+            creation_args = data[0][0]
+        # Add scene to stack.
+        stack.append(numpy.array([dat[1] for dat in data]))
+    # Convert stack.
+    stack = numpy.array(stack)
+    # Compute index of each band in the selection and pass to composite
+    # index calculator.
+    BANDS_REQUIRED = ('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12')
+    cidx = composite_index(*(stack[:, bands.index(band)] for band in BANDS_REQUIRED))
+    idx1, idx2 = numpy.indices(stack.shape[2:])
+    return creation_args, stack[cidx, :, idx1, idx2]
