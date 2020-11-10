@@ -26,10 +26,9 @@ def collect():
 
     # Get setup variables from env.
     bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-    # project_id = os.environ.get('PROJECT_ID', 'test')
-    project_id = 'esblidar'
+    project_id = os.environ.get('PROJECT_ID', 'test')
     array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
-    features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 1000))
+    features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 100))
     logger.info('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
         bucket, project_id, array_index, features_per_job
     ))
@@ -40,10 +39,8 @@ def collect():
 
     # Select feature for this job.
     geofile = config['training_geofile']
-    geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
-    # geojson = open('/home/tam/Desktop/pixels_test/mz-training-2020.gpkg', 'rb')
-    # if not geopath.lower().startswith('s3://'):
-    #     geopath = 's3://{}/{}/{}'.format(bucket, project_id, geopath)
+    ###geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
+    geo_object = '/home/tam/Desktop/esb/landcover/esblandcover/esb_pixels_landcover_samples.gpkg'
 
     features = []
     with fiona.open(geo_object) as src:

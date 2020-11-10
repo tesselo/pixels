@@ -74,37 +74,5 @@ def push_training_collection(bucket, project_id):
     return batch.submit_job(**job)
 
 
-push_training_collection('tesselo-pixels-results', 'esblidar')
-# Push training pack job.
-# job['jobName'] = 'pack-train-{}'.format(project_id)
-# job['containerOverrides']['command'] = ['pack.py']
-# job.pop('arrayProperties', None)
-# job['dependsOn'] = [
-#     {'jobId': collect_train_result['jobId'], 'type': 'SEQUENTIAL'},
-# ]
-# pack_train_result = batch.submit_job(**job)
-# all_jobs.append(pack_train_result)
-
-# Push training job.
-# job['jobName'] = 'train-{}'.format(project_id)
-# job['containerOverrides']['command'] = ['train.py']
-# job['containerOverrides']['memory'] = 4096
-# job.pop('arrayProperties', None)
-# job['dependsOn'] = [
-#     {'jobId': pack_train_result['jobId'], 'type': 'SEQUENTIAL'},
-# ]
-# train_job = batch.submit_job(**job)
-# all_jobs.append(train_job)
-
-# Push prediction collection job (assumes only one geom for prediction).
-# job['jobName'] = 'collect-predict-{}'.format(project_id)
-# job['containerOverrides']['command'] = ['collect.py']
-# job['containerOverrides']['environment'].append({'name': 'PREDICT', 'value': 'true'})
-# job['containerOverrides']['memory'] = 4096
-# job.pop('arrayProperties', None)
-# job.pop('dependsOn', None)
-# collect_predict_job = batch.submit_job(**job)
-# all_jobs.append(collect_predict_job)
-
-# Push predict pack job.
-# job['jobName'] = 'pack-pr
+# push_training_collection('tesselo-pixels-results', 'esblidar')
+push_training_collection('tesselo-pixels-results', 'esblandcover')
