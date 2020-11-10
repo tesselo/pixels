@@ -39,8 +39,7 @@ def collect():
 
     # Select feature for this job.
     geofile = config['training_geofile']
-    ###geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
-    geo_object = '/home/tam/Desktop/esb/landcover/esblandcover/esb_pixels_landcover_samples.gpkg'
+    geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
 
     features = []
     with fiona.open(geo_object) as src:

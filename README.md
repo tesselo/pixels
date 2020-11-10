@@ -3,6 +3,8 @@ A globel pixel grabber engine.
 
 With a simple [documentation](docs/index.md).
 
+Copyright 2020 Tesselo - Space Mosaic Lda. All rights reserved.
+
 ## Environment
 For search in scihub `ESA_SCIHUB_USERNAME` and `ESA_SCIHUB_PASSWORD`.
 

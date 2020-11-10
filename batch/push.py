@@ -74,5 +74,5 @@ def push_training_collection(bucket, project_id):
     return batch.submit_job(**job)
 
 
-# push_training_collection('tesselo-pixels-results', 'esblidar')
-push_training_collection('tesselo-pixels-results', 'esblandcover')
+push_training_collection('tesselo-pixels-results', 'esblidar')
+# push_training_collection('tesselo-pixels-results', 'esblandcover')
