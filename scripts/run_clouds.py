@@ -1,7 +1,7 @@
 import numpy
 from PIL import Image
 
-from pixels.clouds import composite_index
+from pixels.clouds import composite
 
 data = numpy.load('/home/tam/Desktop/esb/combined_data/pixels_9.npz', allow_pickle=True)
 
@@ -11,7 +11,7 @@ print(X.shape)
 
 # "bands": ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
 
-dat = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9], composite=True)
+dat = composite(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9], cloud_only=False)
 
 print(dat)
 result = []
