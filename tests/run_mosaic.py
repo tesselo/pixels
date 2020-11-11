@@ -20,7 +20,8 @@ logging.basicConfig(level=logging.INFO)
 geojson = {
     "type": "FeatureCollection",
     "name": "aoi_lx_3857",
-    "crs": {"init": "EPSG:3857"},
+    # "crs": {"init": "EPSG:3857"},
+    "crs": {"init": "EPSG:29900"},
     "features": [
         {
             "type": "Feature",
@@ -28,24 +29,31 @@ geojson = {
             "geometry": {
                 "type": "Polygon",
                 "coordinates": [[
-                    [-1018560.0, 4689560.0],
-                    [-1018560.0, 4685000.0],
-                    [-1014000.0, 4685000.0],
-                    [-1014000.0, 4689560.0],
-                    [-1018560.0, 4689560.0],
+                    # [-1018560.0, 4689560.0],
+                    # [-1018560.0, 4685000.0],
+                    # [-1014000.0, 4685000.0],
+                    # [-1014000.0, 4689560.0],
+                    # [-1018560.0, 4689560.0],
+                    [200182, 342215],
+                    [200182, 347215],
+                    [205679, 347222],
+                    [205670, 341852],
+                    [200190, 341846],
+                    [200182, 342215],
                 ]]
             }
         },
     ]
 }
 
+
 # Get pixels.
 now = datetime.datetime.now()
 # stack = latest_pixel_s2(geojson, '2020-08-01', scale=10, clip=True, bands=['B04', 'B03', 'B02'])
-creation_args, stack = composite(geojson, '2020-08-01', '2020-08-08', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
+creation_args, stack = composite(geojson, '2020-02-01', '2020-02-18', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 print('Timing', datetime.datetime.now() - now)
 # Convert to image for visualization.
 # img = numpy.dstack([255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in stack[2]]).astype('uint8')
-img = numpy.dstack([255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[:, :, 2], stack[:, :, 1], stack[:, :, 0]]]).astype('uint8')
+img = numpy.dstack([255 * (numpy.clip(dat, 0, 1000) / 1000) for dat in [stack[:, :, 2], stack[:, :, 1], stack[:, :, 0]]]).astype('uint8')
 img = Image.fromarray(img)
 img.show()
