@@ -1,7 +1,10 @@
 from sqlalchemy import create_engine
 import sqlalchemy as db
 import psycopg2
-import json, datetime
+import json, datetime, geojson
+from rasterio.features import bounds
+import geopandas as gpd
+
 
 # Engine configuration -> Database URL
 # dialect+driver://username:password@host:port/database
@@ -13,12 +16,25 @@ connection = engine.connect()
 # metadata = db.MetaData()
 # eo_index = db.Table('eo_index', metadata, autoload=True, autoload_with=engine)
 
+def get_bounds(geojson):
+
+    bbox = bounds(geojson)
+    xmin = bbox[0]
+    ymin = bbox[1]
+    xmax = bbox[2]
+    ymax = bbox[3]
+
+    return xmin, xmax, ymin, ymax
+
 # Function to search in API
-def search_data(table, xmin, xmax, ymin, ymax, platform=None, start=None, end=None, maxcloud=None, limit=10):
+def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, limit=10):
     """ Query data from the eo_catalog DB """
+    
+    # Getting bounds
+    xmin, xmax, ymin, ymax = get_bounds(geojson)
 
     # SQL query template
-    query = "SELECT base_url, product_id, sensing_time, mgrs_tile FROM {table} WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),geom)"
+    query = "SELECT base_url, product_id, sensing_time, mgrs_tile FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},3857),geom)"
 
     # Check inputs
     if start is not None:
@@ -33,7 +49,8 @@ def search_data(table, xmin, xmax, ymin, ymax, platform=None, start=None, end=No
         query += ' LIMIT {}'.format(limit)
 
     # Execute and format querry
-    formatted_query = query.format(table=table,xmin=xmin, xmax=xmax,ymin=ymin, ymax=ymax)
+    formatted_query = query.format(xmin=xmin, xmax=xmax,ymin=ymin, ymax=ymax)
+    #print(formatted_query)
     result = engine.execute(formatted_query)
     # print(' * ',formatted_query, ' * ')
 
@@ -42,7 +59,7 @@ def search_data(table, xmin, xmax, ymin, ymax, platform=None, start=None, end=No
 
 #Templates
 GOOGLE_URL = 'https://storage.cloud.google.com'
-AWS_URL = ' https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs'
+AWS_URL = 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs'
 
 BASE_SENTINEL = 'gs://gcp-public-data-sentinel-2/tiles'
 BASE_LANDSAT = 'gs:/'
@@ -57,6 +74,7 @@ LS_BANDS = [ 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7',
 
 def get_bands(response):
     result = []
+
     for value in response:
         if 'sentinel-2' in value["base_url"]:
             value['bands'] =  format_sentinel_band(value)
@@ -117,6 +135,8 @@ def format_ls_band(value):
 
 
 #tests
-#result = get_bands(search_data(table='imagery', xmin=-48.461552, xmax=-48.445244, ymin=-1.482603 , ymax=-1.469732, start = '2020-01-01', end = '2020-01-10', maxcloud = 90))
-#print(result)
+
+#geojson = gpd.read_file('/home/keren/Desktop/paciencia.geojson')
+# result = get_bands(search_data(geojson, start = '2020-01-01', end = '2020-01-10', maxcloud = 50))
+# print(result)
 

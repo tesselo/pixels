@@ -10,6 +10,11 @@ from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
 
+import geopandas as gpd
+from rasterio.features import bounds
+from pixels.search_img import get_bands
+from pixels.search_img import search_data
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -35,15 +40,19 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     """
     logger.info('Latest pixels for {}'.format(date))
 
-    search = {
-        "intersects": compute_wgs83_bbox(geojson),
-        "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
-        "collections": ['sentinel-s2-l2a-cogs'],
-        "limit": limit,
-    }
-    response = http.post(SEARCH_ENDPOINT, json=search)
-    response.raise_for_status()
-    response = response.json()
+    # search = {
+    #     "intersects": compute_wgs83_bbox(geojson),
+    #     "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
+    #     "collections": ['sentinel-s2-l2a-cogs'],
+    #     "limit": limit,
+    # }
+    # response = http.post(SEARCH_ENDPOINT, json=search)
+    # response.raise_for_status()
+    # response = response.json()
+
+    #geojson = gpd.read_file('/home/keren/Desktop/paciencia.geojson')
+    result = get_bands(search_data(geojson, start = '1972-07-23'))
+    scene = result[0]pg
 
     if 'features' not in response:
         raise ValueError('No features in search response.')
