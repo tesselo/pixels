@@ -135,6 +135,7 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
         dates = [(geojson, step[1], scale, bands, limit, clip, pool, max_cloud_cover) for step in timeseries_steps(min_date, max_date, interval)]
 
     # Call pixels calls asynchronously.
+    logger.info('Found {} scenes, getting asynchronously.'.format(len(dates)))
     with Pool(len(dates)) as p:
         return p.starmap(latest_pixel_s2, dates)
 
