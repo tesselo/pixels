@@ -11,9 +11,6 @@ import fiona
 AWS_BATCH_ARRAY_SIZE_LIMIT = 10000
 MIN_FEATURES_PER_JOB = 100
 
-# Get path from env.
-bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -74,5 +71,10 @@ def push_training_collection(bucket, project_id):
     return batch.submit_job(**job)
 
 
-push_training_collection('tesselo-pixels-results', 'esblidar')
-# push_training_collection('tesselo-pixels-results', 'esblandcover')
+# Get path from env.
+bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
+project = os.environ.get('PROJECT_ID')
+if project is None:
+    raise ValueError('Specify PROJECT_ID env var.')
+jobid = push_training_collection(bucket, project)
+print(jobid)

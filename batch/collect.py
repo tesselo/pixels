@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
+    level=logging.WARNING,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
@@ -27,19 +27,27 @@ def collect():
     # Get setup variables from env.
     bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
     project_id = os.environ.get('PROJECT_ID', 'test')
+    local_path = os.environ.get('PIXELS_LOCAL_PATH', None)
     array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
     features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 100))
     logger.info('Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}'.format(
         bucket, project_id, array_index, features_per_job
     ))
 
-    # Fetch config.
-    config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
-    config = json.loads(config['Body'].read())
+    if local_path:
+        with open(os.path.join(local_path, 'config.json')) as fl:
+            config = json.load(fl)
+    else:
+        # Fetch config.
+        config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
+        config = json.loads(config['Body'].read())
 
-    # Select feature for this job.
+    # Select feature set for this job.
     geofile = config['training_geofile']
-    geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
+    if local_path:
+        geo_object = os.path.join(local_path, geofile)
+    else:
+        geo_object = s3.get_object(Bucket=bucket, Key=project_id + '/{}'.format(geofile))['Body']
 
     features = []
     with fiona.open(geo_object) as src:
@@ -69,18 +77,22 @@ def collect():
         # Combine data into numpy array.
         output = io.BytesIO()
         numpy.savez_compressed(output, feature=feature, array_index=array_index, data=[dat[2] for dat in result], dates=[dat[1] for dat in result], creation_args=result[0][0])
-        # numpy.savez_compressed('/home/tam/Desktop/pixels_test/pixels_{}.npz'.format(array_index), feature=feature, array_index=array_index, data=[dat[2] for dat in result], dates=[dat[1] for dat in result], creation_args=result[0][0])
         output.seek(0)
 
         # Upload result to bucket.
-        s3.put_object(
-            Bucket=bucket,
-            Key='{project_id}/training/pixels_{fid}.npz'.format(
-                project_id=project_id,
-                fid=feature['features'][0]['id'],
-            ),
-            Body=output,
-        )
+        if local_path:
+            target = os.path.join(local_path, 'training/pixels{}.npz'.format(feature['features'][0]['id']))
+            with open(target, 'wb') as fl:
+                fl.write(output.read())
+        else:
+            s3.put_object(
+                Bucket=bucket,
+                Key='{project_id}/training/pixels_{fid}.npz'.format(
+                    project_id=project_id,
+                    fid=feature['features'][0]['id'],
+                ),
+                Body=output,
+            )
 
 
 if __name__ == '__main__':
