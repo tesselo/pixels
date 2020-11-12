@@ -47,31 +47,40 @@ def compute_mask(geojson, height, width, transform, value_column_name=None, all_
     return mask
 
 
-def compute_wgs83_bbox(geojson):
+def compute_wgs83_bbox(geojson, return_bbox=False):
     """
     Computes the bounding box of the input geojson in WGS84 coordinates.
     """
     # Compute bounding box in original coordinates.
     bbox = bounds(geojson)
+
     # Transform the two corners.
     crs = geojson['crs']['init'] if 'init' in geojson['crs'] else geojson['crs']['properties']['name']
-    corners = transform(crs, 'EPSG:4326', [bbox[0], bbox[2]], [bbox[1], bbox[3]])
+    if 'EPSG:4326' not in crs:
+        bbox = transform(crs, 'EPSG:4326', [bbox[0], bbox[2]], [bbox[1], bbox[3]])
+
     # Compute transformed range.
-    xmin = min(corners[0])
-    ymin = min(corners[1])
-    xmax = max(corners[0])
-    ymax = max(corners[1])
-    # Return new bounding box as geojson polygon.
-    return {
-        "type": "Polygon",
-        "coordinates": [[
-            [xmin, ymin],
-            [xmin, ymax],
-            [xmax, ymax],
-            [xmax, ymin],
-            [xmin, ymin],
-        ]],
-    }
+    xmin = min(bbox[0])
+    ymin = min(bbox[1])
+    xmax = max(bbox[0])
+    ymax = max(bbox[1])
+
+    if return_bbox:
+        bbox = (xmin, ymin, xmax, ymax)
+    else:
+        # Return new bounding box as geojson polygon.
+        bbox = {
+            "type": "Polygon",
+            "coordinates": [[
+                [xmin, ymin],
+                [xmin, ymax],
+                [xmax, ymax],
+                [xmax, ymin],
+                [xmin, ymin],
+            ]],
+        }
+
+    return bbox
 
 
 def timeseries_steps(start, end, interval, intervals_per_step=1):
