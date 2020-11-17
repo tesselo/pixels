@@ -31,7 +31,7 @@ http.mount("http://", adapter)
 
 LANDSAT_1_LAUNCH_DATE = '1972-07-23'
 
-def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None,):
+def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
     """
     Get the latest pixel for the input items over the input fetures.
     """
@@ -40,8 +40,8 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         logger.info('Latest pixels for {} item.'.format(len(end_date)))
         items = end_date
     else:
-        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform))
-        #import ipdb; ipdb.set_trace()                                       
+        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud))
+                                       
         if  not response:
             raise ValueError('No scenes in search response.')
 
@@ -53,7 +53,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     stack = None
 
     for item in items:
-        logger.info(str(item['id']))
+        logger.info(str(item['product_id']))
         # Prepare band list.
         band_list = [(item['bands'][band], geojson, scale, False, False, False, None)for band in bands]
 
@@ -104,12 +104,11 @@ def latest_pixel_s2_stack(geojson, end, scale, interval='weeks', bands=S2_BANDS,
     """
     if interval == 'all':
         # Get all scenes of for this date range.
-        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform))
+        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform, maxcloud=maxcloud))
 
         if 'bands' not in response:
             raise ValueError('No scenes in search response.')
 
-        # Filter by cloud cover.
         # Filter by cloud cover.
         items = response
         if maxcloud is not None:
@@ -131,13 +130,13 @@ def latest_pixel_s2_stack(geojson, end, scale, interval='weeks', bands=S2_BANDS,
         return p.starmap(latest_pixel_s2, dates)
 
 
-def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, platform='SENTINEL_2'):
+def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, platform='SENTINEL_2', maxcloud=None):
     """
     Get the composite over the input features.
     """
     logger.info('Compositing pixels for {}'.format(start))
 
-    response = get_bands(search_data(geojson=geojson, platform=platform, start =start, end=end, limit=limit))
+    response = get_bands(search_data(geojson=geojson, platform=platform, start =start, end=end, limit=limit, maxcloud=maxcloud))
 
     if 'bands' not in response:
         raise ValueError('No features in search response.')

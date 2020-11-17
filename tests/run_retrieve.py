@@ -47,17 +47,14 @@ geojson = {
 # Search scenes
 result = get_bands(search_data(geojson, start = '2020-07-01', end = '2020-07-15', maxcloud = 50))
 scene = result[0]
-# print(scene)
 
 # Get pixels.
 now = datetime.datetime.now()
 stack = [retrieve(scene['bands'][band], geojson, scale=30, clip=True) for band in ['B4', 'B3', 'B2']]
 print('Timing', datetime.datetime.now() - now)
 
-#print(stack)
-
 # Convert to image for visualization.
-#img = numpy.dstack([255 * (numpy.clip(dat[1], 0, 20000) / 20000) for dat in stack]).astype('uint8')    # Sentinel_2
+#img = numpy.dstack([255 * (numpy.clip(dat[1], 0, 40000) / 40000) for dat in stack]).astype('uint8')    # Sentinel_2
 img = numpy.dstack([255 * (numpy.clip(dat[1], 0, 20000) / 20000) for dat in stack]).astype('uint8')     # Landsat_8
 img = Image.fromarray(img)
 img.show()

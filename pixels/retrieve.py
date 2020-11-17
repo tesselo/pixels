@@ -11,8 +11,6 @@ from pixels.utils import compute_mask, compute_transform
 logger = logging.getLogger(__name__)
 
 
-#import ipdb; ipdb.set_trace()
-
 def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touched=False, bands=None):
     """
     Get pixels from a source raster over the a geojson feature collection.

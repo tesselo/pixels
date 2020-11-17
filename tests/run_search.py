@@ -64,6 +64,6 @@ geojson = {
 # }
 
 #geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
-result = get_bands(search_data(geojson, start = '2020-01-01', end = '2020-01-16', maxcloud=100))
+result = get_bands(search_data(geojson, start = '1990-01-01', end = '2020-01-16', maxcloud=100, limit=1))
 print(result)
 

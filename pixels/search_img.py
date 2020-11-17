@@ -5,38 +5,36 @@ import os
 import geojson
 import geopandas as gpd
 import psycopg2
-import sqlalchemy as db
+import sqlalchemy
+from dateutil.parser import parse
 from rasterio.features import bounds
 from sqlalchemy import create_engine
 
 from pixels.utils import compute_wgs83_bbox
 
-# DB_NAME = os.environ.get('DB_NAME')
-# PASSWORD
-# HOST
+DB_NAME = os.environ.get('DB_NAME', 'pixels')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_USER = os.environ.get('DB_HOST', 'postgres')
 
 # Engine configuration -> Database URL
-db_url = 'postgresql://postgres:postgres@localhost:5432/pixels'
-#DB_TEMPLATE = 'dialect+driver://{username}:{password}@{host}:{port}/{database}'.format(username=username, password=password, host=host, port=port, database=database)
+DB_TEMPLATE = 'postgresql://{username}:{password}@{host}:{port}/{database}'
+db_url =  DB_TEMPLATE.format(username=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=5432, database=DB_NAME)
+
 
 # Connecting
-engine = db.create_engine(db_url)
+engine = sqlalchemy.create_engine(db_url)
 connection = engine.connect()
-# metadata = db.MetaData()
-# eo_index = db.Table('eo_index', metadata, autoload=True, autoload_with=engine)
-
 
 # Function to search in API
-def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, limit=10):
+def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, limit=10, sort='sensing_time'):
     """ Query data from the eo_catalog DB """
     
     # Getting bounds
-   
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
-    #xmin, xmax, ymin, ymax = get_bounds(geojson)
-   
+    
     # SQL query template
-    query = "SELECT product_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),geom)"
+    query = "SELECT product_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
     # Check inputs
     if start is not None:
@@ -47,14 +45,15 @@ def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, lim
         query += ' AND spacecraft_id = \'{}\' '.format(platform)
     if maxcloud is not None:
         query += ' AND cloud_cover <= {} '.format(maxcloud)
+    if sort is not None:
+        query += ' ORDER BY {} DESC'.format(sort)
     if limit is not None:
-        query += 'LIMIT {};'.format(limit)
+        query += ' LIMIT {};'.format(limit)
 
     # Execute and format querry
     formatted_query = query.format(xmin=xmin, xmax=xmax,ymin=ymin, ymax=ymax)
-    #print(formatted_query)
     result = engine.execute(formatted_query)
-    # print(' * ',formatted_query, ' * ')
+   
 
     #Transform ResultProxy into json
     return [dict(row) for row in result]
@@ -87,13 +86,13 @@ def get_bands(response):
     return result
 
 def format_sentinel_band(value):
-    # band_template_url = "{base_url}/{product_id}/{year}/{month}/{product_id}_{mgrstile}_{sensingtime}_0_L2A/{s2_band}"
+
     mgr = value["mgrs_tile"]
     utm_zone = mgr[:2]
     latitude_code = mgr[2:3]
     square_grid = mgr[3:5]
     base_url = AWS_URL
-    date = datetime.datetime.strptime(str(value["sensing_time"]), '%Y-%m-%d %H:%M:%S.%f')
+    date = parse(str(value["sensing_time"]))
     product_id = value["product_id"]
     sensing_time = str(date.date()).replace('-', '')
     sequence = 0
