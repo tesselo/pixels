@@ -60,7 +60,6 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     E = (numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.3)) & ((tcHaze < -0.09) & (rgbMean > 0.12)))
     isHighProbCloud = A | B | C & D | E
 
-
     # Compute cloud mask.
     # cloud_mask = isSnow | isHighProbCloud | isLowProbCloud | nodata_mask
     cloud_mask = isSnow | isHighProbCloud | nodata_mask

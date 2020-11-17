@@ -2,33 +2,18 @@ import logging
 from multiprocessing import Pool
 
 import numpy
-import requests
-from rasterio.features import bounds
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 
 from pixels.clouds import composite_index
-from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
+from pixels.const import NODATA_VALUE, S2_BANDS
 from pixels.retrieve import retrieve
 from pixels.search_img import get_bands, search_data
-from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
+from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
 logger = logging.getLogger(__name__)
 
-# Instanciate requests retry strategy.
-retry_strategy = Retry(
-    total=5,
-    status_forcelist=[413, 429, 500, 502, 503, 504],
-    method_whitelist=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
-    backoff_factor=1,
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-http = requests.Session()
-http.mount("https://", adapter)
-http.mount("http://", adapter)
-
 LANDSAT_1_LAUNCH_DATE = '1972-07-23'
+
 
 def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
     """
@@ -41,7 +26,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     else:
         response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud))
 
-        if  not response:
+        if not response:
             raise ValueError('No scenes in search response.')
 
         # Filter by cloud cover.
@@ -97,7 +82,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     return creation_args, stack
 
 
-def latest_pixel_s2_stack(geojson, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
+def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
     """
     Get the latest pixel at regular intervals between two dates.
     """
@@ -135,13 +120,10 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     """
     logger.info('Compositing pixels for {}'.format(start))
 
-    response = get_bands(search_data(geojson=geojson, platform=platform, start =start, end=end, limit=limit, maxcloud=maxcloud))
+    response = get_bands(search_data(geojson=geojson, platform=platform, start=start, end=end, limit=limit, maxcloud=maxcloud))
 
     if 'bands' not in response:
         raise ValueError('No features in search response.')
-
-    print('Found {} input scenes.'.format(len(response)))##
-    print('Cloud cover is {}.'.format([dat['cloud_cover'] for dat in response]))##
 
     stack = []
     creation_args = None
