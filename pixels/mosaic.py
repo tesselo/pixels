@@ -1,7 +1,6 @@
 import logging
 from multiprocessing import Pool
 
-import geopandas as gpd
 import numpy
 import requests
 from rasterio.features import bounds
@@ -41,7 +40,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         items = end_date
     else:
         response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud))
-                                       
+
         if  not response:
             raise ValueError('No scenes in search response.')
 
@@ -146,7 +145,7 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
 
     stack = []
     creation_args = None
-    
+
     for item in response:
         # Prepare band list.
         band_list = [(response['bands'][band], geojson, scale, False, False, False, None)for band in bands]
