@@ -70,8 +70,6 @@ for start, end in steps:
             'environment': [
                 {'name': 'AWS_ACCESS_KEY_ID', 'value': os.environ.get('AWS_ACCESS_KEY_ID')},
                 {'name': 'AWS_SECRET_ACCESS_KEY', 'value': os.environ.get('AWS_SECRET_ACCESS_KEY')},
-                {'name': 'ESA_SCIHUB_USERNAME', 'value': os.environ.get('ESA_SCIHUB_USERNAME')},
-                {'name': 'ESA_SCIHUB_PASSWORD', 'value': os.environ.get('ESA_SCIHUB_PASSWORD')},
                 {'name': 'PIXELS_PROJECT_ID', 'value': project_id},
                 {'name': 'GEO_FILE_NAME', 'value': filename},
                 {'name': 'TILE_GROUP_SIZE', 'value': str(tile_group_size)},

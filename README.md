@@ -6,8 +6,6 @@ With a simple [documentation](docs/index.md).
 Copyright 2020 Tesselo - Space Mosaic Lda. All rights reserved.
 
 ## Environment
-For search in scihub `ESA_SCIHUB_USERNAME` and `ESA_SCIHUB_PASSWORD`.
-
 For batch jobs `AWS_S3_BUCKET` and `PIXELS_PROJECT_ID`.
 
 ## Run tests
