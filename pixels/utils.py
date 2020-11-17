@@ -60,13 +60,21 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
         bbox = transform(crs, 'EPSG:4326', [bbox[0], bbox[2]], [bbox[1], bbox[3]])
 
     # Compute transformed range.
-    xmin = min(bbox[0])
-    ymin = min(bbox[1])
-    xmax = max(bbox[0])
-    ymax = max(bbox[1])
+        xmin = min(bbox[0])
+        ymin = min(bbox[1])
+        xmax = max(bbox[0])
+        ymax = max(bbox[1])
+
+    else:
+    
+        xmin = bbox[0]
+        ymin = bbox[1]
+        xmax = bbox[2]
+        ymax = bbox[3]
 
     if return_bbox:
         bbox = (xmin, ymin, xmax, ymax)
+        
     else:
         # Return new bounding box as geojson polygon.
         bbox = {

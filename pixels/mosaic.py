@@ -11,6 +11,11 @@ from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
 
+import geopandas as gpd
+from rasterio.features import bounds
+from pixels.search_img import get_bands
+from pixels.search_img import search_data
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -26,41 +31,33 @@ http = requests.Session()
 http.mount("https://", adapter)
 http.mount("http://", adapter)
 
+LANDSAT_1_LAUNCH_DATE = '1972-07-23'
 
-def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, max_cloud_cover=None):
+def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None,):
     """
     Get the latest pixel for the input items over the input fetures.
     """
-    # Skip search if list of scenes was provided, otherwise assume input is a
-    # specific date to search with.
-    if isinstance(date, (list, tuple)):
-        logger.info('Latest pixels for {} items.'.format(len(date)))
-        items = date
+    # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
+    if isinstance(end_date, (list, tuple)):
+        logger.info('Latest pixels for {} item.'.format(len(end_date)))
+        items = end_date
     else:
-        logger.info('Latest pixels for {}'.format(date))
-        search = {
-            "intersects": compute_wgs83_bbox(geojson),
-            "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
-            "collections": ['sentinel-s2-l2a-cogs'],
-            "limit": limit,
-        }
-        response = http.post(SEARCH_ENDPOINT, json=search)
-        response.raise_for_status()
-        response = response.json()
-
-        if 'features' not in response:
+        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform))
+        #import ipdb; ipdb.set_trace()                                       
+        if  not response:
             raise ValueError('No scenes in search response.')
 
         # Filter by cloud cover.
-        items = response['features']
-        if max_cloud_cover is not None:
-            items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
+        items = response
+        if maxcloud is not None:
+            items = [item for item in items if item['cloud_cover'] <= maxcloud]
 
     stack = None
+
     for item in items:
         logger.info(str(item['id']))
         # Prepare band list.
-        band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
+        band_list = [(item['bands'][band], geojson, scale, False, False, False, None)for band in bands]
 
         if pool:
             with Pool(len(bands)) as p:
@@ -100,32 +97,25 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
         for i in range(len(stack)):
             stack[i][mask] = NODATA_VALUE
 
-    return creation_args, date, stack
+    return creation_args, stack
 
 
-def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', bands=S2_BANDS, limit=10, clip=False, pool=False, max_cloud_cover=None):
+def latest_pixel_s2_stack(geojson, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
     """
     Get the latest pixel at regular intervals between two dates.
     """
     if interval == 'all':
         # Get all scenes of for this date range.
-        search = {
-            "intersects": compute_wgs83_bbox(geojson),
-            "datetime": "{}/{}".format(min_date, max_date),
-            "collections": ['sentinel-s2-l2a-cogs'],
-            "limit": 1000,
-        }
-        response = http.post(SEARCH_ENDPOINT, json=search)
-        response.raise_for_status()
-        response = response.json()
+        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform))
 
-        if 'features' not in response:
+        if 'bands' not in response:
             raise ValueError('No scenes in search response.')
 
         # Filter by cloud cover.
-        items = response['features']
-        if max_cloud_cover is not None:
-            items = [item for item in items if item['properties']['eo:cloud_cover'] <= max_cloud_cover]
+        # Filter by cloud cover.
+        items = response
+        if maxcloud is not None:
+            items = [item for item in items if item['cloud_cover'] <= maxcloud]
 
         logger.info('Getting {} scenes for this geom.'.format(len(items)))
 
@@ -133,7 +123,7 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
         dates = [(geojson, [item], scale, bands, limit, clip, pool) for item in items]
     else:
         # Construct array of latest pixel calls with varying dates.
-        dates = [(geojson, step[1], scale, bands, limit, clip, pool, max_cloud_cover) for step in timeseries_steps(min_date, max_date, interval)]
+        dates = [(geojson, step[1], scale, bands, limit, clip, pool, maxcloud) for step in timeseries_steps(start, end, interval)]
         logger.info('Getting {} {} for this geom.'.format(len(dates), interval))
 
     # Call pixels calls asynchronously.
@@ -143,33 +133,26 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
         return p.starmap(latest_pixel_s2, dates)
 
 
-def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
+def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, platform='SENTINEL_2'):
     """
     Get the composite over the input features.
     """
     logger.info('Compositing pixels for {}'.format(start))
 
-    search = {
-        "intersects": compute_wgs83_bbox(geojson),
-        "datetime": "{}/{}".format(start, end),  # Landsat 1 launch date.
-        "collections": ['sentinel-s2-l2a-cogs'],
-        "limit": limit,
-    }
-    response = http.post(SEARCH_ENDPOINT, json=search)
-    response.raise_for_status()
-    response = response.json()
+    response = get_bands(search_data(geojson=geojson, platform=platform, start =start, end=end, limit=limit))
 
-    if 'features' not in response:
+    if 'bands' not in response:
         raise ValueError('No features in search response.')
 
-    logger.info('Found {} input scenes.'.format(len(response['features'])))
-    logger.info('Cloud cover is {}.'.format([dat['properties']['eo:cloud_cover'] for dat in response['features']]))
+    print('Found {} input scenes.'.format(len(response)))##
+    print('Cloud cover is {}.'.format([dat['cloud_cover'] for dat in response]))##
 
     stack = []
     creation_args = None
-    for item in response['features']:
+    
+    for item in response:
         # Prepare band list.
-        band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
+        band_list = [(response['bands'][band], geojson, scale, False, False, False, None)for band in bands]
 
         if pool:
             with Pool(len(bands)) as p:

@@ -7,9 +7,10 @@ from rasterio.warp import Resampling, reproject
 
 from pixels.const import NODATA_VALUE
 from pixels.utils import compute_mask, compute_transform
-
 logger = logging.getLogger(__name__)
 
+
+#import ipdb; ipdb.set_trace()
 
 def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touched=False, bands=None):
     """

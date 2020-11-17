@@ -30,37 +30,25 @@ http = requests.Session()
 http.mount("https://", adapter)
 http.mount("http://", adapter)
 
-# def retrieve_satelite_bands(geojson):
-#     print(geojson["features"][0]["geometry"]["coordinates"])
 
-
-def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False):
+def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, platform='SENTINEL_2', maxcloud=None):
     """
     Get the latest pixel for the input items over the input fetures.
     """
     logger.info('Latest pixels for {}'.format(date))
 
-    # search = {
-    #     "intersects": compute_wgs83_bbox(geojson),
-    #     "datetime": "1972-07-23/{}".format(date),  # Landsat 1 launch date.
-    #     "collections": ['sentinel-s2-l2a-cogs'],
-    #     "limit": limit,
-    # }
-    # response = http.post(SEARCH_ENDPOINT, json=search)
-    # response.raise_for_status()
-    # response = response.json()
+    response = get_bands(search_data(geojson=geojson, start = '1972-07-23', end=date, limit=limit, platform=platform))
+   
 
-    #geojson = gpd.read_file('/home/keren/Desktop/paciencia.geojson')
-    result = get_bands(search_data(geojson, start = '1972-07-23'))
-    scene = result[0]pg
-
-    if 'features' not in response:
+    if 'bands' not in response:
         raise ValueError('No features in search response.')
 
     stack = None
-    for item in response['features']:
+    for item in response:
         # Prepare band list.
-        band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
+        # band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
+        band_list=[(response['bands'][band], geojson, scale, False, False, False, None)for band in bands]
+        # bands = s2_bands então como faço para colocar as do sentinel tb? na hora de chamar a função posso muddar?
 
         if pool:
             with Pool(len(bands)) as p:
