@@ -18,7 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
-logger = logging.getLogger('botocore').setLevel(logging.ERROR)
+logging.getLogger('botocore').setLevel(logging.ERROR)
 
 
 def collect():
@@ -72,7 +72,7 @@ def collect():
             config['limit'],
             config['clip'],
             pool=False,
-            max_cloud_cover=config.get('max_cloud_cover', None),
+            maxcloud=config.get('max_cloud_cover', None),
         )
 
         # Combine data into numpy array.
