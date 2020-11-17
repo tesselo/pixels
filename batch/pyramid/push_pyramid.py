@@ -17,7 +17,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'pge_placer')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'pge_placer')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 5))
 
@@ -77,7 +77,7 @@ for zoom in range(14, -1, -1):
                 {'name': 'AWS_SECRET_ACCESS_KEY', 'value': os.environ.get('AWS_SECRET_ACCESS_KEY')},
                 {'name': 'ESA_SCIHUB_USERNAME', 'value': os.environ.get('ESA_SCIHUB_USERNAME')},
                 {'name': 'ESA_SCIHUB_PASSWORD', 'value': os.environ.get('ESA_SCIHUB_PASSWORD')},
-                {'name': 'PROJECT_ID', 'value': project_id},
+                {'name': 'PIXELS_PROJECT_ID', 'value': project_id},
                 {'name': 'TILE_GROUP_SIZE', 'value': str(tile_group_size)},
                 {'name': 'AWS_S3_BUCKET', 'value': bucket},
                 {'name': 'BATCH_FILE_S3_URL', 'value': 's3://tesselo-pixels-scripts/batch.zip'},

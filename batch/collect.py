@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.WARNING,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+logger = logging.getLogger('botocore').setLevel(logging.ERROR)
 
 
 def collect():
@@ -26,7 +27,7 @@ def collect():
 
     # Get setup variables from env.
     bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-    project_id = os.environ.get('PROJECT_ID', 'test')
+    project_id = os.environ.get('PIXELS_PROJECT_ID', 'test')
     local_path = os.environ.get('PIXELS_LOCAL_PATH', None)
     array_index = int(os.environ.get('AWS_BATCH_JOB_ARRAY_INDEX', 0))
     features_per_job = int(os.environ.get('BATCH_FEATURES_PER_JOB', 100))

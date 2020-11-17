@@ -24,7 +24,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'pge_placer')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'pge_placer')
 filename = os.environ.get('GEO_FILE_NAME', 'pge_buff200_placer.gpkg')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 20))

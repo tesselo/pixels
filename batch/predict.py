@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.WARNING)
 s3 = boto3.client('s3')
 
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-project_id = os.environ.get('PROJECT_ID', 'test')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'test')
 
 config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 config = json.loads(config['Body'].read())

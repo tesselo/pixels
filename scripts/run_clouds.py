@@ -1,7 +1,7 @@
 import numpy
 from PIL import Image
 
-from pixels.clouds import composite_index, cloud_or_snow_mask
+from pixels.clouds import cloud_or_snow_mask, composite_index
 
 data = numpy.load('/home/tam/Desktop/esb/combined_data/pixels_9.npz', allow_pickle=True)
 

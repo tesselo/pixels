@@ -50,7 +50,7 @@ def push_training_collection(bucket, project_id):
                 {'name': 'AWS_SECRET_ACCESS_KEY', 'value': os.environ.get('AWS_SECRET_ACCESS_KEY')},
                 {'name': 'ESA_SCIHUB_USERNAME', 'value': os.environ.get('ESA_SCIHUB_USERNAME')},
                 {'name': 'ESA_SCIHUB_PASSWORD', 'value': os.environ.get('ESA_SCIHUB_PASSWORD')},
-                {'name': 'PROJECT_ID', 'value': project_id},
+                {'name': 'PIXELS_PROJECT_ID', 'value': project_id},
                 {'name': 'AWS_S3_BUCKET', 'value': bucket},
                 {'name': 'BATCH_FILE_S3_URL', 'value': 's3://tesselo-pixels-scripts/batch.zip'},
                 {'name': 'BATCH_FILE_TYPE', 'value': 'zip'},
@@ -73,8 +73,8 @@ def push_training_collection(bucket, project_id):
 
 # Get path from env.
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-project = os.environ.get('PROJECT_ID')
+project = os.environ.get('PIXELS_PROJECT_ID')
 if project is None:
-    raise ValueError('Specify PROJECT_ID env var.')
+    raise ValueError('Specify PIXELS_PROJECT_ID env var.')
 jobid = push_training_collection(bucket, project)
 print(jobid)

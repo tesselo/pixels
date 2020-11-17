@@ -19,7 +19,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'pge_placer')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'pge_placer')
 filename = os.environ.get('GEO_FILE_NAME', 'pge_buff200_placer.gpkg')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 tile_group_size = int(os.environ.get('TILE_GROUP_SIZE', 20))
@@ -72,7 +72,7 @@ for start, end in steps:
                 {'name': 'AWS_SECRET_ACCESS_KEY', 'value': os.environ.get('AWS_SECRET_ACCESS_KEY')},
                 {'name': 'ESA_SCIHUB_USERNAME', 'value': os.environ.get('ESA_SCIHUB_USERNAME')},
                 {'name': 'ESA_SCIHUB_PASSWORD', 'value': os.environ.get('ESA_SCIHUB_PASSWORD')},
-                {'name': 'PROJECT_ID', 'value': project_id},
+                {'name': 'PIXELS_PROJECT_ID', 'value': project_id},
                 {'name': 'GEO_FILE_NAME', 'value': filename},
                 {'name': 'TILE_GROUP_SIZE', 'value': str(tile_group_size)},
                 {'name': 'START_DATE', 'value': start},

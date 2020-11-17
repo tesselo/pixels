@@ -24,7 +24,7 @@ SENTINEL_2_BANDS = [
 ]
 
 # Get path from env.
-project_id = os.environ.get('PROJECT_ID', 'test')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'test')
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
 train_or_predict = 'predict' if os.environ.get('PREDICT', 'false').lower() == 'true' else 'train'
 # Fetch config.

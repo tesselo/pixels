@@ -34,7 +34,7 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
     # Skip search if list of scenes was provided, otherwise assume input is a
     # specific date to search with.
     if isinstance(date, (list, tuple)):
-        logger.info('Latest pixels for {} item.'.format(len(date)))
+        logger.info('Latest pixels for {} items.'.format(len(date)))
         items = date
     else:
         logger.info('Latest pixels for {}'.format(date))
@@ -58,6 +58,7 @@ def latest_pixel_s2(geojson, date, scale, bands=S2_BANDS, limit=10, clip=False, 
 
     stack = None
     for item in items:
+        logger.info(str(item['id']))
         # Prepare band list.
         band_list = [(item['assets'][band]['href'], geojson, scale, False, False, False, None) for band in bands]
 
@@ -133,10 +134,12 @@ def latest_pixel_s2_stack(geojson, min_date, max_date, scale, interval='weeks', 
     else:
         # Construct array of latest pixel calls with varying dates.
         dates = [(geojson, step[1], scale, bands, limit, clip, pool, max_cloud_cover) for step in timeseries_steps(min_date, max_date, interval)]
+        logger.info('Getting {} {} for this geom.'.format(len(dates), interval))
 
     # Call pixels calls asynchronously.
-    logger.info('Found {} scenes, getting asynchronously.'.format(len(dates)))
-    with Pool(len(dates)) as p:
+    pool_size = min(len(dates), 10)
+    logger.info('Found {} scenes, processing pool size is {}.'.format(len(dates), pool_size))
+    with Pool(pool_size) as p:
         return p.starmap(latest_pixel_s2, dates)
 
 
@@ -159,8 +162,8 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     if 'features' not in response:
         raise ValueError('No features in search response.')
 
-    print('Found {} input scenes.'.format(len(response['features'])))##
-    print('Cloud cover is {}.'.format([dat['properties']['eo:cloud_cover'] for dat in response['features']]))##
+    logger.info('Found {} input scenes.'.format(len(response['features'])))
+    logger.info('Cloud cover is {}.'.format([dat['properties']['eo:cloud_cover'] for dat in response['features']]))
 
     stack = []
     creation_args = None

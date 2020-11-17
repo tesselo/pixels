@@ -5,17 +5,24 @@ import os
 
 import boto3
 import numpy
+import tensorflow
 from tensorflow.keras import layers
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.utils import to_categorical
 
 from pixels.clouds import cloud_or_snow_mask
 
+# Setup tensorflow session for model to use GPU.
+config = tensorflow.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tensorflow.compat.v1.InteractiveSession(config=config)
+### Remove in production.
+
 # Setup boto client.
 s3 = boto3.client('s3')
 # Fetch all data to memory.
 bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-project_id = os.environ.get('PROJECT_ID', 'test')
+project_id = os.environ.get('PIXELS_PROJECT_ID', 'test')
 # config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 # config = json.loads(config['Body'].read())
 paginator = s3.get_paginator('list_objects_v2')
@@ -37,19 +44,16 @@ Xs = []
 Ys = []
 ids = []
 valuemap = {}
-for path in glob.glob('/home/tam/Desktop/pixels_test/pixels_data/*.npz'):
+for path in glob.glob('/home/tam/Desktop/esb/esblandcover/training/*.npz'):
     with open(path, 'rb') as fl:
         data = numpy.load(fl, allow_pickle=True)
         X = data['data']
-        print('A', X.shape)
         # Data shape is ("scenes", bands, height, width)
         cloud_mask = cloud_or_snow_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
         # Reorder the data to have
         X = X.swapaxes(0, 2).swapaxes(1, 3)
-        print('B', X.shape)
         # Flatten the 2D data into pixel level.
         X = X.reshape(X.shape[0] * X.shape[1], X.shape[2], X.shape[3])
-        print('C', X.shape)
         # Remove zeros.
         X = X[numpy.sum(X, axis=(1, 2)) != 0]
         # Compute cloud and snow mask.
@@ -86,28 +90,27 @@ X_test = Xs[numpy.logical_not(selector)]
 Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 
 # Build the model.
+# model = Sequential()
+# model.add(layers.BatchNormalization())
+# model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
+# model.add(layers.Dropout(0.5))
+# model.add(layers.BatchNormalization())
+# model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
+# model.add(layers.Dropout(0.3))
+# model.add(layers.BatchNormalization())
+# model.add(layers.MaxPooling1D(pool_size=2))
+# model.add(layers.Flatten())
+# model.add(layers.Dense(100, activation='relu'))
+# model.add(layers.Dense(len(valuemap), activation='softmax'))
 
-model = Sequential()
-model.add(layers.BatchNormalization())
-model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
-model.add(layers.Dropout(0.5))
-model.add(layers.BatchNormalization())
-model.add(layers.Conv1D(filters=64, kernel_size=3, activation='relu'))
-model.add(layers.Dropout(0.3))
-model.add(layers.BatchNormalization())
-model.add(layers.MaxPooling1D(pool_size=2))
-model.add(layers.Flatten())
-model.add(layers.Dense(100, activation='relu'))
-model.add(layers.Dense(len(valuemap), activation='softmax'))
+# model = Sequential()
+# model.add(layers.BatchNormalization())
+# model.add(layers.GRU(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.5))
+# model.add(layers.BatchNormalization())
+# model.add(layers.Dense(100, activation='relu'))
+# model.add(layers.Dense(len(valuemap), activation='softmax'))
 
-model = Sequential()
-model.add(layers.BatchNormalization())
-model.add(layers.GRU(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.5))
-model.add(layers.BatchNormalization())
-model.add(layers.Dense(100, activation='relu'))
-model.add(layers.Dense(len(valuemap), activation='softmax'))
-
-visible = layers.Input(shape=(25, 10))
+visible = layers.Input(shape=X_train.shape[1:])
 normed = layers.BatchNormalization()(visible)
 # first feature extractor
 conv1 = layers.Conv1D(filters=64, kernel_size=3, activation='relu')(normed)
@@ -147,8 +150,8 @@ model.compile(**compile_parms)
 
 # Fit the model.
 fit_parms = config.get('keras_fit_arguments', {
-    'epochs': 10,
-    'batch_size': 1000,
+    'epochs': 50,
+    'batch_size': 10000,
     'verbose': 1,
 })
 model.fit(X_train, Y_train, **fit_parms)

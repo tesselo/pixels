@@ -15,7 +15,7 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
     """
     Get pixels from a source raster over the a geojson feature collection.
     """
-    logger.info('Retrieving {}'.format(source))
+    logger.debug('Retrieving {}'.format(source))
 
     # Validate geojson by opening it with rasterio CRS class.
     dst_crs = CRS.from_dict(geojson['crs'])
@@ -34,7 +34,7 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                     'Can not auto-determine target scale because'
                     'the geom crs does not match the source crs.'
                 )
-        logger.info('Source CRS is {}.'.format(src.crs))
+        logger.debug('Source CRS is {}.'.format(src.crs))
 
         # If no band indices were provided, process all bands.
         if not bands:
@@ -42,7 +42,7 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
 
         # Prepare target raster transform from the geometry input.
         transform, width, height = compute_transform(geojson, scale)
-        logger.info('Target array shape is ({}, {})'.format(height, width))
+        logger.debug('Target array shape is ({}, {})'.format(height, width))
 
         # Prepare creation parameters for memory raster.
         creation_args = src.meta.copy()
@@ -53,6 +53,10 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
             'width': width,
             'height': height,
         })
+
+        # Set different band count if bands were given as input.
+        if bands:
+            creation_args['count'] = len(bands)
 
         # Open memory destination file.
         with MemoryFile() as memfile:
@@ -78,20 +82,24 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                 proj_args['src_crs'] = src_crs
 
                 # Transform raster bands from source to destination.
-                for band in bands:
+                for index, band in enumerate(bands):
                     proj_args.update({
                         'source': rasterio.band(src, band),
-                        'destination': rasterio.band(dst, band),
+                        'destination': rasterio.band(dst, index + 1),
                     })
                     reproject(**proj_args)
 
-                # Get pixel values of first band.
-                pixels = dst.read(1)
+                # Get pixel values.
+                pixels = dst.read()
 
                 if clip:
-                    mask = compute_mask(geojson, height, width, transform)
+                    mask = compute_mask(geojson, height, width, transform, all_touched=all_touched)
                     # Apply mask to all bands.
-                    pixels[mask] = NODATA_VALUE
+                    pixels[:, mask] = NODATA_VALUE
+
+                # If only one band was requested, reshape result to 2D array.
+                if len(bands) == 1:
+                    pixels = pixels[bands[0] - 1]
 
                 # Return re-creation args and pixel data.
                 return creation_args, pixels
