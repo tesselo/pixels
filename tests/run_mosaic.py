@@ -11,10 +11,10 @@ import requests
 from fiona.transform import transform_geom
 from PIL import Image
 
-from pixels import search_img
+from pixels import search
 from pixels.mosaic import composite, latest_pixel_s2
 from pixels.retrieve import retrieve
-from pixels.search_img import get_bands
+from pixels.search import get_bands
 from pixels.utils import compute_wgs83_bbox, timeseries_steps
 
 logging.basicConfig(level=logging.INFO)

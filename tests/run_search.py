@@ -8,7 +8,7 @@ import sqlalchemy as db
 from rasterio.features import bounds
 from sqlalchemy import create_engine
 
-from pixels.search_img import get_bands, search_data
+from pixels.search import get_bands, search_data
 from pixels.utils import compute_wgs83_bbox
 
 geojson = {

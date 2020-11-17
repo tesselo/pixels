@@ -6,7 +6,7 @@ import numpy
 from pixels.clouds import composite_index
 from pixels.const import NODATA_VALUE, S2_BANDS
 from pixels.retrieve import retrieve
-from pixels.search_img import get_bands, search_data
+from pixels.search import get_bands, search_data
 from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
