@@ -12,6 +12,12 @@ def get_version():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+install_requires = [
+    'numpy>=1.18.5',
+    'rasterio>=1.1.8',
+    'requests>=2.22.0'
+    'fiona>=1.8.17'
+]
 
 setup(
     name='pixels',
@@ -22,13 +28,8 @@ setup(
     description='Pixel grabber engine',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    license='Copyright (c) Tesselo - Space Mosaic Lda.',
+    license='Copyright (c) Tesselo - Space Mosaic Lda. All rights reserved.',
     packages=find_packages(exclude=('tests', 'batch', 'app', 'scripts')),
     include_package_data=True,
-    install_requires=[
-        'numpy>=1.18.5',
-        'rasterio>=1.1.8',
-        'requests>=2.22.0'
-        'fiona>=1.8.17'
-    ],
+    install_requires=install_requires,
 )
