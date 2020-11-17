@@ -3,19 +3,17 @@ import os
 import sqlalchemy
 from dateutil.parser import parse
 
+from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
 from pixels.utils import compute_wgs83_bbox
-from pixels.const import AWS_URL, S2_BANDS, LS_BANDS, BASE_LANDSAT, GOOGLE_URL
 
 DB_NAME = os.environ.get('DB_NAME', 'pixels')
 DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_USER = os.environ.get('DB_HOST', 'postgres')
+DB_USER = os.environ.get('DB_USER', 'postgres')
 
-# Engine configuration -> Database URL
+# Setup db engine and connect.
 DB_TEMPLATE = 'postgresql://{username}:{password}@{host}:{port}/{database}'
 db_url = DB_TEMPLATE.format(username=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=5432, database=DB_NAME)
-
-# Connecting
 engine = sqlalchemy.create_engine(db_url)
 connection = engine.connect()
 
