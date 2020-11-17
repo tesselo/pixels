@@ -8,11 +8,12 @@ Copyright 2020 Tesselo - Space Mosaic Lda. All rights reserved.
 ## Environment
 For search in scihub `ESA_SCIHUB_USERNAME` and `ESA_SCIHUB_PASSWORD`.
 
-For batch jobs `AWS_S3_BUCKET` and `PROJECT_ID`.
+For batch jobs `AWS_S3_BUCKET` and `PIXELS_PROJECT_ID`.
 
 ## Run tests
+Pip install pytests, then run
 ```
-PYTHONPATH=. python tests/test_pixels.py
+pytest tests
 ```
 
 ## Deployment
