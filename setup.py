@@ -13,10 +13,12 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 install_requires = [
-    'numpy>=1.18.5',
+    'numpy>=1.19.4',
     'rasterio>=1.1.8',
     'requests>=2.22.0'
-    'fiona>=1.8.17'
+    'fiona>=1.8.17',
+    'psycopg2-binary>=2.8.6',
+    'SQLAlchemy>=1.3.20',
 ]
 
 setup(

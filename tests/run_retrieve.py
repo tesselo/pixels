@@ -5,8 +5,6 @@ import pickle
 from multiprocessing import Pool
 
 import fiona
-import geopandas as gpd
-import matplotlib.pyplot as plt
 import numpy
 import rasterio
 import requests
