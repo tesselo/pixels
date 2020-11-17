@@ -1,26 +1,23 @@
 import datetime
 import logging
+import os
 import pickle
 from multiprocessing import Pool
 
 import fiona
-import rasterio
+import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy
+import rasterio
 import requests
 from fiona.transform import transform_geom
 from PIL import Image
 
 from pixels.mosaic import latest_pixel_s2
 from pixels.retrieve import retrieve
+from pixels.search_img import get_bands, search_data
 from pixels.utils import compute_wgs83_bbox, timeseries_steps
 
-import geopandas as gpd
-from pixels.search_img import get_bands
-from pixels.search_img import search_data
-import matplotlib.pyplot as plt
-
-import logging
-import os
 logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
 

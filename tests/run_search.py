@@ -1,15 +1,15 @@
-from sqlalchemy import create_engine
-import sqlalchemy as db
+import datetime
+import json
+
+import geojson
+import geopandas as gpd
 import psycopg2
-import json, datetime, geojson
+import sqlalchemy as db
 from rasterio.features import bounds
-import geopandas as gpd
+from sqlalchemy import create_engine
+
+from pixels.search_img import get_bands, search_data
 from pixels.utils import compute_wgs83_bbox
-
-import geopandas as gpd
-from pixels.search_img import get_bands
-from pixels.search_img import search_data
-
 
 geojson = {
     "type": "FeatureCollection",

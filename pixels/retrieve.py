@@ -7,6 +7,7 @@ from rasterio.warp import Resampling, reproject
 
 from pixels.const import NODATA_VALUE
 from pixels.utils import compute_mask, compute_transform
+
 logger = logging.getLogger(__name__)
 
 

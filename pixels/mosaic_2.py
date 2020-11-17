@@ -1,19 +1,17 @@
 import logging
 from multiprocessing import Pool
 
+import geopandas as gpd
 import numpy
 import requests
+from rasterio.features import bounds
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 from pixels.const import NODATA_VALUE, S2_BANDS, SEARCH_ENDPOINT
 from pixels.retrieve import retrieve
+from pixels.search_img import get_bands, search_data
 from pixels.utils import compute_mask, compute_wgs83_bbox, timeseries_steps
-
-import geopandas as gpd
-from rasterio.features import bounds
-from pixels.search_img import get_bands
-from pixels.search_img import search_data
 
 # Get logger
 logger = logging.getLogger(__name__)
