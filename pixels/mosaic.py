@@ -6,7 +6,7 @@ import numpy
 from pixels.clouds import composite_index
 from pixels.const import NODATA_VALUE, S2_BANDS
 from pixels.retrieve import retrieve
-from pixels.search import get_bands, search_data
+from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
@@ -24,7 +24,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         logger.info('Latest pixels for {} item.'.format(len(end_date)))
         items = end_date
     else:
-        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud))
+        response = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud)
 
         if not response:
             raise ValueError('No scenes in search response.')
@@ -91,7 +91,7 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2
 
     if interval == 'all':
         # Get all scenes of for this date range.
-        response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform, maxcloud=maxcloud))
+        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platform=platform, maxcloud=maxcloud)
 
         if not response:
             raise ValueError('No scenes in search response.')
@@ -123,7 +123,7 @@ def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, 
     """
     logger.info('Compositing pixels for {}'.format(start))
 
-    response = get_bands(search_data(geojson=geojson, platform=platform, start=start, end=end, limit=limit, maxcloud=maxcloud))
+    response = search_data(geojson=geojson, platform=platform, start=start, end=end, limit=limit, maxcloud=maxcloud)
 
     if 'bands' not in response:
         raise ValueError('No features in search response.')

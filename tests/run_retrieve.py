@@ -13,7 +13,7 @@ from PIL import Image
 
 from pixels.mosaic import latest_pixel_s2
 from pixels.retrieve import retrieve
-from pixels.search import get_bands, search_data
+from pixels.search import search_data
 from pixels.utils import compute_wgs83_bbox, timeseries_steps
 
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +43,7 @@ geojson = {
 
 
 # Search scenes
-result = get_bands(search_data(geojson, start = '2020-07-01', end = '2020-07-15', maxcloud = 50))
+result = search_data(geojson, start = '2020-07-01', end = '2020-07-15', maxcloud = 50)
 scene = result[0]
 
 # Get pixels.

@@ -22,7 +22,6 @@ def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, lim
     """
     Query data from the eo_catalog DB
     """
-
     # Getting bounds
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
@@ -48,7 +47,7 @@ def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, lim
     result = engine.execute(formatted_query)
 
     # Transform ResultProxy into json
-    return [dict(row) for row in result]
+    return get_bands([dict(row) for row in result])
 
 
 def get_bands(response):
