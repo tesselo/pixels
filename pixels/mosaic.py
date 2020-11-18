@@ -90,7 +90,7 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2
         # Get all scenes of for this date range.
         response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform, maxcloud=maxcloud))
 
-        if 'bands' not in response:
+        if not response:
             raise ValueError('No scenes in search response.')
 
         # Filter by cloud cover.
