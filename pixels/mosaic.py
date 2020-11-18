@@ -21,7 +21,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     """
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
     if isinstance(end_date, (list, tuple)):
-        logger.info('Latest pixels for {} item.'.format(len(end_date)))
+        logger.info('Latest pixels for {} items.'.format(len(end_date)))
         items = end_date
     else:
         response = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud)
@@ -35,9 +35,12 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
             items = [item for item in items if item['cloud_cover'] <= maxcloud]
 
     stack = None
-
+    first_end_date = None
     for item in items:
         logger.info(str(item['product_id']))
+        # Track first end date (highest priority image in stack).
+        if first_end_date is None:
+            first_end_date = str(items[0]['sensing_time'].date())
         # Prepare band list.
         band_list = [(item['bands'][band], geojson, scale, False, False, False, None)for band in bands]
 
@@ -79,7 +82,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         for i in range(len(stack)):
             stack[i][mask] = NODATA_VALUE
 
-    return creation_args, stack
+    return creation_args, first_end_date, stack
 
 
 def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, maxcloud=None):
