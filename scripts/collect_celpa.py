@@ -47,8 +47,8 @@ now = datetime.datetime.now()
 # creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 result = latest_pixel_s2_stack(
     geojson=geojson,
-    start='2017-08-01',
-    end='2020-08-31',
+    start='2019-01-01',
+    end='2020-10-31',
     interval='years',
     scale=10,
     clip=True,
@@ -58,18 +58,27 @@ result = latest_pixel_s2_stack(
     platforms= LS_PLATFORMS
 )
 
-stack = result[0][1]
-print('Timing', datetime.datetime.now() - now)
+# stack = result[0][2]    #[0]=criation_args, [1]=date, [2]=raster bands
+# print('Timing', datetime.datetime.now() - now)
+
 #print(stack)
 
 # Convert to image for visualization.
-img = numpy.dstack([255 * (numpy.clip(dat, 0, 40000) / 40000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    #Landsat case
-img = Image.fromarray(img)
-img.show()
+# img = numpy.dstack([255 * (numpy.clip(dat, 0, 40000) / 40000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    #Landsat case
+# img = Image.fromarray(img)
+# img.show()
 #img.save('/home/keren/projects/API_Images/tests/1.png', 'PNG')
-print(img)
+# print(img)
 
+for index, scene in enumerate(result):
+    stack = scene[2]
+    img = numpy.dstack([255 * (numpy.clip(dat, 0, 40000) / 40000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    #Landsat case
+    img = Image.fromarray(img)
+    # img.show()
+    img.save(f"/home/keren/projects/API_Images/tests/{scene[1]}.png", 'PNG')
+    print(f"{index+1} of {len(result)} saved")
+    # print(img)
 
 # # Years_list
 # years = [*range(2000, 2021, 1)]
-# filenames = [f"img_{year}_08_01.txt" for year in years_list]
+# filenames = [f"img_{year}_08_01.png" for year in years]
