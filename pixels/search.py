@@ -3,7 +3,7 @@ import os
 import sqlalchemy
 from dateutil.parser import parse
 
-from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
+from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, LS_PLATFORMS, S2_BANDS
 from pixels.utils import compute_wgs83_bbox
 
 DB_NAME = os.environ.get('DB_NAME', 'pixels')
@@ -18,7 +18,7 @@ engine = sqlalchemy.create_engine(db_url)
 connection = engine.connect()
 
 
-def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, limit=10, sort='sensing_time'):
+def search_data(geojson, start=None, end=None, platform=None, maxcloud=None, scene=None, limit=10,  sort='sensing_time'):
     """
     Query data from the eo_catalog DB
     """
@@ -34,9 +34,11 @@ def search_data(geojson, platform=None, start=None, end=None, maxcloud=None, lim
     if end is not None:
         query += ' AND sensing_time <= timestamp \'{}\' '.format(end)
     if platform is not None:
-        query += ' AND spacecraft_id = \'{}\' '.format(platform)
+        query += ' AND spacecraft_id IN {}'.format(platform)
     if maxcloud is not None:
         query += ' AND cloud_cover <= {} '.format(maxcloud)
+    if scene is not None:
+        query += ' AND product_id = \'{}\' '.format(scene)  
     if sort is not None:
         query += ' ORDER BY {} DESC'.format(sort)
     if limit is not None:

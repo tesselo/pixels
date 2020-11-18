@@ -12,6 +12,7 @@ from fiona.transform import transform_geom
 from PIL import Image
 
 from pixels import search
+from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
 from pixels.mosaic import composite, latest_pixel_s2, latest_pixel_s2_stack
 from pixels.retrieve import retrieve
 from pixels.search import get_bands
@@ -40,32 +41,6 @@ geojson = {
         },
     ]
 }
-
-# geojson = {
-#     "type": "FeatureCollection",
-#     "name": "belem",
-#     "crs": {"init": "EPSG:3857"},
-#     "features": [{
-#         "type": "Feature",
-#         "properties": {
-#             "id": 1
-#         },
-#         "geometry": {
-#             "type": "MultiPolygon",
-#             "coordinates": [
-#                 [
-#                     [
-#                         [-5401422.027732782997191, -153715.220885783957783],
-#                         [-5388736.031396471895278, -153480.139550630614394],
-#                         [-5388610.094966925680637, -164713.669066172820749],
-#                         [-5401195.342159599997103, -164856.397019658790668],
-#                         [-5401422.027732782997191, -153715.220885783957783]
-#                     ]
-#                 ]
-#             ]
-#         }
-#     }]
-# }
 
 # Get pixels.
 now = datetime.datetime.now()
