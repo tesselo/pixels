@@ -71,7 +71,6 @@ def collect():
             bands=config['bands'],
             limit=config['limit'],
             clip=config['clip'],
-            pool=False,
             maxcloud=config.get('max_cloud_cover', None),
         )
 

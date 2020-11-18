@@ -82,12 +82,12 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     return creation_args, stack
 
 
-def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
+def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, maxcloud=None):
     """
     Get the latest pixel at regular intervals between two dates.
     """
     platform = 'SENTINEL_2'
-    retrieve_pool = not pool
+    retrieve_pool = False
 
     if interval == 'all':
         # Get all scenes of for this date range.

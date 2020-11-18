@@ -78,7 +78,6 @@ result = latest_pixel_s2_stack(
     scale=10,
     clip=True,
     bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'),
-    pool=True,
 )
 stack = result[0][1]
 print('Timing', datetime.datetime.now() - now)
