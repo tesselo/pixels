@@ -1,15 +1,4 @@
-import datetime
-import json
-
-import geojson
-import geopandas as gpd
-import psycopg2
-import sqlalchemy as db
-from rasterio.features import bounds
-from sqlalchemy import create_engine
-
-from pixels.search import get_bands, search_data
-from pixels.utils import compute_wgs83_bbox
+from pixels.search import search_data
 
 geojson = {
     "type": "FeatureCollection",
@@ -64,6 +53,5 @@ geojson = {
 # }
 
 #geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
-result = get_bands(search_data(geojson, start = '1990-01-01', end = '2020-01-16', maxcloud=100, limit=1))
+result = search_data(geojson, start = '1990-01-01', end = '2020-01-16', maxcloud=100, limit=1)
 print(result)
-
