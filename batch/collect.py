@@ -63,14 +63,14 @@ def collect():
     for feature in features:
         # Fetch pixels.
         result = latest_pixel_s2_stack(
-            feature,
-            config['min_date'],
-            config['max_date'],
-            config['scale'],
-            config['interval'],
-            config['bands'],
-            config['limit'],
-            config['clip'],
+            geojson=feature,
+            start=config['min_date'],
+            end=config['max_date'],
+            scale=config['scale'],
+            interval=config['interval'],
+            bands=config['bands'],
+            limit=config['limit'],
+            clip=config['clip'],
             pool=False,
             maxcloud=config.get('max_cloud_cover', None),
         )
