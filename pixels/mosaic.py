@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import numpy
 
 from pixels.clouds import composite_index
-from pixels.const import NODATA_VALUE, S2_BANDS
+from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
@@ -85,16 +85,19 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     return creation_args, first_end_date, stack
 
 
-def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, maxcloud=None):
+def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=None, platforms='SENTINEL_2', limit=10, clip=False, maxcloud=None):
     """
     Get the latest pixel at regular intervals between two dates.
     """
-    platform = 'SENTINEL_2'
+    # Check if is list or tuple
+    if not isinstance(platforms, (list, tuple)):
+        platforms = (platforms)
+
     retrieve_pool = False
 
     if interval == 'all':
         # Get all scenes of for this date range.
-        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platform=platform, maxcloud=maxcloud)
+        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platform=platforms, maxcloud=maxcloud)
 
         if not response:
             raise ValueError('No scenes in search response.')
@@ -107,10 +110,10 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2
         logger.info('Getting {} scenes for this geom.'.format(len(items)))
 
         limit = 5
-        dates = [(geojson, [item], scale, bands, platform, limit, clip, retrieve_pool, maxcloud) for item in items]
+        dates = [(geojson, [item], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for item in items]
     else:
         # Construct array of latest pixel calls with varying dates.
-        dates = [(geojson, step[1], scale, bands, platform, limit, clip, retrieve_pool, maxcloud) for step in timeseries_steps(start, end, interval)]
+        dates = [(geojson, step[1], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for step in timeseries_steps(start, end, interval)]
         logger.info('Getting {} {} for this geom.'.format(len(dates), interval))
 
     # Call pixels calls asynchronously.
