@@ -86,6 +86,9 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2
     """
     Get the latest pixel at regular intervals between two dates.
     """
+    platform = 'SENTINEL_2'
+    retrieve_pool = not pool
+
     if interval == 'all':
         # Get all scenes of for this date range.
         response = get_bands(search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end, limit=limit, platform=platform, maxcloud=maxcloud))
@@ -101,10 +104,10 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=S2
         logger.info('Getting {} scenes for this geom.'.format(len(items)))
 
         limit = 5
-        dates = [(geojson, [item], scale, bands, limit, clip, pool) for item in items]
+        dates = [(geojson, [item], scale, bands, platform, limit, clip, retrieve_pool, maxcloud) for item in items]
     else:
         # Construct array of latest pixel calls with varying dates.
-        dates = [(geojson, step[1], scale, bands, limit, clip, pool, maxcloud) for step in timeseries_steps(start, end, interval)]
+        dates = [(geojson, step[1], scale, bands, platform, limit, clip, retrieve_pool, maxcloud) for step in timeseries_steps(start, end, interval)]
         logger.info('Getting {} {} for this geom.'.format(len(dates), interval))
 
     # Call pixels calls asynchronously.
