@@ -34,7 +34,7 @@ def search_data(geojson, start=None, end=None, platform=None, maxcloud=None, sce
     if end is not None:
         query += ' AND sensing_time <= timestamp \'{}\' '.format(end)
     if platform is not None:
-        query += ' AND spacecraft_id IN {}'.format(platform)
+        query += ' AND spacecraft_id IN ({})'.format((','.join("'" + plat + "'" for plat in platform)))  # Only one platform= "('LANDSAT_7')"
     if maxcloud is not None:
         query += ' AND cloud_cover <= {} '.format(maxcloud)
     if scene is not None:
@@ -47,7 +47,6 @@ def search_data(geojson, start=None, end=None, platform=None, maxcloud=None, sce
     # Execute and format querry
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
-
     # Transform ResultProxy into json
     return get_bands([dict(row) for row in result])
 

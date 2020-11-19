@@ -12,7 +12,7 @@ LS_BANDS = [
 S2_BANDS_10 = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11', 'B12']
 
 
-LS_PLATFORMS='LANDSAT_7', 'LANDSAT_8'
+LS_PLATFORMS=['LANDSAT_7', 'LANDSAT_8']
 
 # Search templates
 GOOGLE_URL = 'https://gcp-public-data-landsat.commondatastorage.googleapis.com'

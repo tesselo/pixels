@@ -54,3 +54,30 @@ result = search_data(geojson, start = '2012-01-01', end = '2020-01-16', maxcloud
 print(result)
 print(len(result))
 # se retornar landsat 7 e 8 dar preferencia a 8!
+
+
+# platform = 'SENTINEL_2'
+# query += ' AND spacecraft_id IN {}'.format(str(tuple(platform))) 
+# result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
+
+# platform = 'SENTINEL_2'
+# query += ' AND spacecraft_id IN {}'.format(tuple(platform)) 
+# result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
+
+# platform = 'SENTINEL_2'
+#  query += ' AND spacecraft_id IN {}'.format(platform)
+#  = spacecraft_id IN SENTINEL_2  wrong
+
+
+# platform = 'SENTINEL_2', 'LANDSAT_7'
+#  query += ' AND spacecraft_id IN {}'.format(platform)
+#  = spacecraft_id IN ('SENTINEL_2', 'LANDSAT_7') ok
+
+
+# platform= "('LANDSAT_7')"
+# query += ' AND spacecraft_id IN {}'.format(platform)
+# spacecraft_id IN ('LANDSAT_7') ok
+
+#  query += ' AND spacecraft_id IN {}'.format(tuple([platform])
+# spacecraft_id IN ('LANDSAT_7',) wrong
+

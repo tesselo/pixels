@@ -91,13 +91,13 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=No
     """
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):
-        platforms = (platforms)
+        platforms = [platforms]
 
     retrieve_pool = False
 
     if interval == 'all':
         # Get all scenes of for this date range.
-        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platform=platforms, maxcloud=maxcloud)
+        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platforms=platforms, maxcloud=maxcloud)
 
         if not response:
             raise ValueError('No scenes in search response.')
