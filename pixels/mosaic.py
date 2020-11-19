@@ -16,17 +16,21 @@ logger = logging.getLogger(__name__)
 LANDSAT_1_LAUNCH_DATE = '1972-07-23'
 
 
-def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL_2', limit=10, clip=False, pool=False, maxcloud=None):
+def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=10, clip=False, pool=False, maxcloud=None):
     """
     Get the latest pixel for the input items over the input fetures.
     """
+    if not isinstance(platforms, (list, tuple)):
+        platforms = [platforms]
+
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
     if isinstance(end_date, (list, tuple)):
         logger.info('Latest pixels for {} items.'.format(len(end_date)))
         items = end_date
     else:
-        items = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud)
-        if not items:
+        response = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platforms=platforms, maxcloud=maxcloud)
+
+        if not response:
             raise ValueError('No scenes in search response.')
 
     # Assign variables to be populated during pixel collection.
@@ -130,7 +134,7 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=No
         return p.starmap(latest_pixel_s2, dates)
 
 
-def composite(geojson, start, end, scale, bands=S2_BANDS, limit=10, clip=False, pool=False, platform='SENTINEL_2', maxcloud=None):
+def composite(geojson, start, end, scale, bands=None, limit=10, clip=False, pool=False, platform='SENTINEL_2', maxcloud=None):
     """
     Get the composite over the input features.
     """
