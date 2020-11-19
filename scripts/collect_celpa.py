@@ -47,12 +47,12 @@ now = datetime.datetime.now()
 # creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 result = latest_pixel_s2_stack(
     geojson=geojson,
-    start='2019-01-01',
+    start='2000-01-01',
     end='2020-10-31',
     interval='years',
     scale=10,
     clip=True,
-    maxcloud=10,
+    maxcloud=30,
     limit=5,
     bands=['B4', 'B3', 'B2'],
     platforms= LS_PLATFORMS
@@ -72,7 +72,8 @@ result = latest_pixel_s2_stack(
 
 for index, scene in enumerate(result):
     stack = scene[2]
-    img = numpy.dstack([255 * (numpy.clip(dat, 0, 40000) / 40000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    #Landsat case
+    #img = numpy.dstack([ for dat in [stack[2], stack[1], stack[0]]]).astype('uint8') 
+    img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    # Without normalization
     img = Image.fromarray(img)
     # img.show()
     img.save(f"/home/keren/projects/API_Images/tests/{scene[1]}.png", 'PNG')
