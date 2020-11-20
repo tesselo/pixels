@@ -30,11 +30,6 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         if not response:
             raise ValueError('No scenes in search response.')
 
-        # Filter by cloud cover.
-        items = response
-        if maxcloud is not None:
-            items = [item for item in items if item['cloud_cover'] <= maxcloud]
-
     stack = None
     first_end_date = None
     for item in items:
@@ -116,11 +111,6 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=No
 
         if not response:
             raise ValueError('No scenes in search response.')
-
-        # Filter by cloud cover.
-        items = response
-        if maxcloud is not None:
-            items = [item for item in items if item['cloud_cover'] <= maxcloud]
 
         logger.info('Getting {} scenes for this geom.'.format(len(items)))
 

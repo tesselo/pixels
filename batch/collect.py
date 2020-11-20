@@ -15,10 +15,11 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.INFO,
+    level=logging.DEBUG,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logging.getLogger('botocore').setLevel(logging.ERROR)
+logging.getLogger('rasterio').setLevel(logging.ERROR)
 
 
 def collect():
