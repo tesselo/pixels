@@ -54,7 +54,7 @@ result = latest_pixel_s2_stack(
     clip=True,
     bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'),
 )
-stack = result[0][1]
+stack = result[0][2]
 print('Timing', datetime.datetime.now() - now)
 
 # Convert to image for visualization.

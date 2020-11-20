@@ -5,7 +5,7 @@ import numpy
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import composite_index
-from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
+from pixels.const import NODATA_VALUE, S2_BANDS
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
@@ -25,20 +25,23 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
         logger.info('Latest pixels for {} items.'.format(len(end_date)))
         items = end_date
     else:
-        response = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud)
-
-        if not response:
+        items = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platform=platform, maxcloud=maxcloud)
+        if not items:
             raise ValueError('No scenes in search response.')
 
+    # Assign variables to be populated during pixel collection.
     stack = None
     first_end_date = None
+    creation_args = {}
+    mask = None
+    # Get data for each item.
     for item in items:
         logger.info(item['product_id'])
         # Track first end date (highest priority image in stack).
         if first_end_date is None:
             first_end_date = str(items[0]['sensing_time'].date())
         # Prepare band list.
-        band_list = [(item['bands'][band], geojson, scale, False, False, False, None)for band in bands]
+        band_list = [(item['bands'][band], geojson, scale, False, False, False, None) for band in bands]
 
         data = []
         failed_retrieve = False
@@ -63,7 +66,6 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
             continue
 
         # Create stack.
-        mask = None
         if stack is None:
             # Set first return as stack.
             stack = [dat[1] for dat in data]
@@ -74,7 +76,7 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
             for i in range(len(bands)):
                 stack[i][mask] = data[i][1][mask]
 
-        # Compute nodata mask.
+        # Update nodata mask.
         mask = stack[0] == NODATA_VALUE
 
         # If all pixels were populated stop getting more data.
@@ -112,10 +114,10 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=No
         if not response:
             raise ValueError('No scenes in search response.')
 
-        logger.info('Getting {} scenes for this geom.'.format(len(items)))
+        logger.info('Getting {} scenes for this geom.'.format(len(response)))
 
         limit = 5
-        dates = [(geojson, [item], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for item in items]
+        dates = [(geojson, [item], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for item in response]
     else:
         # Construct array of latest pixel calls with varying dates.
         dates = [(geojson, step[1], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for step in timeseries_steps(start, end, interval)]
