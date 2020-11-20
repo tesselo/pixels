@@ -28,9 +28,9 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
         logger.info('Latest pixels for {} items.'.format(len(end_date)))
         items = end_date
     else:
-        response = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platforms=platforms, maxcloud=maxcloud)
+        items = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platforms=platforms, maxcloud=maxcloud)
 
-        if not response:
+        if not items:
             raise ValueError('No scenes in search response.')
 
     # Assign variables to be populated during pixel collection.

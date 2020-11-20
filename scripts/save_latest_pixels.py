@@ -48,7 +48,7 @@ now = datetime.datetime.now()
 #creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 
 
-result =latest_pixel_s2(geojson=geojson, end_date='2020-01-31', scale=10, clip=True, maxcloud=50, limit=10, bands=['B3', 'B2', 'B1'], platforms= 'LANDSAT_7')
+result = latest_pixel_s2(geojson=geojson, end_date='2020-01-31', scale=10, clip=True, maxcloud=30, limit=10, bands=['B4','B3', 'B2'], platforms= 'LANDSAT_8')
 
 print('Timing', datetime.datetime.now() - now)
 #Convert img
