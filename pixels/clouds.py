@@ -3,18 +3,18 @@ import numpy
 SCALE = 10000
 
 
-def composite_index(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in):
+def composite_index(B02, B03, B04, B08, B8A, B11, B12):
     """
     Shortcut for composite index.
     """
-    return _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=False)
+    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=False)
 
 
-def cloud_or_snow_mask(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in):
+def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
     """
     Shortcut for cloud mask.
     """
-    return _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True)
+    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=True)
 
 
 def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False):
