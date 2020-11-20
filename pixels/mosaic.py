@@ -2,6 +2,7 @@ import logging
 from multiprocessing import Pool
 
 import numpy
+from rasterio.errors import RasterioIOError
 
 from pixels.clouds import composite_index
 from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
@@ -37,20 +38,34 @@ def latest_pixel_s2(geojson, end_date, scale, bands=S2_BANDS, platform='SENTINEL
     stack = None
     first_end_date = None
     for item in items:
-        logger.info(str(item['product_id']))
+        logger.info(item['product_id'])
         # Track first end date (highest priority image in stack).
         if first_end_date is None:
             first_end_date = str(items[0]['sensing_time'].date())
         # Prepare band list.
         band_list = [(item['bands'][band], geojson, scale, False, False, False, None)for band in bands]
 
+        data = []
+        failed_retrieve = False
         if pool:
             with Pool(len(bands)) as p:
-                data = p.starmap(retrieve, band_list)
+                try:
+                    data = p.starmap(retrieve, band_list)
+                except RasterioIOError:
+                    failed_retrieve = True
         else:
-            data = []
             for band in band_list:
-                data.append(retrieve(*band))
+                try:
+                    result = retrieve(*band)
+                except RasterioIOError:
+                    failed_retrieve = True
+                    break
+                data.append(result)
+
+        # Continue to next scene if retrieval of bands failed.
+        if failed_retrieve:
+            logger.warning('Failed retrieval of bands for {}, continuing.'.format(item['product_id']))
+            continue
 
         # Create stack.
         mask = None
