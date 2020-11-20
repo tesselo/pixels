@@ -53,11 +53,10 @@ result =latest_pixel_s2(geojson=geojson, end_date='2020-01-31', scale=10, clip=T
 print('Timing', datetime.datetime.now() - now)
 #Convert img
 creation_args = result[0]
-stack = result[2]
-print(creation_args)
+stack = numpy.array(result[2])
+creation_args['count'] = 3
 
-print(stack)
-
+# Convert to img
 #img = numpy.dstack([255 * (numpy.clip(dat, 0, 100000) / 100000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')
 # #img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    # Without normalization
 # # img = Image.fromarray(img)
@@ -66,33 +65,11 @@ print(stack)
 # # Save 
 # # img.save(f"/home/keren/projects/API_Images/tests/{result[1]}.png", 'PNG')
 
-# # # Save raster as tif file
+# Save raster as tif file
 height = creation_args['height']
 width = creation_args['width']
 
-for item in stack:
-    with rasterio.open(f"/home/keren/projects/API_Images/tests/{result[1]}.tif",'w',**creation_args) as dst:
-        dst.write(item.astype('uint8'))
 
+with rasterio.open(f"/home/keren/projects/API_Images/tests/{result[1]}.tif",'w',**creation_args) as dst:
+    dst.write(stack)    
 
-
-# # Register GDAL format drivers and configuration options with a
-# # context manager.
-# with rasterio.Env():
-
-#     # Write an array as a raster band to a new 8-bit file. For
-#     # the new file's profile, we start with the profile of the source
-#     profile = src.profile
-
-#     # And then change the band count to 1, set the
-#     # dtype to uint8, and specify LZW compression.
-#     profile.update(
-#         dtype=rasterio.uint8,
-#         count=1,
-#         compress='lzw')
-
-#     with rasterio.open('example.tif', 'w', **profile) as dst:
-#         dst.write(array.astype(rasterio.uint8), 1)
-
-# # At the end of the ``with rasterio.Env()`` block, context
-# # manager exits and all drivers are de-registered.
