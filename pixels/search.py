@@ -18,7 +18,7 @@ engine = sqlalchemy.create_engine(db_url)
 connection = engine.connect()
 
 
-def search_data(geojson, start=None, end=None, platform=None, maxcloud=None, scene=None, limit=10,  sort='sensing_time'):
+def search_data(geojson, start=None, end=None, platforms=None, maxcloud=None, scene=None, limit=10,  sort='sensing_time'):
     """
     Query data from the eo_catalog DB
     """
@@ -33,8 +33,8 @@ def search_data(geojson, start=None, end=None, platform=None, maxcloud=None, sce
         query += ' AND sensing_time >= timestamp \'{}\' '.format(start)
     if end is not None:
         query += ' AND sensing_time <= timestamp \'{}\' '.format(end)
-    if platform is not None:
-        query += ' AND spacecraft_id IN ({})'.format((','.join("'" + plat + "'" for plat in platform)))  # Only one platform= "('LANDSAT_7')"
+    if platforms is not None:
+        query += ' AND spacecraft_id IN ({})'.format((','.join("'" + plat + "'" for plat in platforms)))
     if maxcloud is not None:
         query += ' AND cloud_cover <= {} '.format(maxcloud)
     if scene is not None:

@@ -6,6 +6,7 @@ from multiprocessing.pool import ThreadPool
 
 import fiona
 import numpy
+import rasterio
 import requests
 from fiona.transform import transform_geom
 from PIL import Image
@@ -44,30 +45,31 @@ geojson = {
 
 # Get pixels.
 now = datetime.datetime.now()
+#creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 
-result = latest_pixel_s2_stack(
-    geojson=geojson,
-    start='2020-01-01',
-    end='2020-01-31',
-    interval='months',
-    scale=10,
-    clip=True,
-    maxcloud=30,
-    limit=5,
-    bands=['B04', 'B03', 'B02'],
-    platforms= 'SENTINEL_2'
-)
 
-for index, scene in enumerate(result):
-    stack = scene[2]
-    img = numpy.dstack([255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')
-    #img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    # Without normalization
-    img = Image.fromarray(img)
-    # img.show()
-    img.save(f"/home/keren/projects/API_Images/tests/{scene[1]}.png", 'PNG')
-    print(f"{index+1} of {len(result)} saved")
-    # print(img)
+result = latest_pixel_s2(geojson=geojson, end_date='2020-01-31', scale=10, clip=True, maxcloud=30, limit=10, bands=['B4','B3', 'B2'], platforms= 'LANDSAT_8')
 
-# # Years_list
-# years = [*range(2000, 2021, 1)]
-# filenames = [f"img_{year}_08_01.png" for year in years]
+print('Timing', datetime.datetime.now() - now)
+#Convert img
+creation_args = result[0]
+stack = numpy.array(result[2])
+creation_args['count'] = 3
+
+# Convert to img
+#img = numpy.dstack([255 * (numpy.clip(dat, 0, 100000) / 100000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')
+# #img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    # Without normalization
+# # img = Image.fromarray(img)
+# # img.show()
+# # print(img)
+# # Save 
+# # img.save(f"/home/keren/projects/API_Images/tests/{result[1]}.png", 'PNG')
+
+# Save raster as tif file
+height = creation_args['height']
+width = creation_args['width']
+
+
+with rasterio.open(f"/home/keren/projects/API_Images/tests/{result[1]}.tif",'w',**creation_args) as dst:
+    dst.write(stack)    
+
