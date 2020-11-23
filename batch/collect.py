@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
-    level=logging.DEBUG,
+    level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logging.getLogger('botocore').setLevel(logging.ERROR)
@@ -60,7 +60,6 @@ def collect():
                     "crs": src.crs,
                     "features": [feat],
                 })
-
     for feature in features:
         # Fetch pixels.
         result = latest_pixel_s2_stack(
