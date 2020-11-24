@@ -1,9 +1,9 @@
 import json
 
-with open('/home/tam/Desktop/celpa.geojson') as fl:
+with open("/home/tam/Desktop/celpa.geojson") as fl:
     data = json.loads(fl.read())
-for dat in data['features']:
-    dat['crs'] = 'EPSG:3857'
+for dat in data["features"]:
+    dat["crs"] = "EPSG:3857"
 
 config = {
     "start": "2019-01-01",
@@ -25,38 +25,25 @@ config = {
     "train": data,
     "predict": {
         "type": "FeatureCollection",
-        "features": [{
-            "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
                         [
-                            -8.943386,
-                            38.511505
-                        ],
-                        [
-                            -8.943386,
-                            38.530173
-                        ],
-                        [
-                            -8.880386,
-                            38.530173
-                        ],
-                        [
-                            -8.880386,
-                            38.511505
-                        ],
-                        [
-                            -8.943386,
-                            38.511505
+                            [-8.943386, 38.511505],
+                            [-8.943386, 38.530173],
+                            [-8.880386, 38.530173],
+                            [-8.880386, 38.511505],
+                            [-8.943386, 38.511505],
                         ]
-                    ]
-                ]
-            },
-            "crs": "EPSG:4326"
-        }]
-    }
+                    ],
+                },
+                "crs": "EPSG:4326",
+            }
+        ],
+    },
 }
-with open('/home/tam/Desktop/config.json', 'w') as fl:
+with open("/home/tam/Desktop/config.json", "w") as fl:
     fl.write(json.dumps(config))

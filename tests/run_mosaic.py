@@ -30,16 +30,18 @@ geojson = {
             "properties": {},
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [[
-                    [-1018560.0, 4689560.0],
-                    [-1018560.0, 4685000.0],
-                    [-1014000.0, 4685000.0],
-                    [-1014000.0, 4689560.0],
-                    [-1018560.0, 4689560.0],
-                ]]
-            }
+                "coordinates": [
+                    [
+                        [-1018560.0, 4689560.0],
+                        [-1018560.0, 4685000.0],
+                        [-1014000.0, 4685000.0],
+                        [-1014000.0, 4689560.0],
+                        [-1018560.0, 4689560.0],
+                    ]
+                ],
+            },
         },
-    ]
+    ],
 }
 
 # Get pixels.
@@ -47,18 +49,22 @@ now = datetime.datetime.now()
 # creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 result = latest_pixel_s2_stack(
     geojson=geojson,
-    start='2020-10-01',
-    end='2020-10-31',
-    interval='months',
+    start="2020-10-01",
+    end="2020-10-31",
+    interval="months",
     scale=10,
     clip=True,
-    bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'),
+    bands=("B02", "B03", "B04", "B08", "B8A", "B11", "B12"),
 )
 stack = result[0][2]
-print('Timing', datetime.datetime.now() - now)
+print("Timing", datetime.datetime.now() - now)
 
 # Convert to image for visualization.
-img = numpy.dstack([255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    #Landsat case
+img = numpy.dstack(
+    [255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[2], stack[1], stack[0]]]
+).astype(
+    "uint8"
+)  # Landsat case
 img = Image.fromarray(img)
 img.show()
 # img.save('/home/keren/projects/API_Images/tests/1.png', 'PNG')

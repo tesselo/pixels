@@ -37,31 +37,40 @@ geojson = {
             "properties": {},
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [[
-                    [-1006608.126849290914834, 4823706.554369583725929],
-                    [-1006608.126849290914834, 4855094.944302001968026],
-                    [-985360.601356576895341, 4855094.944302001968026],
-                    [-985360.601356576895341, 4823706.554369583725929],
-                    [-1006608.126849290914834, 4823706.554369583725929],
-                ]]
-            }
+                "coordinates": [
+                    [
+                        [-1006608.126849290914834, 4823706.554369583725929],
+                        [-1006608.126849290914834, 4855094.944302001968026],
+                        [-985360.601356576895341, 4855094.944302001968026],
+                        [-985360.601356576895341, 4823706.554369583725929],
+                        [-1006608.126849290914834, 4823706.554369583725929],
+                    ]
+                ],
+            },
         },
-    ]
+    ],
 }
 
-#geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
-result = search_data(geojson, start = '2012-01-01', end = '2020-01-16', maxcloud=100, platform=LS_PLATFORMS, limit=10)
+# geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
+result = search_data(
+    geojson,
+    start="2012-01-01",
+    end="2020-01-16",
+    maxcloud=100,
+    platform=LS_PLATFORMS,
+    limit=10,
+)
 print(result)
 print(len(result))
 # se retornar landsat 7 e 8 dar preferencia a 8!
 
 
 # platform = 'SENTINEL_2'
-# query += ' AND spacecraft_id IN {}'.format(str(tuple(platform))) 
+# query += ' AND spacecraft_id IN {}'.format(str(tuple(platform)))
 # result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
 
 # platform = 'SENTINEL_2'
-# query += ' AND spacecraft_id IN {}'.format(tuple(platform)) 
+# query += ' AND spacecraft_id IN {}'.format(tuple(platform))
 # result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
 
 # platform = 'SENTINEL_2'
@@ -80,4 +89,3 @@ print(len(result))
 
 #  query += ' AND spacecraft_id IN {}'.format(tuple([platform])
 # spacecraft_id IN ('LANDSAT_7',) wrong
-

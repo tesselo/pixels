@@ -3,22 +3,40 @@ import os
 import sqlalchemy
 from dateutil.parser import parse
 
-from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, LS_PLATFORMS, S2_BANDS
+from pixels.const import (
+    AWS_URL,
+    BASE_LANDSAT,
+    GOOGLE_URL,
+    LS_BANDS,
+    LS_PLATFORMS,
+    S2_BANDS,
+)
 from pixels.utils import compute_wgs83_bbox
 
-DB_NAME = os.environ.get('DB_NAME', 'pixels')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'postgres')
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_USER = os.environ.get('DB_USER', 'postgres')
+DB_NAME = os.environ.get("DB_NAME", "pixels")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_USER = os.environ.get("DB_USER", "postgres")
 
 # Setup db engine and connect.
-DB_TEMPLATE = 'postgresql://{username}:{password}@{host}:{port}/{database}'
-db_url = DB_TEMPLATE.format(username=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=5432, database=DB_NAME)
+DB_TEMPLATE = "postgresql://{username}:{password}@{host}:{port}/{database}"
+db_url = DB_TEMPLATE.format(
+    username=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=5432, database=DB_NAME
+)
 engine = sqlalchemy.create_engine(db_url)
 connection = engine.connect()
 
 
-def search_data(geojson, start=None, end=None, platforms=None, maxcloud=None, scene=None, limit=10,  sort='sensing_time'):
+def search_data(
+    geojson,
+    start=None,
+    end=None,
+    platforms=None,
+    maxcloud=None,
+    scene=None,
+    limit=10,
+    sort="sensing_time",
+):
     """
     Query data from the eo_catalog DB
     """
@@ -30,19 +48,21 @@ def search_data(geojson, start=None, end=None, platforms=None, maxcloud=None, sc
 
     # Check inputs
     if start is not None:
-        query += ' AND sensing_time >= timestamp \'{}\' '.format(start)
+        query += " AND sensing_time >= timestamp '{}' ".format(start)
     if end is not None:
-        query += ' AND sensing_time <= timestamp \'{}\' '.format(end)
+        query += " AND sensing_time <= timestamp '{}' ".format(end)
     if platforms is not None:
-        query += ' AND spacecraft_id IN ({})'.format((','.join("'" + plat + "'" for plat in platforms)))
+        query += " AND spacecraft_id IN ({})".format(
+            (",".join("'" + plat + "'" for plat in platforms))
+        )
     if maxcloud is not None:
-        query += ' AND cloud_cover <= {} '.format(maxcloud)
+        query += " AND cloud_cover <= {} ".format(maxcloud)
     if scene is not None:
-        query += ' AND product_id = \'{}\' '.format(scene)  
+        query += " AND product_id = '{}' ".format(scene)
     if sort is not None:
-        query += ' ORDER BY {} DESC'.format(sort)
+        query += " ORDER BY {} DESC".format(sort)
     if limit is not None:
-        query += ' LIMIT {};'.format(limit)
+        query += " LIMIT {};".format(limit)
 
     # Execute and format querry
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
@@ -54,10 +74,10 @@ def search_data(geojson, start=None, end=None, platforms=None, maxcloud=None, sc
 def get_bands(response):
     result = []
     for value in response:
-        if 'sentinel-2' in value["base_url"]:
-            value['bands'] = format_sentinel_band(value)
+        if "sentinel-2" in value["base_url"]:
+            value["bands"] = format_sentinel_band(value)
         else:
-            value['bands'] = format_ls_band(value)
+            value["bands"] = format_ls_band(value)
 
         result.append(value)
 
@@ -73,9 +93,9 @@ def format_sentinel_band(value):
     base_url = AWS_URL
     date = parse(str(value["sensing_time"]))
     product_id = value["product_id"]
-    sensing_time = str(date.date()).replace('-', '')
+    sensing_time = str(date.date()).replace("-", "")
     sequence = 0
-    level = 'L2A'
+    level = "L2A"
     data = {}
 
     for band in S2_BANDS:
@@ -92,7 +112,8 @@ def format_sentinel_band(value):
             sensing_time=sensing_time,
             sequence=sequence,
             level=level,
-            band=band)
+            band=band,
+        )
 
     return data
 
@@ -107,8 +128,7 @@ def format_ls_band(value):
         ls_band_template = "{base_url}/{product_id}_{band}.TIF"
 
         data[band] = ls_band_template.format(
-            base_url=base_url,
-            product_id=product_id,
-            band=band)
+            base_url=base_url, product_id=product_id, band=band
+        )
 
     return data

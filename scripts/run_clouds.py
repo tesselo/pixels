@@ -3,9 +3,9 @@ from PIL import Image
 
 from pixels.clouds import cloud_or_snow_mask, composite_index
 
-data = numpy.load('/home/tam/Desktop/esb/combined_data/pixels_9.npz', allow_pickle=True)
+data = numpy.load("/home/tam/Desktop/esb/combined_data/pixels_9.npz", allow_pickle=True)
 
-X = data['data']
+X = data["data"]
 # X = X[20:30]
 print(X.shape)
 
@@ -38,10 +38,12 @@ for i in range(X.shape[1]):
 
 result = numpy.array(result)
 scale = 1000
-rgb = numpy.dstack([
-    255 * (numpy.clip(result[8], 0, scale) / scale),
-    255 * (numpy.clip(result[7], 0, scale) / scale),
-    255 * (numpy.clip(result[6], 0, scale) / scale),
-]).astype('uint8')
+rgb = numpy.dstack(
+    [
+        255 * (numpy.clip(result[8], 0, scale) / scale),
+        255 * (numpy.clip(result[7], 0, scale) / scale),
+        255 * (numpy.clip(result[6], 0, scale) / scale),
+    ]
+).astype("uint8")
 img = Image.fromarray(rgb)
-img.save('/home/tam/Desktop/bla.jpg')
+img.save("/home/tam/Desktop/bla.jpg")

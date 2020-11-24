@@ -11,14 +11,22 @@ from pixels.utils import compute_mask, compute_transform
 logger = logging.getLogger(__name__)
 
 
-def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touched=False, bands=None):
+def retrieve(
+    source,
+    geojson,
+    scale=None,
+    discrete=False,
+    clip=False,
+    all_touched=False,
+    bands=None,
+):
     """
     Get pixels from a source raster over the a geojson feature collection.
     """
-    logger.debug('Retrieving {}'.format(source))
+    logger.debug("Retrieving {}".format(source))
 
     # Validate geojson by opening it with rasterio CRS class.
-    dst_crs = CRS.from_dict(geojson['crs'])
+    dst_crs = CRS.from_dict(geojson["crs"])
 
     # Determine resampling algorithm.
     resampling = Resampling.nearest if discrete else Resampling.bilinear
@@ -31,10 +39,10 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                 scale = abs(src.transform[0])
             else:
                 raise ValueError(
-                    'Can not auto-determine target scale because'
-                    'the geom crs does not match the source crs.'
+                    "Can not auto-determine target scale because"
+                    "the geom crs does not match the source crs."
                 )
-        logger.debug('Source CRS is {}.'.format(src.crs))
+        logger.debug("Source CRS is {}.".format(src.crs))
 
         # If no band indices were provided, process all bands.
         if not bands:
@@ -42,30 +50,32 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
 
         # Prepare target raster transform from the geometry input.
         transform, width, height = compute_transform(geojson, scale)
-        logger.debug('Target array shape is ({}, {})'.format(height, width))
+        logger.debug("Target array shape is ({}, {})".format(height, width))
 
         # Prepare creation parameters for memory raster.
         creation_args = src.meta.copy()
-        creation_args.update({
-            'driver': 'GTiff',
-            'crs': dst_crs,
-            'transform': transform,
-            'width': width,
-            'height': height,
-        })
+        creation_args.update(
+            {
+                "driver": "GTiff",
+                "crs": dst_crs,
+                "transform": transform,
+                "width": width,
+                "height": height,
+            }
+        )
 
         # Set different band count if bands were given as input.
         if bands:
-            creation_args['count'] = len(bands)
+            creation_args["count"] = len(bands)
 
         # Open memory destination file.
         with MemoryFile() as memfile:
             with memfile.open(**creation_args) as dst:
                 # Prepare projection arguments.
                 proj_args = {
-                    'dst_transform': transform,
-                    'dst_crs': dst_crs,
-                    'resampling': resampling,
+                    "dst_transform": transform,
+                    "dst_crs": dst_crs,
+                    "resampling": resampling,
                 }
 
                 # Determine georeferencing from source raster.
@@ -76,24 +86,28 @@ def retrieve(source, geojson, scale=None, discrete=False, clip=False, all_touche
                     # Extract georeference points and source crs from gcps.
                     # This is the case for Sentinel-1, for instance.
                     src_gcps, src_crs = src.gcps
-                    proj_args['gcps'] = src.gcps[0]
+                    proj_args["gcps"] = src.gcps[0]
 
                 # Set source crs.
-                proj_args['src_crs'] = src_crs
+                proj_args["src_crs"] = src_crs
 
                 # Transform raster bands from source to destination.
                 for index, band in enumerate(bands):
-                    proj_args.update({
-                        'source': rasterio.band(src, band),
-                        'destination': rasterio.band(dst, index + 1),
-                    })
+                    proj_args.update(
+                        {
+                            "source": rasterio.band(src, band),
+                            "destination": rasterio.band(dst, index + 1),
+                        }
+                    )
                     reproject(**proj_args)
 
                 # Get pixel values.
                 pixels = dst.read()
 
                 if clip:
-                    mask = compute_mask(geojson, height, width, transform, all_touched=all_touched)
+                    mask = compute_mask(
+                        geojson, height, width, transform, all_touched=all_touched
+                    )
                     # Apply mask to all bands.
                     pixels[:, mask] = NODATA_VALUE
 

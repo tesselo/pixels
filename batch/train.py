@@ -19,16 +19,16 @@ session = tensorflow.compat.v1.InteractiveSession(config=config)
 ### Remove in production.
 
 # Setup boto client.
-s3 = boto3.client('s3')
+s3 = boto3.client("s3")
 # Fetch all data to memory.
-bucket = os.environ.get('AWS_S3_BUCKET', 'tesselo-pixels-results')
-project_id = os.environ.get('PIXELS_PROJECT_ID', 'test')
+bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
+project_id = os.environ.get("PIXELS_PROJECT_ID", "test")
 # config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 # config = json.loads(config['Body'].read())
-paginator = s3.get_paginator('list_objects_v2')
+paginator = s3.get_paginator("list_objects_v2")
 pages = paginator.paginate(
     Bucket=bucket,
-    Prefix='{}/training/'.format(project_id),
+    Prefix="{}/training/".format(project_id),
 )
 result = []
 # for page in pages:
@@ -44,12 +44,14 @@ Xs = []
 Ys = []
 ids = []
 valuemap = {}
-for path in glob.glob('/home/tam/Desktop/esb/esblandcover/training/*.npz'):
-    with open(path, 'rb') as fl:
+for path in glob.glob("/home/tam/Desktop/esb/esblandcover/training/*.npz"):
+    with open(path, "rb") as fl:
         data = numpy.load(fl, allow_pickle=True)
-        X = data['data']
+        X = data["data"]
         # Data shape is ("scenes", bands, height, width)
-        cloud_mask = cloud_or_snow_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
+        cloud_mask = cloud_or_snow_mask(
+            X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9]
+        )
         # Reorder the data to have
         X = X.swapaxes(0, 2).swapaxes(1, 3)
         # Flatten the 2D data into pixel level.
@@ -58,12 +60,20 @@ for path in glob.glob('/home/tam/Desktop/esb/esblandcover/training/*.npz'):
         X = X[numpy.sum(X, axis=(1, 2)) != 0]
         # Compute cloud and snow mask.
         # Assuming band order: ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
-        cloud_mask = cloud_or_snow_mask(X[:, :, 8], X[:, :, 7], X[:, :, 6], X[:, :, 2], X[:, :, 1], X[:, :, 0], X[:, :, 9])
+        cloud_mask = cloud_or_snow_mask(
+            X[:, :, 8],
+            X[:, :, 7],
+            X[:, :, 6],
+            X[:, :, 2],
+            X[:, :, 1],
+            X[:, :, 0],
+            X[:, :, 9],
+        )
         # Mute cloudy pixels by setting them to zero.
         X[cloud_mask] = 0
         Xs.append(X)
-        Y = data['feature'].item()['features'][0]['properties']['Class']
-        id = data['feature'].item()['features'][0]['id']
+        Y = data["feature"].item()["features"][0]["properties"]["Class"]
+        id = data["feature"].item()["features"][0]["id"]
         if Y not in valuemap:
             print(Y, len(valuemap))
             valuemap[Y] = len(valuemap)
@@ -71,7 +81,7 @@ for path in glob.glob('/home/tam/Desktop/esb/esblandcover/training/*.npz'):
         ids.append([id] * X.shape[0])
 
 # Stack the training samples into one array.
-Xs = numpy.vstack(Xs).astype('float32')
+Xs = numpy.vstack(Xs).astype("float32")
 Ys = numpy.hstack(Ys)
 ids = numpy.hstack(ids)
 
@@ -113,18 +123,18 @@ Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 visible = layers.Input(shape=X_train.shape[1:])
 normed = layers.BatchNormalization()(visible)
 # first feature extractor
-conv1 = layers.Conv1D(filters=64, kernel_size=3, activation='relu')(normed)
+conv1 = layers.Conv1D(filters=64, kernel_size=3, activation="relu")(normed)
 normed1 = layers.BatchNormalization()(conv1)
 dropped1 = layers.Dropout(0.5)(normed1)
-convd1 = layers.Conv1D(filters=64, kernel_size=3, activation='relu')(dropped1)
+convd1 = layers.Conv1D(filters=64, kernel_size=3, activation="relu")(dropped1)
 normed11 = layers.BatchNormalization()(convd1)
 pool1 = layers.MaxPooling1D(pool_size=2)(normed11)
 flat1 = layers.Flatten()(pool1)
 # second feature extractor
-conv2 = layers.Conv1D(filters=64, kernel_size=6, activation='relu')(normed)
+conv2 = layers.Conv1D(filters=64, kernel_size=6, activation="relu")(normed)
 normed2 = layers.BatchNormalization()(conv2)
 dropped2 = layers.Dropout(0.5)(normed2)
-convd2 = layers.Conv1D(filters=64, kernel_size=6, activation='relu')(dropped2)
+convd2 = layers.Conv1D(filters=64, kernel_size=6, activation="relu")(dropped2)
 normed22 = layers.BatchNormalization()(convd2)
 pool2 = layers.MaxPooling1D(pool_size=2)(normed22)
 flat2 = layers.Flatten()(pool2)
@@ -132,28 +142,34 @@ flat2 = layers.Flatten()(pool2)
 merge = layers.concatenate([flat1, flat2])
 dropped = layers.Dropout(0.5)(merge)
 # interpretation layer
-hidden1 = layers.Dense(100, activation='relu')(dropped)
+hidden1 = layers.Dense(100, activation="relu")(dropped)
 normed3 = layers.BatchNormalization()(hidden1)
 dropped3 = layers.Dropout(0.5)(normed3)
 # prediction output
-output = layers.Dense(len(valuemap), activation='softmax')(dropped3)
+output = layers.Dense(len(valuemap), activation="softmax")(dropped3)
 model = Model(inputs=visible, outputs=output)
 
 # Compile the model.
 config = {}
-compile_parms = config.get('keras_compile_arguments', {
-    'optimizer': 'rmsprop',
-    'loss': 'categorical_crossentropy',
-    'metrics': ['accuracy'],
-})
+compile_parms = config.get(
+    "keras_compile_arguments",
+    {
+        "optimizer": "rmsprop",
+        "loss": "categorical_crossentropy",
+        "metrics": ["accuracy"],
+    },
+)
 model.compile(**compile_parms)
 
 # Fit the model.
-fit_parms = config.get('keras_fit_arguments', {
-    'epochs': 50,
-    'batch_size': 10000,
-    'verbose': 1,
-})
+fit_parms = config.get(
+    "keras_fit_arguments",
+    {
+        "epochs": 50,
+        "batch_size": 10000,
+        "verbose": 1,
+    },
+)
 model.fit(X_train, Y_train, **fit_parms)
 # model.summary()
 

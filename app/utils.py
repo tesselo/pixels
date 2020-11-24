@@ -29,7 +29,9 @@ def rescale_to_channel_range(data, dfrom, dto, dover=None):
         lower_half = data < 0.5
         # Recursive calls to scaling upper and lower half separately.
         data[lower_half] = rescale_to_channel_range(data[lower_half] * 2, dfrom, dover)
-        data[numpy.logical_not(lower_half)] = rescale_to_channel_range((data[numpy.logical_not(lower_half)] - 0.5) * 2, dover, dto)
+        data[numpy.logical_not(lower_half)] = rescale_to_channel_range(
+            (data[numpy.logical_not(lower_half)] - 0.5) * 2, dover, dto
+        )
 
     return data
 
@@ -41,11 +43,11 @@ def hex_to_rgba(value, alpha=255):
     if value is None:
         return [None, None, None]
 
-    value = value.lstrip('#')
+    value = value.lstrip("#")
 
     # Check length and input string property
     if len(value) not in [1, 2, 3, 6] or not value.isalnum():
-        raise PixelsFailed('Invalid color, could not convert hex to rgb.')
+        raise PixelsFailed("Invalid color, could not convert hex to rgb.")
 
     # Repeat values for shortened input
     value = (value * 6)[:6]
@@ -56,11 +58,23 @@ def hex_to_rgba(value, alpha=255):
 
 def get_s2_rgb_pixels(projectid, z, x, y):
     try:
-        with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B04.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+        with rasterio.open(
+            "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B04.tif".format(
+                const.BUCKET, projectid, z, x, y
+            )
+        ) as rst:
             red = rst.read(1)
-        with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B03.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+        with rasterio.open(
+            "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B03.tif".format(
+                const.BUCKET, projectid, z, x, y
+            )
+        ) as rst:
             green = rst.read(1)
-        with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B02.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+        with rasterio.open(
+            "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!B02.tif".format(
+                const.BUCKET, projectid, z, x, y
+            )
+        ) as rst:
             blue = rst.read(1)
         mask = numpy.all((red != 0, blue != 0, green != 0), axis=0).T * 255
         return red, green, blue, mask
@@ -71,15 +85,31 @@ def get_s2_rgb_pixels(projectid, z, x, y):
 def get_s1_rgb_pixels(projectid, z, x, y):
 
     try:
-        with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VV.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+        with rasterio.open(
+            "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VV.tif".format(
+                const.BUCKET, projectid, z, x, y
+            )
+        ) as rst:
             red = rst.read(1)
-        with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VH.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+        with rasterio.open(
+            "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!VH.tif".format(
+                const.BUCKET, projectid, z, x, y
+            )
+        ) as rst:
             green = rst.read(1)
     except rasterio.errors.RasterioIOError:
         try:
-            with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HH.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+            with rasterio.open(
+                "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HH.tif".format(
+                    const.BUCKET, projectid, z, x, y
+                )
+            ) as rst:
                 red = rst.read(1)
-            with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HV.tif'.format(const.BUCKET, projectid, z, x, y)) as rst:
+            with rasterio.open(
+                "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!HV.tif".format(
+                    const.BUCKET, projectid, z, x, y
+                )
+            ) as rst:
                 green = rst.read(1)
         except:
             return
@@ -97,7 +127,9 @@ def get_s1_rgb_pixels(projectid, z, x, y):
     return red, green, blue, mask
 
 
-def get_s2_formula_pixels(projectid, z, x, y, formula, color_from, color_to, color_over, dmin, dmax, frmt):
+def get_s2_formula_pixels(
+    projectid, z, x, y, formula, color_from, color_to, color_over, dmin, dmax, frmt
+):
     # Instantiate formula parser.
     parser = algebra.FormulaParser()
     data = {}
@@ -105,14 +137,18 @@ def get_s2_formula_pixels(projectid, z, x, y, formula, color_from, color_to, col
     for band in const.SENTINEL_2_BANDS:
         if band in formula:
             try:
-                with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif'.format(const.BUCKET, projectid, z, x, y, band)) as rst:
-                    data[band] = rst.read(1).T.astype('float')
+                with rasterio.open(
+                    "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif".format(
+                        const.BUCKET, projectid, z, x, y, band
+                    )
+                ) as rst:
+                    data[band] = rst.read(1).T.astype("float")
             except rasterio.errors.RasterioIOError:
                 return
 
     index = parser.evaluate(data, formula)
 
-    if frmt == 'tif':
+    if frmt == "tif":
         index = index.reshape(256, 256).T
         return index
 
@@ -125,9 +161,15 @@ def get_s2_formula_pixels(projectid, z, x, y, formula, color_from, color_to, col
     color_to = hex_to_rgba(color_to)
     color_over = hex_to_rgba(color_over)
 
-    red = rescale_to_channel_range(norm.copy(), color_from[0], color_to[0], color_over[0])
-    green = rescale_to_channel_range(norm.copy(), color_from[1], color_to[1], color_over[1])
-    blue = rescale_to_channel_range(norm.copy(), color_from[2], color_to[2], color_over[2])
+    red = rescale_to_channel_range(
+        norm.copy(), color_from[0], color_to[0], color_over[0]
+    )
+    green = rescale_to_channel_range(
+        norm.copy(), color_from[1], color_to[1], color_over[1]
+    )
+    blue = rescale_to_channel_range(
+        norm.copy(), color_from[2], color_to[2], color_over[2]
+    )
 
     # Compute alpha channel from mask if available.
     mask = numpy.all([dat != 0 for dat in data.values()], axis=0) * 255
@@ -139,17 +181,21 @@ def get_empty_image(z):
     output = BytesIO()
     path = os.path.dirname(os.path.abspath(__file__))
     # Open the ref image.
-    img = Image.open(os.path.join(path, 'assets/tesselo_empty.png'))
+    img = Image.open(os.path.join(path, "assets/tesselo_empty.png"))
     # Write zoom message into image.
     if z > 14:
-        msg = 'Zoom is {} | Max zoom is 14'.format(z)
+        msg = "Zoom is {} | Max zoom is 14".format(z)
     else:
-        msg = 'No Data'
+        msg = "No Data"
     draw = ImageDraw.Draw(img)
     text_width, text_height = draw.textsize(msg)
-    draw.text(((img.width - text_width) / 2, 60 + (img.height - text_height) / 2), msg, fill='black')
+    draw.text(
+        ((img.width - text_width) / 2, 60 + (img.height - text_height) / 2),
+        msg,
+        fill="black",
+    )
     # Save image to io buffer.
-    img.save(output, format='PNG')
+    img.save(output, format="PNG")
     output.seek(0)
     return output
 

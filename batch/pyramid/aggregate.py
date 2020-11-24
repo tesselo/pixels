@@ -12,23 +12,25 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # project_id='florence-s2'
-project_id = 'clftests'
-formula = '(B08-B04)/(B08+B04)'
+project_id = "clftests"
+formula = "(B08-B04)/(B08+B04)"
 zoom = 14
 scale = utils.tile_scale(zoom)
 tbounds = utils.tile_bounds(zoom, 4562, 6532)
 geom = {
-    'type': 'Feature',
-    'crs': 'EPSG:3857',
-    'geometry': {
-        'type': 'Polygon',
-        'coordinates': [[
-            [tbounds[0], tbounds[1]],
-            [tbounds[2], tbounds[1]],
-            [tbounds[2], tbounds[3]],
-            [tbounds[0], tbounds[3]],
-            [tbounds[0], tbounds[1]],
-        ]]
+    "type": "Feature",
+    "crs": "EPSG:3857",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [tbounds[0], tbounds[1]],
+                [tbounds[2], tbounds[1]],
+                [tbounds[2], tbounds[3]],
+                [tbounds[0], tbounds[3]],
+                [tbounds[0], tbounds[1]],
+            ]
+        ],
     },
 }
 
@@ -40,14 +42,18 @@ for x, y, intersection in tile_range(geom, zoom, intersection=True, tolerance=10
     for band in const.SENTINEL_2_BANDS:
         if band in formula:
             try:
-                with rasterio.open('zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif'.format(const.BUCKET, project_id, zoom, x, y, band)) as rst:
-                    data[band] = rst.read(1).T.astype('float')
+                with rasterio.open(
+                    "zip+s3://{}/{}/tiles/{}/{}/{}/pixels.zip!{}.tif".format(
+                        const.BUCKET, project_id, zoom, x, y, band
+                    )
+                ) as rst:
+                    data[band] = rst.read(1).T.astype("float")
             except rasterio.errors.RasterioIOError:
                 data = None
                 break
 
     if not data:
-        logger.warning('No data found for tile {} {} {}'.format(zoom, x, y))
+        logger.warning("No data found for tile {} {} {}".format(zoom, x, y))
         continue
 
     parser = algebra.FormulaParser()
@@ -65,13 +71,13 @@ for x, y, intersection in tile_range(geom, zoom, intersection=True, tolerance=10
     transform = Affine(scale_x, skew_x, origin_x, skew_y, scale_y, origin_y)
 
     creation_args = {
-        'driver': 'GTiff',
-        'crs': 'epsg:3857',
-        'transform': transform,
-        'width': width,
-        'height': height,
-        'dtype': 'float64',
-        'count': 1,
+        "driver": "GTiff",
+        "crs": "epsg:3857",
+        "transform": transform,
+        "width": width,
+        "height": height,
+        "dtype": "float64",
+        "count": 1,
     }
 
     # Get raster algebra from api destination.
@@ -81,7 +87,7 @@ for x, y, intersection in tile_range(geom, zoom, intersection=True, tolerance=10
     memfile.seek(0)
 
     # Clip pixels to geom.
-    clipped = utils.clip_to_geom({'index': memfile}, geom)['index']
+    clipped = utils.clip_to_geom({"index": memfile}, geom)["index"]
 
     # Open pixels as array.
     with clipped.open() as clrst:
@@ -95,12 +101,12 @@ result = result[numpy.logical_not(numpy.isnan(result))]
 
 # Compute index stats from pixels.
 stats = {
-    'min': numpy.min(result),
-    'max': numpy.max(result),
-    'avg': numpy.mean(result),
-    'std': numpy.nanstd(result),
-    't0': len(result),
-    't1': numpy.sum(result),
-    't2': numpy.sum(numpy.square(result)),
+    "min": numpy.min(result),
+    "max": numpy.max(result),
+    "avg": numpy.mean(result),
+    "std": numpy.nanstd(result),
+    "t0": len(result),
+    "t1": numpy.sum(result),
+    "t2": numpy.sum(numpy.square(result)),
 }
 print(stats)

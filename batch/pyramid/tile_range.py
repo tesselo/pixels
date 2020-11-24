@@ -16,13 +16,13 @@ def tile_range(geom, zoom, intersection=False, tolerance=0):
     given zoom level.
     """
     # Compute general tile bounds.
-    geombounds = rasterio.features.bounds(utils.reproject_feature(geom, 'EPSG:4326'))
+    geombounds = rasterio.features.bounds(utils.reproject_feature(geom, "EPSG:4326"))
     minimumTile = utils.tile_index(geombounds[0], geombounds[3], zoom)
     maximumTile = utils.tile_index(geombounds[2], geombounds[1], zoom)
-    logger.info('Tile range is {} - {}'.format(minimumTile, maximumTile))
+    logger.info("Tile range is {} - {}".format(minimumTile, maximumTile))
 
     # Convert geometry to shape.
-    geom_shape = shape(utils.reproject_feature(geom, 'EPSG:3857')['geometry'])
+    geom_shape = shape(utils.reproject_feature(geom, "EPSG:3857")["geometry"])
 
     # Loop through all tiles but only yeald the intersecting ones.
     for x in range(minimumTile[0], maximumTile[0] + 1):
@@ -38,13 +38,15 @@ def tile_range(geom, zoom, intersection=False, tolerance=0):
                 tbounds[3] -= tolerance
 
             # Instanciate tile polygon.
-            tile = Polygon([
-                [tbounds[0], tbounds[1]],
-                [tbounds[2], tbounds[1]],
-                [tbounds[2], tbounds[3]],
-                [tbounds[0], tbounds[3]],
-                [tbounds[0], tbounds[1]],
-            ])
+            tile = Polygon(
+                [
+                    [tbounds[0], tbounds[1]],
+                    [tbounds[2], tbounds[1]],
+                    [tbounds[2], tbounds[3]],
+                    [tbounds[0], tbounds[3]],
+                    [tbounds[0], tbounds[1]],
+                ]
+            )
 
             # Yield tile index if the tile intersects with the geometry. Also
             # include tile intersection geometry if requested.

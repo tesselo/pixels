@@ -20,16 +20,21 @@ def compute_transform(geojson, scale):
     return transform, width, height
 
 
-def compute_mask(geojson, height, width, transform, value_column_name=None, all_touched=False):
+def compute_mask(
+    geojson, height, width, transform, value_column_name=None, all_touched=False
+):
     """
     Compute geometry mask. If specified, the burn value for each geometry will
     be used from the value_column_name.
     """
     # Create a list of geometries, if requested with a burn value.
     if value_column_name:
-        geoms_to_rasterize = [(dat['geometry'], dat['properties'][value_column_name]) for dat in geojson['features']]
+        geoms_to_rasterize = [
+            (dat["geometry"], dat["properties"][value_column_name])
+            for dat in geojson["features"]
+        ]
     else:
-        geoms_to_rasterize = [dat['geometry'] for dat in geojson['features']]
+        geoms_to_rasterize = [dat["geometry"] for dat in geojson["features"]]
 
     # Rasterize the geoms.
     mask = rasterize(
@@ -42,7 +47,7 @@ def compute_mask(geojson, height, width, transform, value_column_name=None, all_
     )
     # Convert to boolean mask if no value column has been specified.
     if not value_column_name:
-        mask = mask.astype('bool')
+        mask = mask.astype("bool")
 
     return mask
 
@@ -55,9 +60,13 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
     bbox = bounds(geojson)
 
     # Transform the two corners.
-    crs = geojson['crs']['init'] if 'init' in geojson['crs'] else geojson['crs']['properties']['name']
-    if 'EPSG:4326' not in crs:
-        bbox = transform(crs, 'EPSG:4326', [bbox[0], bbox[2]], [bbox[1], bbox[3]])
+    crs = (
+        geojson["crs"]["init"]
+        if "init" in geojson["crs"]
+        else geojson["crs"]["properties"]["name"]
+    )
+    if "EPSG:4326" not in crs:
+        bbox = transform(crs, "EPSG:4326", [bbox[0], bbox[2]], [bbox[1], bbox[3]])
         # Compute transformed range.
         xmin = min(bbox[0])
         ymin = min(bbox[1])
@@ -76,13 +85,15 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
         # Return new bounding box as geojson polygon.
         bbox = {
             "type": "Polygon",
-            "coordinates": [[
-                [xmin, ymin],
-                [xmin, ymax],
-                [xmax, ymax],
-                [xmax, ymin],
-                [xmin, ymin],
-            ]],
+            "coordinates": [
+                [
+                    [xmin, ymin],
+                    [xmin, ymax],
+                    [xmax, ymax],
+                    [xmax, ymin],
+                    [xmin, ymin],
+                ]
+            ],
         }
 
     return bbox

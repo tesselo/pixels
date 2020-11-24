@@ -7,34 +7,33 @@ from train.train import load_data
 
 from pixels import utils
 
-bucket='tesselo-pixels-results'
-project_id='test'
-data=load_data(bucket, project_id, 'result')
-result = data['result']
+bucket = "tesselo-pixels-results"
+project_id = "test"
+data = load_data(bucket, project_id, "result")
+result = data["result"]
 
 # Fetch config.
-s3 = boto3.client('s3')
-config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
-config = json.loads(config['Body'].read())
+s3 = boto3.client("s3")
+config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
+config = json.loads(config["Body"].read())
 
-config['geom']=config['predict']['features'][0]
+config["geom"] = config["predict"]["features"][0]
 config = utils.validate_configuration(config)
 
-transform, width, height, crs = utils.compute_transform(config['geom'], config['scale'])
+transform, width, height, crs = utils.compute_transform(config["geom"], config["scale"])
 creation_args = {
-    'driver': 'GTiff',
-    'crs': crs,
-    'transform': transform,
-    'width': width,
-    'height': height,
-    'nodata': 0,
-    'dtype': 'uint8',
-    'count': 1,
+    "driver": "GTiff",
+    "crs": crs,
+    "transform": transform,
+    "width": width,
+    "height": height,
+    "nodata": 0,
+    "dtype": "uint8",
+    "count": 1,
 }
 # with memfile.open(**creation_args) as rst:
-with rasterio.open('/home/tam/Desktop/result.tif','w',**creation_args) as rst:
-    rst.write(result.reshape(1, height, width).astype('uint8'))
-
+with rasterio.open("/home/tam/Desktop/result.tif", "w", **creation_args) as rst:
+    rst.write(result.reshape(1, height, width).astype("uint8"))
 
 
 # define GRU

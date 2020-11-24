@@ -13,10 +13,20 @@ from pixels.utils import compute_mask, timeseries_steps
 # Get logger
 logger = logging.getLogger(__name__)
 
-LANDSAT_1_LAUNCH_DATE = '1972-07-23'
+LANDSAT_1_LAUNCH_DATE = "1972-07-23"
 
 
-def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=10, clip=False, pool=False, maxcloud=None):
+def latest_pixel_s2(
+    geojson,
+    end_date,
+    scale,
+    bands=None,
+    platforms=None,
+    limit=10,
+    clip=False,
+    pool=False,
+    maxcloud=None,
+):
     """
     Get the latest pixel for the input items over the input fetures.
     """
@@ -25,13 +35,20 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
 
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
     if isinstance(end_date, (list, tuple)):
-        logger.info('Latest pixels for {} items.'.format(len(end_date)))
+        logger.info("Latest pixels for {} items.".format(len(end_date)))
         items = end_date
     else:
-        items = search_data(geojson=geojson, start=LANDSAT_1_LAUNCH_DATE, end=end_date, limit=limit, platforms=platforms, maxcloud=maxcloud)
+        items = search_data(
+            geojson=geojson,
+            start=LANDSAT_1_LAUNCH_DATE,
+            end=end_date,
+            limit=limit,
+            platforms=platforms,
+            maxcloud=maxcloud,
+        )
 
         if not items:
-            raise ValueError('No scenes in search response.')
+            raise ValueError("No scenes in search response.")
 
     # Assign variables to be populated during pixel collection.
     stack = None
@@ -40,12 +57,15 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
     mask = None
     # Get data for each item.
     for item in items:
-        logger.info(item['product_id'])
+        logger.info(item["product_id"])
         # Track first end date (highest priority image in stack).
         if first_end_date is None:
-            first_end_date = str(items[0]['sensing_time'].date())
+            first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
-        band_list = [(item['bands'][band], geojson, scale, False, False, False, None) for band in bands]
+        band_list = [
+            (item["bands"][band], geojson, scale, False, False, False, None)
+            for band in bands
+        ]
 
         data = []
         failed_retrieve = False
@@ -66,7 +86,11 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
 
         # Continue to next scene if retrieval of bands failed.
         if failed_retrieve:
-            logger.warning('Failed retrieval of bands for {}, continuing.'.format(item['product_id']))
+            logger.warning(
+                "Failed retrieval of bands for {}, continuing.".format(
+                    item["product_id"]
+                )
+            )
             continue
 
         # Create stack.
@@ -91,9 +115,9 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
     if clip:
         mask = compute_mask(
             geojson,
-            creation_args['height'],
-            creation_args['width'],
-            creation_args['transform'],
+            creation_args["height"],
+            creation_args["width"],
+            creation_args["transform"],
         )
         for i in range(len(stack)):
             stack[i][mask] = NODATA_VALUE
@@ -101,7 +125,18 @@ def latest_pixel_s2(geojson, end_date, scale, bands=None, platforms=None, limit=
     return creation_args, first_end_date, stack
 
 
-def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=None, platforms='SENTINEL_2', limit=10, clip=False, maxcloud=None):
+def latest_pixel_s2_stack(
+    geojson,
+    start,
+    end,
+    scale,
+    interval="weeks",
+    bands=None,
+    platforms="SENTINEL_2",
+    limit=10,
+    clip=False,
+    maxcloud=None,
+):
     """
     Get the latest pixel at regular intervals between two dates.
     """
@@ -111,46 +146,102 @@ def latest_pixel_s2_stack(geojson, start, end, scale, interval='weeks', bands=No
 
     retrieve_pool = False
 
-    if interval == 'all':
+    if interval == "all":
         # Get all scenes of for this date range.
-        response = search_data(geojson=geojson, start=start, end=end, limit=limit, platforms=platforms, maxcloud=maxcloud)
+        response = search_data(
+            geojson=geojson,
+            start=start,
+            end=end,
+            limit=limit,
+            platforms=platforms,
+            maxcloud=maxcloud,
+        )
 
         if not response:
-            raise ValueError('No scenes in search response.')
+            raise ValueError("No scenes in search response.")
 
-        logger.info('Getting {} scenes for this geom.'.format(len(response)))
+        logger.info("Getting {} scenes for this geom.".format(len(response)))
 
         limit = 5
-        dates = [(geojson, [item], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for item in response]
+        dates = [
+            (
+                geojson,
+                [item],
+                scale,
+                bands,
+                platforms,
+                limit,
+                clip,
+                retrieve_pool,
+                maxcloud,
+            )
+            for item in response
+        ]
     else:
         # Construct array of latest pixel calls with varying dates.
-        dates = [(geojson, step[1], scale, bands, platforms, limit, clip, retrieve_pool, maxcloud) for step in timeseries_steps(start, end, interval)]
-        logger.info('Getting {} {} for this geom.'.format(len(dates), interval))
+        dates = [
+            (
+                geojson,
+                step[1],
+                scale,
+                bands,
+                platforms,
+                limit,
+                clip,
+                retrieve_pool,
+                maxcloud,
+            )
+            for step in timeseries_steps(start, end, interval)
+        ]
+        logger.info("Getting {} {} for this geom.".format(len(dates), interval))
 
     # Call pixels calls asynchronously.
     pool_size = min(len(dates), 10)
-    logger.info('Found {} scenes, processing pool size is {}.'.format(len(dates), pool_size))
+    logger.info(
+        "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
+    )
     with Pool(pool_size) as p:
         return p.starmap(latest_pixel_s2, dates)
 
 
-def composite(geojson, start, end, scale, bands=None, limit=10, clip=False, pool=False, platform='SENTINEL_2', maxcloud=None):
+def composite(
+    geojson,
+    start,
+    end,
+    scale,
+    bands=None,
+    limit=10,
+    clip=False,
+    pool=False,
+    platform="SENTINEL_2",
+    maxcloud=None,
+):
     """
     Get the composite over the input features.
     """
-    logger.info('Compositing pixels for {}'.format(start))
+    logger.info("Compositing pixels for {}".format(start))
 
-    response = search_data(geojson=geojson, platform=platform, start=start, end=end, limit=limit, maxcloud=maxcloud)
+    response = search_data(
+        geojson=geojson,
+        platform=platform,
+        start=start,
+        end=end,
+        limit=limit,
+        maxcloud=maxcloud,
+    )
 
-    if 'bands' not in response:
-        raise ValueError('No features in search response.')
+    if "bands" not in response:
+        raise ValueError("No features in search response.")
 
     stack = []
     creation_args = None
 
     for item in response:
         # Prepare band list.
-        band_list = [(response['bands'][band], geojson, scale, False, False, False, None)for band in bands]
+        band_list = [
+            (response["bands"][band], geojson, scale, False, False, False, None)
+            for band in bands
+        ]
 
         if pool:
             with Pool(len(bands)) as p:
@@ -168,7 +259,7 @@ def composite(geojson, start, end, scale, bands=None, limit=10, clip=False, pool
     stack = numpy.array(stack)
     # Compute index of each band in the selection and pass to composite
     # index calculator.
-    BANDS_REQUIRED = ('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12')
+    BANDS_REQUIRED = ("B02", "B03", "B04", "B08", "B8A", "B11", "B12")
     cidx = composite_index(*(stack[:, bands.index(band)] for band in BANDS_REQUIRED))
     idx1, idx2 = numpy.indices(stack.shape[2:])
     return creation_args, stack[cidx, :, idx1, idx2]

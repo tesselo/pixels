@@ -17,7 +17,9 @@ def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
     return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=True)
 
 
-def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False):
+def _composite_or_cloud(
+    B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False
+):
     """
     Compute cloud and snow mask or create a composite.
 
@@ -44,20 +46,38 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     ratioB3B11 = B03 / B11
     ratioB11B3 = B11 / B03
     rgbMean = (B02 + B03 + B04) / 3
-    tcHaze = -0.8239 * B02 + 0.0849 * B03 + 0.4396 * B04 - 0.058 * B8A + 0.2013 * B11 - 0.2773 * B12
+    tcHaze = (
+        -0.8239 * B02
+        + 0.0849 * B03
+        + 0.4396 * B04
+        - 0.058 * B8A
+        + 0.2013 * B11
+        - 0.2773 * B12
+    )
     normDiffB8B11 = (B08 - B11) / (B08 + B11)
-    tcb = 0.3029 * B02 + 0.2786 * B03 + 0.4733 * B04 + 0.5599 * B8A + 0.508 * B11 + 0.1872 * B12
+    tcb = (
+        0.3029 * B02
+        + 0.2786 * B03
+        + 0.4733 * B04
+        + 0.5599 * B8A
+        + 0.508 * B11
+        + 0.1872 * B12
+    )
     ndwi = (B03 - B11) / (B03 + B11)
 
     # Snow.
     isSnow = (ndwi > 0.7) & numpy.logical_not((ratioB3B11 > 1) & (tcb < 0.36))
 
     # Dense clouds.
-    A = (((ratioB3B11 > 1) & (rgbMean > 0.3)) & ((tcHaze < -0.1) | ((tcHaze > -0.08) & (normDiffB8B11 < 0.4))))
-    B = (tcHaze < -0.2)
-    C = ((ratioB3B11 > 1) & (rgbMean < 0.3))
-    D = ((tcHaze < -0.055) & (rgbMean > 0.12))
-    E = (numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.3)) & ((tcHaze < -0.09) & (rgbMean > 0.12)))
+    A = ((ratioB3B11 > 1) & (rgbMean > 0.3)) & (
+        (tcHaze < -0.1) | ((tcHaze > -0.08) & (normDiffB8B11 < 0.4))
+    )
+    B = tcHaze < -0.2
+    C = (ratioB3B11 > 1) & (rgbMean < 0.3)
+    D = (tcHaze < -0.055) & (rgbMean > 0.12)
+    E = numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.3)) & (
+        (tcHaze < -0.09) & (rgbMean > 0.12)
+    )
     isHighProbCloud = A | B | C & D | E
 
     # Compute cloud mask.
@@ -66,9 +86,13 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
 
     # Light clouds.
     if light_clouds:
-        A = (((ratioB11B3 > 1) & (rgbMean < 0.2)) & ((tcHaze < -0.1) | ((tcHaze < -0.08) & (normDiffB8B11 < 0.4))))
-        C = ((ratioB3B11 > 1) & (rgbMean < 0.2))
-        E = (numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.2)) & ((tcHaze < -0.02) & (rgbMean > 0.12)))
+        A = ((ratioB11B3 > 1) & (rgbMean < 0.2)) & (
+            (tcHaze < -0.1) | ((tcHaze < -0.08) & (normDiffB8B11 < 0.4))
+        )
+        C = (ratioB3B11 > 1) & (rgbMean < 0.2)
+        E = numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.2)) & (
+            (tcHaze < -0.02) & (rgbMean > 0.12)
+        )
         isLowProbCloud = A | B | C & D | E
         cloud_mask = cloud_mask | isLowProbCloud
 
@@ -148,7 +172,9 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     #         index = undefined
     #     else:
     #         index = tcbMinIndex
-    selector = numpy.logical_not(isSnow[tcbMinIndex, idx1, idx2]) & (tcb[tcbMinIndex, idx1, idx2] < 1)
+    selector = numpy.logical_not(isSnow[tcbMinIndex, idx1, idx2]) & (
+        tcb[tcbMinIndex, idx1, idx2] < 1
+    )
     selector = selector & (result == -1)
     result[selector] = tcbMinIndex[selector]
     # print('R5', numpy.sum(result==-1))
@@ -175,4 +201,4 @@ def _composite_or_cloud(B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_o
     selector = result == -1
     result[selector] = ndviMaxIndex[selector]
 
-    return result.astype('uint8')
+    return result.astype("uint8")
