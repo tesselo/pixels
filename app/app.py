@@ -1,31 +1,22 @@
 import datetime
 import functools
-import json
 import logging
 import os
-import tempfile
-import uuid
-import zipfile
 from io import BytesIO
 
-import boto3
 import mercantile
 import numpy
-from dateutil import parser
 from flask import (
     Flask,
     Response,
     has_request_context,
     jsonify,
-    redirect,
     render_template,
     request,
     send_file,
 )
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image, ImageDraw
-from rasterio import Affine
-from rasterio.io import MemoryFile
 
 from app import const, wmts
 from app.errors import PixelsAuthenticationFailed
@@ -65,12 +56,13 @@ def token_required(func):
     def wrapper(*args, **kwargs):
         # Only run the test if the function is called as a view.
         if has_request_context():
-            key = request.args.get("key", None)
-            # if not key:
-            #     raise PixelsAuthenticationFailed("Authentication key is required.")
-            # token = RasterApiReadonlytoken.query.get(key)
-            # if not token:
-            #     raise PixelsAuthenticationFailed("Authentication key is not valid.")
+            if request.host != "127.0.0.1:5000":
+                key = request.args.get("key", None)
+                if not key:
+                    raise PixelsAuthenticationFailed("Authentication key is required.")
+                token = RasterApiReadonlytoken.query.get(key)
+                if not token:
+                    raise PixelsAuthenticationFailed("Authentication key is not valid.")
         return func(*args, **kwargs)
 
     return wrapper
@@ -110,7 +102,7 @@ def wmtsview():
 @app.route("/tiles/<int:z>/<int:x>/<int:y>.png", methods=["GET"])
 @app.route("/tiles/<platform>/<int:z>/<int:x>/<int:y>.png", methods=["GET"])
 @token_required
-def tiles(z, x, y, platform="s2"):
+def tiles(z, x, y, platform=None):
     """
     TMS tiles endpoint.
     """
@@ -140,7 +132,9 @@ def tiles(z, x, y, platform="s2"):
     if not end:
         end = str(datetime.datetime.now().date())
     # Get cloud cover filter.
-    max_cloud_cover_percentage = int(request.args.get("max_cloud_cover_percentage", 20))
+    max_cloud_cover_percentage = int(
+        request.args.get("max_cloud_cover_percentage", 100)
+    )
     # Compute tile bounds and scale.
     bounds = mercantile.xy_bounds(x, y, z)
     scale = (bounds[2] - bounds[0]) / const.TILE_SIZE
@@ -167,12 +161,18 @@ def tiles(z, x, y, platform="s2"):
         ],
     }
     # Specify the platform to use.
-    if end < "2018-01-01":
+    if platform == "landsat_7" or end < "2014-01-01":
+        platform = "LANDSAT_7"
+        bands = ["B3", "B2", "B1"]
+        scaling = 256
+    elif platform == "landsat_8" or end < "2018-01-01":
         platform = "LANDSAT_8"
         bands = ["B4", "B3", "B2"]
+        scaling = 1000
     else:
         platform = "SENTINEL_2"
         bands = ["B04", "B03", "B02"]
+        scaling = 3000
     # Get pixels.
     creation_args, date, stack = latest_pixel(
         geojson,
@@ -182,12 +182,12 @@ def tiles(z, x, y, platform="s2"):
         platforms=[platform],
         limit=10,
         clip=False,
-        pool=True,
+        pool=False,
         maxcloud=max_cloud_cover_percentage,
     )
     # Convert stack to image.
     img = numpy.dstack(
-        [255 * (numpy.clip(dat, 0, 6000) / 6000) for dat in stack]
+        [255 * (numpy.clip(dat, 0, scaling) / scaling) for dat in stack]
     ).astype("uint8")
     img = Image.fromarray(img)
     # Pack image into a io object.
