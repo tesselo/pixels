@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 LANDSAT_1_LAUNCH_DATE = "1972-07-23"
 
 
-def latest_pixel_s2(
+def latest_pixel(
     geojson,
     end_date,
     scale,

@@ -11,7 +11,7 @@ import requests
 from fiona.transform import transform_geom
 from PIL import Image
 
-from pixels.mosaic import latest_pixel_s2
+from pixels.mosaic import latest_pixel
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_wgs83_bbox, timeseries_steps

@@ -47,10 +47,10 @@ geojson = {
 
 # Get pixels.
 now = datetime.datetime.now()
-# creation_args, stack = latest_pixel_s2(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
+# creation_args, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
 
 
-result = latest_pixel_s2(
+result = latest_pixel(
     geojson=geojson,
     end_date="2020-01-31",
     scale=10,
