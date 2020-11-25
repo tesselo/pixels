@@ -5,7 +5,7 @@ import numpy
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import composite_index
-from pixels.const import NODATA_VALUE, S2_BANDS
+from pixels.const import NODATA_VALUE
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
@@ -201,7 +201,7 @@ def latest_pixel_s2_stack(
         "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
     )
     with Pool(pool_size) as p:
-        return p.starmap(latest_pixel_s2, dates)
+        return p.starmap(latest_pixel, dates)
 
 
 def composite(

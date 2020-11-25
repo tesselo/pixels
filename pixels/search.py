@@ -9,7 +9,6 @@ from pixels.const import (
     BASE_LANDSAT,
     GOOGLE_URL,
     LS_BANDS,
-    LS_PLATFORMS,
     S2_BANDS,
 )
 from pixels.utils import compute_wgs83_bbox
