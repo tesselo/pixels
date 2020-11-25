@@ -156,7 +156,7 @@ def tiles(z, x, y, platform=None):
         platforms=[platform],
         limit=10,
         clip=False,
-        pool=True,
+        pool=False,
         maxcloud=max_cloud_cover_percentage,
     )
     # Convert stack to image array in uint8.
