@@ -2,9 +2,10 @@ import math
 
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from fiona.transform import transform
 from rasterio import Affine
+from rasterio.crs import CRS
 from rasterio.features import bounds, rasterize
+from rasterio.warp import transform
 
 
 def compute_transform(geojson, scale):
@@ -58,40 +59,40 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
     """
     # Compute bounding box in original coordinates.
     bbox = bounds(geojson)
-
-    # Transform the two corners.
+    # Get crs string from geojson.
     crs = (
         geojson["crs"]["init"]
         if "init" in geojson["crs"]
         else geojson["crs"]["properties"]["name"]
     )
-    if "EPSG:4326" not in crs:
-        bbox = transform(crs, "EPSG:4326", [bbox[0], bbox[2]], [bbox[1], bbox[3]])
-        # Compute transformed range.
-        xmin = min(bbox[0])
-        ymin = min(bbox[1])
-        xmax = max(bbox[0])
-        ymax = max(bbox[1])
-    else:
-        xmin = bbox[0]
-        ymin = bbox[1]
-        xmax = bbox[2]
-        ymax = bbox[3]
+    # Transform the bbox if necessary.
+    if crs != "EPSG:4326":
+        # Setup crs objects for source and destination.
+        src_crs = CRS({"init": crs})
+        dst_crs = CRS({"init": "EPSG:4326"})
+        # Compute transformed coordinates.
+        transformed_coords = transform(
+            src_crs, dst_crs, (bbox[0], bbox[2]), (bbox[1], bbox[3])
+        )
+        # Set bbox from output.
+        bbox = (
+            transformed_coords[0][0],
+            transformed_coords[1][0],
+            transformed_coords[0][1],
+            transformed_coords[1][1],
+        )
 
-    if return_bbox:
-        bbox = (xmin, ymin, xmax, ymax)
-
-    else:
-        # Return new bounding box as geojson polygon.
+    if not return_bbox:
+        # Convert bounding box to geojson polygon.
         bbox = {
             "type": "Polygon",
             "coordinates": [
                 [
-                    [xmin, ymin],
-                    [xmin, ymax],
-                    [xmax, ymax],
-                    [xmax, ymin],
-                    [xmin, ymin],
+                    [bbox[0], bbox[1]],
+                    [bbox[0], bbox[3]],
+                    [bbox[2], bbox[3]],
+                    [bbox[2], bbox[1]],
+                    [bbox[0], bbox[1]],
                 ]
             ],
         }
