@@ -1,6 +1,5 @@
 import datetime
 import functools
-import logging
 import os
 
 import mercantile
@@ -25,14 +24,6 @@ from pixels.mosaic import latest_pixel
 app = Flask(__name__)
 app.config.from_pyfile("config.py")
 
-# Logging setup
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s %(message)s",
-    level=logging.DEBUG,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logging.getLogger("botocore").setLevel(logging.ERROR)
-logging.getLogger("rasterio").setLevel(logging.ERROR)
 # DB Setup
 db = SQLAlchemy(app)
 
@@ -121,14 +112,13 @@ def tiles(z, x, y, platform=None):
     )
     # Compute tile bounds and scale.
     bounds = mercantile.xy_bounds(x, y, z)
-    scale = (bounds[2] - bounds[0]) / const.TILE_SIZE
+    scale = abs(bounds[3] - bounds[1]) / const.TILE_SIZE
     geojson = {
         "type": "FeatureCollection",
         "crs": {"init": "EPSG:3857"},
         "features": [
             {
                 "type": "Feature",
-                "crs": "EPSG:3857",
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": [
@@ -166,7 +156,7 @@ def tiles(z, x, y, platform=None):
         platforms=[platform],
         limit=10,
         clip=False,
-        pool=False,
+        pool=True,
         maxcloud=max_cloud_cover_percentage,
     )
     # Convert stack to image array in uint8.
