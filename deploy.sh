@@ -4,7 +4,7 @@
 source ~/.virtualenvs/pixels-deploy-$1/bin/activate
 
 # Go to repo.
-cd ~/Documents/repos/pixels
+cd /home/tam/Documents/repos/pixels
 
 # Reset build dir.
 rm -r build

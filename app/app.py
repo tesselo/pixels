@@ -2,10 +2,10 @@ import datetime
 import functools
 import logging
 import os
-from io import BytesIO
 
 import mercantile
 import numpy
+import rasterio
 from flask import (
     Flask,
     Response,
@@ -16,7 +16,6 @@ from flask import (
     send_file,
 )
 from flask_sqlalchemy import SQLAlchemy
-from PIL import Image, ImageDraw
 
 from app import const, wmts
 from app.errors import PixelsAuthenticationFailed
@@ -29,7 +28,7 @@ app.config.from_pyfile("config.py")
 # Logging setup
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
-    level=logging.INFO,
+    level=logging.DEBUG,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logging.getLogger("botocore").setLevel(logging.ERROR)
@@ -109,23 +108,8 @@ def tiles(z, x, y, platform=None):
     # Check for minimum zoom.
     if z < const.PIXELS_MIN_ZOOM:
         path = os.path.dirname(os.path.abspath(__file__))
-        # Open the ref image.
-        img = Image.open(os.path.join(path, "assets/tesselo_empty.png"))
-        # Write zoom message into image.
-        if z is not None:
-            msg = "Zoom is {} | Min zoom is {}".format(z, const.PIXELS_MIN_ZOOM)
-            draw = ImageDraw.Draw(img)
-            text_width, text_height = draw.textsize(msg)
-            draw.text(
-                ((img.width - text_width) / 2, 60 + (img.height - text_height) / 2),
-                msg,
-                fill="black",
-            )
-        # Write image to response.
-        output = BytesIO()
-        img.save(output, format="PNG")
-        output.seek(0)
-        return send_file(output, mimetype="image/png")
+        path = os.path.join(path, "assets/tesselo_zoom_in_more.png")
+        return send_file(open(path, "rb"), mimetype="image/png")
 
     # Retrieve end date from query args.
     end = request.args.get("end")
@@ -168,11 +152,11 @@ def tiles(z, x, y, platform=None):
     elif platform == "landsat_8" or end < "2018-01-01":
         platform = "LANDSAT_8"
         bands = ["B4", "B3", "B2"]
-        scaling = 1000
+        scaling = 30000
     else:
         platform = "SENTINEL_2"
         bands = ["B04", "B03", "B02"]
-        scaling = 3000
+        scaling = 4000
     # Get pixels.
     creation_args, date, stack = latest_pixel(
         geojson,
@@ -185,14 +169,22 @@ def tiles(z, x, y, platform=None):
         pool=False,
         maxcloud=max_cloud_cover_percentage,
     )
-    # Convert stack to image.
-    img = numpy.dstack(
+    # Convert stack to image array in uint8.
+    img = numpy.array(
         [255 * (numpy.clip(dat, 0, scaling) / scaling) for dat in stack]
     ).astype("uint8")
-    img = Image.fromarray(img)
-    # Pack image into a io object.
-    output = BytesIO()
-    img.save(output, format="PNG")
-    output.seek(0)
+    # Prepare PNG outpu parameters.
+    creation_args.update(
+        {
+            "driver": "PNG",
+            "dtype": "uint8",
+            "count": 3,
+        }
+    )
+    # Write data to PNG memfile.
+    memfile = rasterio.io.MemoryFile()
+    with memfile.open(**creation_args) as dst:
+        dst.write(img)
+    memfile.seek(0)
     # Send file.
-    return send_file(output, mimetype="image/png")
+    return send_file(memfile, mimetype="image/png")

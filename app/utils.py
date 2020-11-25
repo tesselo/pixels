@@ -1,9 +1,5 @@
-import os
-from io import BytesIO
-
 import numpy
 import rasterio
-from PIL import Image, ImageDraw, ImageEnhance
 
 from pixels import algebra, const
 from pixels.exceptions import PixelsFailed
@@ -175,42 +171,3 @@ def get_s2_formula_pixels(
     mask = numpy.all([dat != 0 for dat in data.values()], axis=0) * 255
 
     return red, green, blue, mask
-
-
-def get_empty_image(z):
-    output = BytesIO()
-    path = os.path.dirname(os.path.abspath(__file__))
-    # Open the ref image.
-    img = Image.open(os.path.join(path, "assets/tesselo_empty.png"))
-    # Write zoom message into image.
-    if z > 14:
-        msg = "Zoom is {} | Max zoom is 14".format(z)
-    else:
-        msg = "No Data"
-    draw = ImageDraw.Draw(img)
-    text_width, text_height = draw.textsize(msg)
-    draw.text(
-        ((img.width - text_width) / 2, 60 + (img.height - text_height) / 2),
-        msg,
-        fill="black",
-    )
-    # Save image to io buffer.
-    img.save(output, format="PNG")
-    output.seek(0)
-    return output
-
-
-def get_image_from_pixels(pixpix, enhance=False):
-    output = BytesIO()
-    # Create image object.
-    img = Image.fromarray(pixpix.T)
-    # Enhance color scheme for RGB mode.
-    if enhance:
-        img = ImageEnhance.Contrast(img).enhance(1.2)
-        img = ImageEnhance.Brightness(img).enhance(1.8)
-        img = ImageEnhance.Color(img).enhance(1.4)
-
-    # Save image to io buffer.
-    img.save(output, format=const.REQUEST_FORMAT_PNG)
-    output.seek(0)
-    return output
