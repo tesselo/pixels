@@ -4,13 +4,7 @@ import os
 import sqlalchemy
 from dateutil.parser import parse
 
-from pixels.const import (
-    AWS_URL,
-    BASE_LANDSAT,
-    GOOGLE_URL,
-    LS_BANDS,
-    S2_BANDS,
-)
+from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
 from pixels.utils import compute_wgs83_bbox
 
 logger = logging.getLogger(__name__)
