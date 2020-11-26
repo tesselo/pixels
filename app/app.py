@@ -1,5 +1,6 @@
 import datetime
 import functools
+import io
 import os
 
 import mercantile
@@ -92,7 +93,7 @@ def wmtsview():
 @app.route("/tiles/<int:z>/<int:x>/<int:y>.png", methods=["GET"])
 @app.route("/tiles/<platform>/<int:z>/<int:x>/<int:y>.png", methods=["GET"])
 @token_required
-def tiles(z, x, y, platform=None):
+def tiles(z, x, y, platform=""):
     """
     TMS tiles endpoint.
     """
@@ -135,16 +136,24 @@ def tiles(z, x, y, platform=None):
         ],
     }
     # Specify the platform to use.
-    if platform == "landsat_7" or end < "2014-01-01":
-        platform = "LANDSAT_7"
+    platform = platform.upper()
+    if platform == "LANDSAT_4":
         bands = ["B3", "B2", "B1"]
         scaling = 256
-    elif platform == "landsat_8" or end < "2018-01-01":
-        platform = "LANDSAT_8"
+    elif platform == "LANDSAT_5" or end < "2000-01-01":
+        platform = ["LANDSAT_4", "LANDSAT_5"]
+        bands = ["B3", "B2", "B1"]
+        scaling = 256
+    elif platform == "LANDSAT_7" or end < "2014-01-01":
+        platform = ["LANDSAT_7"]
+        bands = ["B3", "B2", "B1"]
+        scaling = 256
+    elif platform == "LANDSAT_8" or end < "2018-01-01":
+        platform = ["LANDSAT_8"]
         bands = ["B4", "B3", "B2"]
         scaling = 30000
     else:
-        platform = "SENTINEL_2"
+        platform = ["SENTINEL_2"]
         bands = ["B04", "B03", "B02"]
         scaling = 4000
     # Get pixels.
@@ -153,7 +162,7 @@ def tiles(z, x, y, platform=None):
         end,
         scale,
         bands=bands,
-        platforms=[platform],
+        platforms=platform,
         limit=10,
         clip=False,
         pool=False,
@@ -163,7 +172,7 @@ def tiles(z, x, y, platform=None):
     img = numpy.array(
         [255 * (numpy.clip(dat, 0, scaling) / scaling) for dat in stack]
     ).astype("uint8")
-    # Prepare PNG outpu parameters.
+    # Prepare PNG output parameters.
     creation_args.update(
         {
             "driver": "PNG",
@@ -171,10 +180,14 @@ def tiles(z, x, y, platform=None):
             "count": 3,
         }
     )
-    # Write data to PNG memfile.
-    memfile = rasterio.io.MemoryFile()
-    with memfile.open(**creation_args) as dst:
-        dst.write(img)
-    memfile.seek(0)
-    # Send file.
-    return send_file(memfile, mimetype="image/png")
+    # Write data to PNG BytesIO buffer.
+    output = io.BytesIO()
+    with rasterio.io.MemoryFile() as memfile:
+        with memfile.open(**creation_args) as dst:
+            dst.write(img)
+        memfile.seek(0)
+        output.write(memfile.read())
+
+    # Send file buffer.
+    output.seek(0)
+    return send_file(output, mimetype="image/png")
