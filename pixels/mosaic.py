@@ -4,16 +4,14 @@ from multiprocessing import Pool
 import numpy
 from rasterio.errors import RasterioIOError
 
-from pixels.clouds import composite_index
-from pixels.const import NODATA_VALUE
+from pixels.clouds import cloud_or_snow_mask, composite_index
+from pixels.const import LANDSAT_1_LAUNCH_DATE, NODATA_VALUE
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
 logger = logging.getLogger(__name__)
-
-LANDSAT_1_LAUNCH_DATE = "1972-07-23"
 
 
 def latest_pixel(
@@ -209,7 +207,7 @@ def composite(
     start,
     end,
     scale,
-    bands=None,
+    bands=["B02", "B03", "B04", "B08", "B8A", "B11", "B12"],
     limit=10,
     clip=False,
     pool=False,
@@ -219,27 +217,36 @@ def composite(
     """
     Get the composite over the input features.
     """
-    logger.info("Compositing pixels for {}".format(start))
+    logger.info("Compositing pixels from {} to {}".format(start, end))
 
-    response = search_data(
+    # Check band list.
+    BANDS_REQUIRED = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
+    missing = [band for band in BANDS_REQUIRED if band not in bands]
+    if missing:
+        raise ValueError("Missing {} bands for composite.".format(missing))
+
+    required_band_indices = [bands.index(band) for band in BANDS_REQUIRED]
+
+    # Search scenes.
+    items = search_data(
         geojson=geojson,
-        platform=platform,
         start=start,
         end=end,
         limit=limit,
+        platforms=["SENTINEL_2"],
         maxcloud=maxcloud,
     )
 
-    if "bands" not in response:
+    if not items:
         raise ValueError("No features in search response.")
 
     stack = []
     creation_args = None
-
-    for item in response:
+    mask = None
+    for item in items:
         # Prepare band list.
         band_list = [
-            (response["bands"][band], geojson, scale, False, False, False, None)
+            (item["bands"][band], geojson, scale, False, False, False, None)
             for band in bands
         ]
 
@@ -254,12 +261,28 @@ def composite(
         if creation_args is None:
             creation_args = data[0][0]
         # Add scene to stack.
-        stack.append(numpy.array([dat[1] for dat in data]))
+        layer = numpy.array([dat[1] for dat in data])
+        stack.append(layer)
+        # Compute cloud mask for new layer.
+        layer_mask = cloud_or_snow_mask(*(layer[idx] for idx in required_band_indices))
+        # Update cloud mask.
+        if mask is None:
+            mask = layer_mask
+        else:
+            mask = mask & layer_mask
+        # If no cloudy pixels are left, stop getting more data.
+        logger.debug(
+            "Remaining cloud count {}".format(numpy.unique(mask, return_counts=True))
+        )
+        if not numpy.any(mask):
+            break
+
     # Convert stack.
     stack = numpy.array(stack)
     # Compute index of each band in the selection and pass to composite
     # index calculator.
-    BANDS_REQUIRED = ("B02", "B03", "B04", "B08", "B8A", "B11", "B12")
-    cidx = composite_index(*(stack[:, bands.index(band)] for band in BANDS_REQUIRED))
+    cidx = composite_index(*(stack[:, idx] for idx in required_band_indices))
     idx1, idx2 = numpy.indices(stack.shape[2:])
-    return creation_args, stack[cidx, :, idx1, idx2]
+    stack = stack[cidx, :, idx1, idx2]
+    stack = stack.swapaxes(1, 2).swapaxes(0, 1)
+    return creation_args, stack
