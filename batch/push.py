@@ -9,13 +9,12 @@ import boto3
 import fiona
 
 AWS_BATCH_ARRAY_SIZE_LIMIT = 10000
-MIN_FEATURES_PER_JOB = 50
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def push_training_collection(bucket, project_id):
+def push_training_collection(bucket, project_id, features_per_job=50):
     """
     Push a training data collection job to Batch.
     """
@@ -26,16 +25,18 @@ def push_training_collection(bucket, project_id):
     geo_object = s3.get_object(
         Bucket=bucket, Key=project_id + "/{}".format(config["training_geofile"])
     )
-    feature_count = 0
     with fiona.open(geo_object["Body"]) as src:
-        for feat in src:
-            feature_count += 1
+        feature_count = len(src)
     logging.info("Found {} features.".format(feature_count))
 
     # Determine batch array size.
-    limit_factor = math.ceil(feature_count / AWS_BATCH_ARRAY_SIZE_LIMIT)
-    features_per_job = limit_factor * MIN_FEATURES_PER_JOB
     batch_array_size = math.ceil(feature_count / features_per_job)
+    if batch_array_size > AWS_BATCH_ARRAY_SIZE_LIMIT:
+        raise ValueError(
+            "Array size {} above limit of {}, please increase features per job.".format(
+                batch_array_size, AWS_BATCH_ARRAY_SIZE_LIMIT
+            )
+        )
 
     # Setup the job dict.
     job = {
@@ -82,7 +83,8 @@ def push_training_collection(bucket, project_id):
 # Get path from env.
 bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
 project = os.environ.get("PIXELS_PROJECT_ID")
+features_per_job = os.environ.get("PIXELS_FEATURES_PER_JOB", 50)
 if project is None:
     raise ValueError("Specify PIXELS_PROJECT_ID env var.")
-jobid = push_training_collection(bucket, project)
+jobid = push_training_collection(bucket, project, features_per_job)
 print(jobid)
