@@ -1,20 +1,11 @@
 import datetime
 import logging
-import os
-import pickle
-from multiprocessing import Pool
 
-import fiona
 import numpy
-import rasterio
-import requests
-from fiona.transform import transform_geom
 from PIL import Image
 
-from pixels.mosaic import latest_pixel
 from pixels.retrieve import retrieve
 from pixels.search import search_data
-from pixels.utils import compute_wgs83_bbox, timeseries_steps
 
 logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)

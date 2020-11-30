@@ -267,11 +267,17 @@ def composite(
             *(layer[idx] for idx in required_band_indices)
         )
         # Shadow mask only uses RGB, so limit to first three bands.
-        logger.debug("Cloud mask {}".format(numpy.unique(layer_clouds, return_counts=True)))
+        logger.debug(
+            "Cloud mask {}".format(numpy.unique(layer_clouds, return_counts=True))
+        )
         layer_shades = shadow_mask(*(layer[idx] for idx in required_band_indices[:4]))
-        logger.debug("Shade mask {}".format(numpy.unique(layer_shades, return_counts=True)))
+        logger.debug(
+            "Shade mask {}".format(numpy.unique(layer_shades, return_counts=True))
+        )
         layer_clouds = layer_clouds | layer_shades
-        logger.debug("Combo mask {}".format(numpy.unique(layer_clouds, return_counts=True)))
+        logger.debug(
+            "Combo mask {}".format(numpy.unique(layer_clouds, return_counts=True))
+        )
 
         # Create stack.
         if stack is None:

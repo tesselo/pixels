@@ -120,9 +120,11 @@ for i in range(
                 x_index = index % 2
                 y_index = int(index > 1)
                 target_array = target_array.astype(data.dtype)
+                y_offset = y_index * 256
+                x_offset = x_index * 256
                 target_array[
-                    y_index * 256 : (y_index + 1) * 256,
-                    x_index * 256 : (x_index + 1) * 256,
+                    y_offset : y_offset + 256,
+                    x_offset : x_offset + 256,
                 ] = data
 
             target_creation_args["dtype"] = str(target_array.dtype)
