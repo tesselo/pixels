@@ -3,6 +3,11 @@ import numpy
 SCALE = 10000
 
 
+def shadow_mask(B02, B03, B04, B08):
+    scaled = numpy.clip([B02, B03, B04, B08], 0, 4000) / 4000.0
+    return numpy.sum(scaled, axis=0) < 0.8
+
+
 def composite_index(B02, B03, B04, B08, B8A, B11, B12):
     """
     Shortcut for composite index.
@@ -14,7 +19,9 @@ def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
     """
     Shortcut for cloud mask.
     """
-    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=True)
+    return _composite_or_cloud(
+        B02, B03, B04, B08, B8A, B11, B12, cloud_only=True, light_clouds=True
+    )
 
 
 def _composite_or_cloud(

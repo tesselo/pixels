@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import numpy
 from rasterio.errors import RasterioIOError
 
-from pixels.clouds import cloud_or_snow_mask, composite_index
+from pixels.clouds import cloud_or_snow_mask, composite_index, shadow_mask
 from pixels.const import LANDSAT_1_LAUNCH_DATE, NODATA_VALUE
 from pixels.retrieve import retrieve
 from pixels.search import search_data
@@ -240,7 +240,7 @@ def composite(
     if not items:
         raise ValueError("No features in search response.")
 
-    stack = []
+    stack = None
     creation_args = None
     mask = None
     for item in items:
@@ -262,21 +262,36 @@ def composite(
             creation_args = data[0][0]
         # Add scene to stack.
         layer = numpy.array([dat[1] for dat in data])
-        stack.append(layer)
         # Compute cloud mask for new layer.
-        layer_mask = cloud_or_snow_mask(*(layer[idx] for idx in required_band_indices))
-        # Update cloud mask.
-        if mask is None:
-            mask = layer_mask
+        layer_clouds = cloud_or_snow_mask(
+            *(layer[idx] for idx in required_band_indices)
+        )
+        # Shadow mask only uses RGB, so limit to first three bands.
+        logger.debug("Cloud mask {}".format(numpy.unique(layer_clouds, return_counts=True)))
+        layer_shades = shadow_mask(*(layer[idx] for idx in required_band_indices[:4]))
+        logger.debug("Shade mask {}".format(numpy.unique(layer_shades, return_counts=True)))
+        layer_clouds = layer_clouds | layer_shades
+        logger.debug("Combo mask {}".format(numpy.unique(layer_clouds, return_counts=True)))
+
+        # Create stack.
+        if stack is None:
+            # Set first return as stack.
+            stack = layer
+            mask = layer_clouds
         else:
-            mask = mask & layer_mask
-        # If no cloudy pixels are left, stop getting more data.
+            # Update nodata values in stack with new pixels.
+            for i in range(len(bands)):
+                stack[i][mask] = data[i][1][mask]
+            # Update cloud mask.
+            mask = mask & layer_clouds
+
         logger.debug(
             "Remaining cloud count {}".format(numpy.unique(mask, return_counts=True))
         )
+        # If no cloudy pixels are left, stop getting more data.
         if not numpy.any(mask):
             break
-
+    return creation_args, stack
     # Convert stack.
     stack = numpy.array(stack)
     # Compute index of each band in the selection and pass to composite
