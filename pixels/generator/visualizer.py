@@ -3,9 +3,9 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+from matplotlib import cm
 
-
-def visualize_in_item(X, Y, prediction=False, in_out="IN"):
+def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6]):
     dat = Y
     if in_out == "OUT":
         dat = np.squeeze(Y)
@@ -30,7 +30,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN"):
     # Greyscale -> grey_max/min limit values to clip
     grey_max = 10
     grey_min = 0
-    ydata = cm.viridis_r(np.squeeze(dat))
+    # ydata = cm.viridis_r(np.squeeze(dat))
     ydata = np.ceil((255 * ydata)).astype("uint8")
     # ydata = np.ceil((255 * np.clip(dat, grey_min, grey_max) / grey_max))#.astype('uint8')
     # ydata = (255 * np.clip(dat, grey_min, grey_max) / grey_max)#.astype('uint8')
@@ -76,17 +76,17 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN"):
         if in_out == "IN":
             rgb = np.dstack(
                 [
-                    255 * (np.clip(X[i][8, :, :], 0, 1000) / 1000),
-                    255 * (np.clip(X[i][7, :, :], 0, 1000) / 1000),
-                    255 * (np.clip(X[i][6, :, :], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][RGB[0], :, :], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][RGB[1], :, :], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][RGB[2], :, :], 0, 1000) / 1000),
                 ]
             ).astype("uint8")
         if in_out == "OUT":
             rgb = np.dstack(
                 [
-                    255 * (np.clip(X[i][:, :, 8], 0, 1000) / 1000),
-                    255 * (np.clip(X[i][:, :, 7], 0, 1000) / 1000),
-                    255 * (np.clip(X[i][:, :, 6], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][:, :, RGB[0]], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][:, :, RGB[1]], 0, 1000) / 1000),
+                    255 * (np.clip(X[i][:, :, RGB[2]], 0, 1000) / 1000),
                 ]
             ).astype("uint8")
 
