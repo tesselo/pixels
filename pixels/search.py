@@ -63,9 +63,12 @@ def search_data(
     # Execute and format querry
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
-
     # Transform ResultProxy into json
     result = get_bands([dict(row) for row in result])
+    # Convert cloud cover into float to allow json serialization of the output.
+    for dat in result:
+        dat["cloud_cover"] = float(dat["cloud_cover"])
+
     logger.debug("Found {} results in search.".format(len(result)))
 
     return result
