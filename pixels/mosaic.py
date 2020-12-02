@@ -203,8 +203,10 @@ def latest_pixel_s2_stack(
         with Pool(pool_size) as p:
             return p.starmap(latest_pixel, dates)
     else:
+        data = []
         for date in dates:
             data.append(retrieve(*latest_pixel))
+        return data
 
 
 def composite(
