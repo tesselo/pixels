@@ -91,7 +91,7 @@ def search():
         end=request.json.get("end"),
         platforms=request.json.get("platforms", ["SENTINEL_2"]),
         maxcloud=request.json.get("maxcloud", 100),
-        limit=min(1, max(request.json.get("limit", 10), 500)),
+        limit=max(1, min(request.json.get("limit", 10), 500)),
         sort=request.json.get("sort", "sensing_time"),
     )
     return jsonify(result)
