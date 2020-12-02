@@ -110,7 +110,7 @@ def latest_pixel(
             break
 
     # Clip stack to geometry if requested.
-    if clip:
+    if clip and creation_args:
         mask = compute_mask(
             geojson,
             creation_args["height"],
