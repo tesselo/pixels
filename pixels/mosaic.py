@@ -134,6 +134,7 @@ def latest_pixel_s2_stack(
     limit=10,
     clip=False,
     maxcloud=None,
+    pool_size=20,
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -193,13 +194,17 @@ def latest_pixel_s2_stack(
         ]
         logger.info("Getting {} {} for this geom.".format(len(dates), interval))
 
-    # Call pixels calls asynchronously.
-    pool_size = min(len(dates), 10)
+    # Get pixels.
+    pool_size = min(len(dates), pool_size)
     logger.info(
         "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
     )
-    with Pool(pool_size) as p:
-        return p.starmap(latest_pixel, dates)
+    if pool_size:
+        with Pool(pool_size) as p:
+            return p.starmap(latest_pixel, dates)
+    else:
+        for date in dates:
+            data.append(retrieve(*latest_pixel))
 
 
 def composite(

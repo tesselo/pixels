@@ -3,17 +3,17 @@ import math
 from os import listdir
 from os.path import isdir, isfile, join
 
+import generator_augmentation_2D
 ## Defining cloud mask to apply
 import matplotlib.pyplot as plt
 import numpy as np
+from generator_augmentation_2D import upscaling_sample
 from PIL import Image
+from tensorflow import keras
+from visualizer import visualize_in_item
+
 from pixels.clouds import cloud_or_snow_mask, composite_index
 from pixels.retrieve import retrieve
-from tensorflow import keras
-
-import generator_augmentation_2D
-from generator_augmentation_2D import upscaling_sample
-from visualizer import visualize_in_item
 
 
 # Defining cloud mask to apply

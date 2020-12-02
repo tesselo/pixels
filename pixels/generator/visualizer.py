@@ -2,8 +2,9 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
 from matplotlib import cm
+from PIL import Image
+
 
 def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
     dat = Y
