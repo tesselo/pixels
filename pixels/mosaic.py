@@ -205,7 +205,7 @@ def latest_pixel_s2_stack(
     else:
         data = []
         for date in dates:
-            data.append(retrieve(*date))
+            data.append(latest_pixel(*date))
         return data
 
 
