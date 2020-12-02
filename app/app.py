@@ -20,6 +20,7 @@ from flask_sqlalchemy import SQLAlchemy
 from app import const, wmts
 from app.errors import PixelsAuthenticationFailed
 from pixels.mosaic import latest_pixel
+from pixels.search import search_data
 
 # Flask setup
 app = Flask(__name__)
@@ -76,6 +77,24 @@ def index():
 @token_required
 def docs():
     return render_template("docs.html")
+
+
+@app.route("/search", methods=["POST"])
+@token_required
+def search():
+    """
+    WMTS endpoint with monthly latest pixel layers.
+    """
+    result = search_data(
+        geojson=request.json.get("geojson"),
+        start=request.json.get("start"),
+        end=request.json.get("end"),
+        platforms=request.json.get("platforms", ["SENTINEL_2"]),
+        maxcloud=request.json.get("maxcloud", 100),
+        limit=min(1, max(request.json.get("limit", 10), 500)),
+        sort=request.json.get("sort", "sensing_time"),
+    )
+    return jsonify(result)
 
 
 @app.route("/wmts", methods=["GET"])
