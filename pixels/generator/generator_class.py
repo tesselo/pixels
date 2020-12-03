@@ -65,7 +65,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             # Prepare files list.
             files = []
             # Split input path into bucket and prefix path.
-            path_work_split = path_work.split("s3://")[1].split("/")    
+            path_work_split = path_work.split("s3://")[1].split("/")
             self.bucket = path_work_split[0]
             prefix = "/".join(path_work_split[1:])
             # Create paginator.
@@ -124,7 +124,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # The try and excepts are in case a file does not have a single valid outuput
         try:
             X, y = self._data_generation([IDs_temp])
-        except:
+        except Exception as e:
+            print(e)
             # index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
             if index == 0:
                 X, y = self.__getitem__(index + 2)
@@ -202,6 +203,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # Iterate over paths given. Important: There is always one path given, but it is important to have
         # an iteration to be able to use continue on no data cases
         # TODO: Find better way around this
+
         for path in IDs_temp:
             if self.bucket:
                 data = s3.get_object(Bucket=self.bucket, Key=path)["Body"].read()
@@ -209,10 +211,11 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             else:
                 # Loading data from file. TODO: pass the file labels to class as an argument
                 data = np.load(path, allow_pickle=True)
-            # Make cloud mask
-            mask = cloud_filter(data["x_data"])
             # Extract images
             X = data["x_data"]
+            X = np.array([np.array(x) for x in X if x.any()])
+            # Make cloud mask
+            mask = cloud_filter(X)
             # Apply mask
             for i in range(X.shape[1]):
                 X[:, i][mask] = 0
@@ -225,7 +228,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if self.mode == "PIXEL":
                 # Build results on a pixel level
                 tensor_X, tensor_Y = self._pixel_generation(X, Y, mask)
-
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
                 continue
