@@ -1,6 +1,21 @@
 import numpy
+from pixels.const import NODATA_VALUE, S2_MAX_LUMINOSITY
 
-SCALE = 10000
+
+def pixels_mask(B02, B03, B04, B08, B8A, B11, B12, clouds=True, light_clouds=False, snow=True, shadow=True):
+    """
+    Central mask function, choose what to include.
+    """
+    # Start with nodata mask.
+    mask = B02 == NODATA_VALUE
+
+    if clouds or light_clouds or snow:
+        mask = mask | _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=True, light_clouds=light_clouds, snow=snow)
+
+    if shadow:
+        mask = mask | shadow_mask(B02, B03, B04, B08)
+
+    return mask
 
 
 def shadow_mask(B02, B03, B04, B08):
@@ -8,11 +23,11 @@ def shadow_mask(B02, B03, B04, B08):
     return numpy.sum(scaled, axis=0) < 0.8
 
 
-def composite_index(B02, B03, B04, B08, B8A, B11, B12):
+def composite_index(B02, B03, B04, B08, B8A, B11, B12, light_clouds=False, snow=False):
     """
     Shortcut for composite index.
     """
-    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=False)
+    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=False, light_clouds=light_clouds, snow=snow)
 
 
 def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
@@ -25,7 +40,7 @@ def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
 
 
 def _composite_or_cloud(
-    B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False
+    B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False, snow=True,
 ):
     """
     Compute cloud and snow mask or create a composite.
@@ -36,18 +51,14 @@ def _composite_or_cloud(
     https://usermanual.readthedocs.io/en/latest/pages/References.html#s2gmatbd
     https://usermanual.readthedocs.io/en/latest/_downloads/76c99b523c9067757b4b81a022345086/S2GM-SC2-ATBD-BC-v1.3.2.pdf
     """
-    # Nodata mask.
-    NODATA_VALUE = 0
-    nodata_mask = B02in == NODATA_VALUE
-
     # Rescale images.
-    B02 = numpy.clip(B02in, 0, SCALE) / SCALE
-    B03 = numpy.clip(B03in, 0, SCALE) / SCALE
-    B04 = numpy.clip(B04in, 0, SCALE) / SCALE
-    B08 = numpy.clip(B08in, 0, SCALE) / SCALE
-    B8A = numpy.clip(B8Ain, 0, SCALE) / SCALE
-    B11 = numpy.clip(B11in, 0, SCALE) / SCALE
-    B12 = numpy.clip(B12in, 0, SCALE) / SCALE
+    B02 = numpy.clip(B02in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B03 = numpy.clip(B03in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B04 = numpy.clip(B04in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B08 = numpy.clip(B08in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B8A = numpy.clip(B8Ain, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B11 = numpy.clip(B11in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
+    B12 = numpy.clip(B12in, 0, S2_MAX_LUMINOSITY) / S2_MAX_LUMINOSITY
 
     # Prep vars.
     ratioB3B11 = B03 / B11
@@ -72,9 +83,6 @@ def _composite_or_cloud(
     )
     ndwi = (B03 - B11) / (B03 + B11)
 
-    # Snow.
-    isSnow = (ndwi > 0.7) & numpy.logical_not((ratioB3B11 > 1) & (tcb < 0.36))
-
     # Dense clouds.
     A = ((ratioB3B11 > 1) & (rgbMean > 0.3)) & (
         (tcHaze < -0.1) | ((tcHaze > -0.08) & (normDiffB8B11 < 0.4))
@@ -88,8 +96,14 @@ def _composite_or_cloud(
     isHighProbCloud = A | B | C & D | E
 
     # Compute cloud mask.
-    # cloud_mask = isSnow | isHighProbCloud | isLowProbCloud | nodata_mask
-    cloud_mask = isSnow | isHighProbCloud | nodata_mask
+    # Add nodata mask.
+    nodata = B02 == NODATA_VALUE
+    combined_mask = isHighProbCloud | nodata
+
+    # Add snow.
+    if snow:
+        isSnow = (ndwi > 0.7) & numpy.logical_not((ratioB3B11 > 1) & (tcb < 0.36))
+        combined_mask = combined_mask | isSnow
 
     # Light clouds.
     if light_clouds:
@@ -101,22 +115,22 @@ def _composite_or_cloud(
             (tcHaze < -0.02) & (rgbMean > 0.12)
         )
         isLowProbCloud = A | B | C & D | E
-        cloud_mask = cloud_mask | isLowProbCloud
+        combined_mask = combined_mask | isLowProbCloud
 
     # Return early for cloud mask mode.
     if cloud_only:
-        return cloud_mask
+        return combined_mask
 
     # Prepare abstract selector index.
-    idx1, idx2 = numpy.indices(cloud_mask.shape[1:])
+    idx1, idx2 = numpy.indices(combined_mask.shape[1:])
 
     # Prepare additional indices for composite section.
     ndvi = (B08 - B04) / (B08 + B04)
 
     # For composites, reduce the data to valid observations.
-    ndvi[cloud_mask] = numpy.nan
-    ndwi[cloud_mask] = numpy.nan
-    tcb[cloud_mask] = numpy.nan
+    ndvi[combined_mask] = numpy.nan
+    ndwi[combined_mask] = numpy.nan
+    tcb[combined_mask] = numpy.nan
 
     # Compute averages and min/max indexes.
     ndwiMean = numpy.nanmean(ndwi, axis=0)
@@ -208,4 +222,4 @@ def _composite_or_cloud(
     selector = result == -1
     result[selector] = ndviMaxIndex[selector]
 
-    return result.astype("uint8")
+    return result.astype("uint16")

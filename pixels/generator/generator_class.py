@@ -12,13 +12,13 @@ from PIL import Image
 from tensorflow import keras
 from visualizer import visualize_in_item
 
-from pixels.clouds import cloud_or_snow_mask, composite_index
+from pixels.clouds import combined_mask, composite_index
 from pixels.retrieve import retrieve
 
 
 # Defining cloud mask to apply
 def cloud_filter(X):
-    mask = cloud_or_snow_mask(
+    mask = combined_mask(
         X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9]
     )
     #    for i in range(X.shape[1]):
