@@ -7,12 +7,12 @@ from generator_augmentation_2D import upscaling_sample
 from tensorflow import keras
 from visualizer import visualize_in_item
 
-from pixels.clouds import combined_mask
+from pixels.clouds import pixels_mask
 
 
 # Defining cloud mask to apply
 def cloud_filter(X):
-    mask = combined_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
+    mask = pixels_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
     return mask
 
 

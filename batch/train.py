@@ -11,7 +11,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.utils import to_categorical
 
-from pixels.clouds import combined_mask
+from pixels.clouds import pixels_mask
 
 # Setup tensorflow session for model to use GPU.
 config = tensorflow.compat.v1.ConfigProto()
@@ -51,7 +51,7 @@ valuemap = {}
 for data in result:
     X = data["data"]
     # Data shape is ("scenes", bands, height, width)
-    # cloud_mask = combined_mask(
+    # cloud_mask = pixels_mask(
     #     X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9],
     # )
     # Reorder the data to have
@@ -62,7 +62,7 @@ for data in result:
     X = X[numpy.sum(X, axis=(1, 2)) != 0]
     # Compute cloud and snow mask.
     # Assuming band order: ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
-    # cloud_mask = combined_mask(
+    # cloud_mask = pixels_mask(
     #     X[:, :, 8],
     #     X[:, :, 7],
     #     X[:, :, 6],
