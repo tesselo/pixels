@@ -1,10 +1,10 @@
 import glob
 
-import generator_augmentation_2D
+
 import numpy as np
-from generator_augmentation_2D import upscaling_sample
+from pixels.generator.generator_augmentation_2D import upscaling_sample
 from tensorflow import keras
-from visualizer import visualize_in_item
+from pixels.generator.visualizer import visualize_in_item
 
 from pixels.clouds import pixels_mask
 
