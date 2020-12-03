@@ -12,7 +12,7 @@ from shapely.geometry import mapping, shape
 from shapely.ops import transform
 from supermercado.burntiles import burn
 
-from pixels.clouds import cloud_or_snow_mask
+from pixels.clouds import combined_mask
 from pixels.mosaic import latest_pixel_s2_stack
 
 logging.basicConfig(level=logging.WARNING)
@@ -104,7 +104,7 @@ for i, (x, y, z) in enumerate(burn(rep["features"], 11)):
     X = X.swapaxes(0, 2).swapaxes(1, 3)
     X = X.reshape(X.shape[0] * X.shape[1], X.shape[2], X.shape[3])
 
-    cloud_mask = cloud_or_snow_mask(
+    cloud_mask = combined_mask(
         X[:, :, 8],
         X[:, :, 7],
         X[:, :, 6],
@@ -112,7 +112,6 @@ for i, (x, y, z) in enumerate(burn(rep["features"], 11)):
         X[:, :, 1],
         X[:, :, 0],
         X[:, :, 9],
-        cloud_only=True,
     )
     X[cloud_mask] = 0
 

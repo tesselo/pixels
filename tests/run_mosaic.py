@@ -17,10 +17,11 @@ logging.getLogger("pixels").setLevel(logging.DEBUG)
 # center = [13311107,-2575583]
 # center = [13076538,5177296]
 # center = [-885576,4636573]
-center = [829312, 5933414]
+# center = [829312, 5933414]
+# center = [15510814.0, 4328712.0]
+center = [-476019, 1742667]
 
-
-size = 2560
+size = 5600
 
 geojson = {
     "type": "FeatureCollection",
@@ -48,15 +49,17 @@ geojson = {
 now = datetime.datetime.now()
 
 # creation_args, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, platforms=['SENTINEL_2'], bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
-creation_args, stack = composite(
-    geojson,
-    start="2020-07-01",
-    end="2020-07-31",
-    scale=10,
-    maxcloud=100,
-    limit=20,
-    pool=True,
-)
+
+# creation_args, stack = composite(
+#     geojson,
+#     start="2020-07-01",
+#     end="2020-07-31",
+#     scale=10,
+#     maxcloud=100,
+#     limit=20,
+#     pool=True,
+# )
+
 # result = latest_pixel_s2_stack(
 #     geojson=geojson,
 #     start="2020-10-01",
@@ -66,15 +69,34 @@ creation_args, stack = composite(
 #     clip=True,
 #     bands=("B02", "B03", "B04", "B08", "B8A", "B11", "B12"),
 # )
-# stack = result[0][2]
 
-print("Timing", datetime.datetime.now() - now)
-plt.imshow(
-    numpy.dstack(
-        [(numpy.clip(dat, 0, 4000) / 4000.0) for dat in [stack[2], stack[1], stack[0]]]
-    ).astype("float32")
+result = latest_pixel_s2_stack(
+    geojson=geojson,
+    start="2020-07-01",
+    end="2020-07-31",
+    interval="weeks",
+    scale=30,
+    clip=True,
+    # platforms='LANDSAT_8',
+    platforms="SENTINEL_2",
+    # bands=("B2", "B3", "B4"),
+    bands=["B02", "B03", "B04"],  # , "B05", "B06", "B07", "B08", "B8A", "B11", "B12"],
 )
-plt.show()
+print("Timing", datetime.datetime.now() - now)
+
+# stack = result[0][2]
+# print(stack)
+
+for args, date, stack in result:
+    plt.imshow(
+        numpy.dstack(
+            [
+                (numpy.clip(dat, 0, 4000) / 4000.0)
+                for dat in [stack[2], stack[1], stack[0]]
+            ]
+        ).astype("float32")
+    )
+    plt.show()
 # # Convert to image for visualization.
 # img = numpy.dstack(
 #     [255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[2], stack[1], stack[0]]]

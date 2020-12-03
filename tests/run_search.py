@@ -89,3 +89,20 @@ print(len(result))
 
 #  query += ' AND spacecraft_id IN {}'.format(tuple([platform])
 # spacecraft_id IN ('LANDSAT_7',) wrong
+
+import requests
+
+url = "http://127.0.0.1:5000/search"
+url = "https://pixels.tesselo.com/search?key=1c969a457a1e9936834e6db011375e2d00a5dca2"
+response = requests.post(
+    url,
+    json={
+        "geojson": geojson,
+        "start": "2020-01-01",
+        "end": "2020-10-16",
+        "maxcloud": 100,
+        # 'platforms': ['SENTINEL_2'],
+        "limit": 100,
+    },
+)
+print(len(response.json()))

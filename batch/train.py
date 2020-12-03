@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import glob
+import io
 import os
 
 import boto3
@@ -10,75 +11,76 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.utils import to_categorical
 
-from pixels.clouds import cloud_or_snow_mask
+from pixels.clouds import combined_mask
 
 # Setup tensorflow session for model to use GPU.
 config = tensorflow.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tensorflow.compat.v1.InteractiveSession(config=config)
 ### Remove in production.
-
-# Setup boto client.
-s3 = boto3.client("s3")
-# Fetch all data to memory.
-bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
-project_id = os.environ.get("PIXELS_PROJECT_ID", "test")
-# config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
-# config = json.loads(config['Body'].read())
-paginator = s3.get_paginator("list_objects_v2")
-pages = paginator.paginate(
-    Bucket=bucket,
-    Prefix="{}/training/".format(project_id),
-)
-result = []
+# # Setup boto client.
+# s3 = boto3.client("s3")
+# # Fetch all data to memory.
+# bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
+# project_id = os.environ.get("PIXELS_PROJECT_ID", "replant")
+# # config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
+# # config = json.loads(config['Body'].read())
+# paginator = s3.get_paginator("list_objects_v2")
+# pages = paginator.paginate(
+#     Bucket=bucket,
+#     Prefix="{}/training/".format(project_id),
+# )
+# result = []
 # for page in pages:
-#     for obj in page['Contents']:
-#         print(obj['Size'])
-#         data = s3.get_object(
-#             Bucket=bucket,
-#             Key=obj['Key']
-#         )['Body'].read()
+#     print(page["KeyCount"])
+#     for obj in page["Contents"]:
+#         print(obj["Size"])
+#         data = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
 #         data = numpy.load(io.BytesIO(data), allow_pickle=True)
 #         result.append(data)
+# numpy.savez_compressed('/home/tam/Desktop/replant_result_array.npz', result)
+result = numpy.load("/home/tam/Desktop/replant_result_array.npz")["arr_0"].item()
+
 Xs = []
 Ys = []
 ids = []
 valuemap = {}
-for path in glob.glob("/home/tam/Desktop/esb/esblandcover/training/*.npz"):
-    with open(path, "rb") as fl:
-        data = numpy.load(fl, allow_pickle=True)
-        X = data["data"]
-        # Data shape is ("scenes", bands, height, width)
-        cloud_mask = cloud_or_snow_mask(
-            X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9]
-        )
-        # Reorder the data to have
-        X = X.swapaxes(0, 2).swapaxes(1, 3)
-        # Flatten the 2D data into pixel level.
-        X = X.reshape(X.shape[0] * X.shape[1], X.shape[2], X.shape[3])
-        # Remove zeros.
-        X = X[numpy.sum(X, axis=(1, 2)) != 0]
-        # Compute cloud and snow mask.
-        # Assuming band order: ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
-        cloud_mask = cloud_or_snow_mask(
-            X[:, :, 8],
-            X[:, :, 7],
-            X[:, :, 6],
-            X[:, :, 2],
-            X[:, :, 1],
-            X[:, :, 0],
-            X[:, :, 9],
-        )
-        # Mute cloudy pixels by setting them to zero.
-        X[cloud_mask] = 0
-        Xs.append(X)
-        Y = data["feature"].item()["features"][0]["properties"]["Class"]
-        id = data["feature"].item()["features"][0]["id"]
-        if Y not in valuemap:
-            print(Y, len(valuemap))
-            valuemap[Y] = len(valuemap)
-        Ys.append([valuemap[Y]] * X.shape[0])
-        ids.append([id] * X.shape[0])
+# for path in glob.glob("/home/tam/Desktop/esb/esblandcover/training/*.npz"):
+#     with open(path, "rb") as fl:
+#         data = numpy.load(fl, allow_pickle=True)
+for data in result:
+    X = data["data"]
+    # Data shape is ("scenes", bands, height, width)
+    # cloud_mask = combined_mask(
+    #     X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9],
+    # )
+    # Reorder the data to have
+    X = X.swapaxes(0, 2).swapaxes(1, 3)
+    # Flatten the 2D data into pixel level.
+    X = X.reshape(X.shape[0] * X.shape[1], X.shape[2], X.shape[3])
+    # Remove zeros.
+    X = X[numpy.sum(X, axis=(1, 2)) != 0]
+    # Compute cloud and snow mask.
+    # Assuming band order: ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
+    # cloud_mask = combined_mask(
+    #     X[:, :, 8],
+    #     X[:, :, 7],
+    #     X[:, :, 6],
+    #     X[:, :, 2],
+    #     X[:, :, 1],
+    #     X[:, :, 0],
+    #     X[:, :, 9],
+    # )
+    # Mute cloudy pixels by setting them to zero.
+    # X[cloud_mask] = 0
+    Xs.append(X)
+    Y = data["feature"].item()["features"][0]["properties"]["class"]
+    id = data["feature"].item()["features"][0]["id"]
+    if Y not in valuemap:
+        print(Y, len(valuemap))
+        valuemap[Y] = len(valuemap)
+    Ys.append([valuemap[Y]] * X.shape[0])
+    ids.append([id] * X.shape[0])
 
 # Stack the training samples into one array.
 Xs = numpy.vstack(Xs).astype("float32")
