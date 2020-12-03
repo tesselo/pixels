@@ -14,40 +14,38 @@ def pixels_mask(
     clouds=True,
     light_clouds=False,
     snow=True,
-    shadow=True,
+    shadow_threshold=0.5,
 ):
     """
     Central mask function, choose what to include.
     """
-    # Start with nodata mask.
-    mask = B02 == NODATA_VALUE
-
-    if clouds or light_clouds or snow:
-        mask = mask | _composite_or_cloud(
-            B02,
-            B03,
-            B04,
-            B08,
-            B8A,
-            B11,
-            B12,
-            cloud_only=True,
-            light_clouds=light_clouds,
-            snow=snow,
-        )
-
-    if shadow:
-        mask = mask | shadow_mask(B02, B03, B04, B08)
-
-    return mask
+    return _composite_or_cloud(
+        B02,
+        B03,
+        B04,
+        B08,
+        B8A,
+        B11,
+        B12,
+        cloud_only=True,
+        light_clouds=light_clouds,
+        snow=snow,
+        shadow_threshold=shadow_threshold,
+    )
 
 
-def shadow_mask(B02, B03, B04, B08):
-    scaled = numpy.clip([B02, B03, B04, B08], 0, 4000) / 4000.0
-    return numpy.sum(scaled, axis=0) < 0.8
-
-
-def composite_index(B02, B03, B04, B08, B8A, B11, B12, light_clouds=False, snow=False):
+def composite_index(
+    B02,
+    B03,
+    B04,
+    B08,
+    B8A,
+    B11,
+    B12,
+    light_clouds=False,
+    snow=False,
+    shadow_threshold=0.5,
+):
     """
     Shortcut for composite index.
     """
@@ -62,6 +60,7 @@ def composite_index(B02, B03, B04, B08, B8A, B11, B12, light_clouds=False, snow=
         cloud_only=False,
         light_clouds=light_clouds,
         snow=snow,
+        shadow_threshold=shadow_threshold,
     )
 
 
@@ -85,6 +84,7 @@ def _composite_or_cloud(
     cloud_only=True,
     light_clouds=False,
     snow=True,
+    shadow_threshold=0.5,
 ):
     """
     Compute cloud and snow mask or create a composite.
@@ -128,37 +128,51 @@ def _composite_or_cloud(
     ndwi = (B03 - B11) / (B03 + B11)
 
     # Dense clouds.
-    A = ((ratioB3B11 > 1) & (rgbMean > 0.3)) & (
-        (tcHaze < -0.1) | ((tcHaze > -0.08) & (normDiffB8B11 < 0.4))
+    isHighProbCloud = (
+        (
+            ((ratioB3B11 > 1) & (rgbMean > 0.3))
+            & ((tcHaze < -0.1) | ((tcHaze > -0.08) & (normDiffB8B11 < 0.4)))
+        )
+        | (tcHaze < -0.2)
+        | ((ratioB3B11 > 1) & (rgbMean < 0.3)) & ((tcHaze < -0.055) & (rgbMean > 0.12))
+        | (
+            numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.3))
+            & ((tcHaze < -0.09) & (rgbMean > 0.12))
+        )
     )
-    B = tcHaze < -0.2
-    C = (ratioB3B11 > 1) & (rgbMean < 0.3)
-    D = (tcHaze < -0.055) & (rgbMean > 0.12)
-    E = numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.3)) & (
-        (tcHaze < -0.09) & (rgbMean > 0.12)
-    )
-    isHighProbCloud = A | B | C & D | E
 
-    # Compute cloud mask.
     # Add nodata mask.
     nodata = B02 == NODATA_VALUE
     combined_mask = isHighProbCloud | nodata
 
+    # Add shadow.
+    if shadow_threshold > 0:
+        shadow_mask = numpy.sum([B02, B03, B04, B08], axis=0) < shadow_threshold
+        combined_mask = combined_mask | shadow_mask
+
     # Add snow.
+    isSnow = (ndwi > 0.7) & numpy.logical_not((ratioB3B11 > 1) & (tcb < 0.36))
     if snow:
-        isSnow = (ndwi > 0.7) & numpy.logical_not((ratioB3B11 > 1) & (tcb < 0.36))
         combined_mask = combined_mask | isSnow
 
     # Light clouds.
     if light_clouds:
-        A = ((ratioB11B3 > 1) & (rgbMean < 0.2)) & (
-            (tcHaze < -0.1) | ((tcHaze < -0.08) & (normDiffB8B11 < 0.4))
+        isLowProbCloud = (
+            (
+                ((ratioB11B3 > 1) & (rgbMean < 0.2))
+                & ((tcHaze < -0.1) | ((tcHaze < -0.08) & (normDiffB8B11 < 0.4)))
+            )
+            | (tcHaze < -0.2)
+            | (
+                (ratioB3B11 > 1)
+                & ((rgbMean < 0.2))
+                & ((tcHaze < -0.055) & (rgbMean > 0.12))
+                | (
+                    numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.2))
+                    & ((tcHaze < -0.02) & (rgbMean > 0.12))
+                )
+            )
         )
-        C = (ratioB3B11 > 1) & (rgbMean < 0.2)
-        E = numpy.logical_not((ratioB3B11 > 1) & (rgbMean < 0.2)) & (
-            (tcHaze < -0.02) & (rgbMean > 0.12)
-        )
-        isLowProbCloud = A | B | C & D | E
         combined_mask = combined_mask | isLowProbCloud
 
     # Return early for cloud mask mode.

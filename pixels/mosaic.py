@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import numpy
 from rasterio.errors import RasterioIOError
 
-from pixels.clouds import pixels_mask, composite_index, shadow_mask
+from pixels.clouds import pixels_mask
 from pixels.const import LANDSAT_1_LAUNCH_DATE, NODATA_VALUE
 from pixels.retrieve import retrieve
 from pixels.search import search_data
@@ -220,6 +220,8 @@ def composite(
     pool=False,
     platform="SENTINEL_2",
     maxcloud=None,
+    shadow_threshold=0.4,
+    light_clouds=True,
 ):
     """
     Get the composite over the input features.
@@ -270,20 +272,17 @@ def composite(
         # Add scene to stack.
         layer = numpy.array([dat[1] for dat in data])
         # Compute cloud mask for new layer.
-        layer_clouds = pixels_mask(*(layer[idx] for idx in required_band_indices))
+        layer_clouds = pixels_mask(
+            *(layer[idx] for idx in required_band_indices),
+            light_clouds=light_clouds,
+            shadow_threshold=shadow_threshold
+        )
         # Shadow mask only uses RGB, so limit to first three bands.
         logger.debug(
-            "Cloud mask {}".format(numpy.unique(layer_clouds, return_counts=True))
+            "Layer masked count {} %".format(
+                int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
+            )
         )
-        layer_shades = shadow_mask(*(layer[idx] for idx in required_band_indices[:4]))
-        logger.debug(
-            "Shade mask {}".format(numpy.unique(layer_shades, return_counts=True))
-        )
-        layer_clouds = layer_clouds | layer_shades
-        logger.debug(
-            "Combo mask {}".format(numpy.unique(layer_clouds, return_counts=True))
-        )
-
         # Create stack.
         if stack is None:
             # Set first return as stack.
@@ -297,18 +296,11 @@ def composite(
             mask = mask & layer_clouds
 
         logger.debug(
-            "Remaining cloud count {}".format(numpy.unique(mask, return_counts=True))
+            "Remaining masked count {} %".format(int(100 * numpy.sum(mask) / mask.size))
         )
         # If no cloudy pixels are left, stop getting more data.
-        if not numpy.any(mask):
+        if numpy.sum(mask) / mask.size < 0.01:
+            logger.debug("Finalized compositing early.")
             break
-    return creation_args, stack
-    # Convert stack.
-    stack = numpy.array(stack)
-    # Compute index of each band in the selection and pass to composite
-    # index calculator.
-    cidx = composite_index(*(stack[:, idx] for idx in required_band_indices))
-    idx1, idx2 = numpy.indices(stack.shape[2:])
-    stack = stack[cidx, :, idx1, idx2]
-    stack = stack.swapaxes(1, 2).swapaxes(0, 1)
+
     return creation_args, stack

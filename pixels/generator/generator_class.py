@@ -1,7 +1,6 @@
 import glob
 
 import generator_augmentation_2D
-
 import numpy as np
 from generator_augmentation_2D import upscaling_sample
 from tensorflow import keras
