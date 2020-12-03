@@ -61,11 +61,11 @@ class DataGenerator_NPZ(keras.utils.Sequence):
 
         If path_work starts with s3://my-bucket-name/my/prefix/path, files are searched on S3.
         """
-        if path_work.startsiwth("s3://"):
+        if path_work.startswith("s3://"):
             # Prepare files list.
             files = []
             # Split input path into bucket and prefix path.
-            path_work_split = path_work.split("s3://").split("/")
+            path_work_split = path_work.split("s3://")[1].split("/")    
             self.bucket = path_work_split[0]
             prefix = "/".join(path_work_split[1:])
             # Create paginator.
