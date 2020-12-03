@@ -1,12 +1,17 @@
 import glob
+import io
 
-
+import boto3
+import numpy
 import numpy as np
-from pixels.generator.generator_augmentation_2D import upscaling_sample
 from tensorflow import keras
-from pixels.generator.visualizer import visualize_in_item
 
 from pixels.clouds import pixels_mask
+from pixels.generator import generator_augmentation_2D
+from pixels.generator.visualizer import visualize_in_item
+
+# S3 class instanciation.
+s3 = boto3.client("s3")
 
 
 # Defining cloud mask to apply
@@ -15,8 +20,11 @@ def cloud_filter(X):
     return mask
 
 
-# Defining class for generator
 class DataGenerator_NPZ(keras.utils.Sequence):
+    """
+    Defining class for generator.
+    """
+
     def __init__(
         self,
         path_work,
@@ -29,6 +37,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         seed=None,
         upsampling=False,
     ):
+        self.bucket = None
         self.files_ID = self.get_files(path_work)
         self.DataBaseSize = len(self.files_ID)
         self.shuffle = shuffle
@@ -47,8 +56,31 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         return self.steps_per_epoch
 
     def get_files(self, path_work, sufix="npz"):
-        """Returns the path to all npz files under path_work directory"""
-        files = glob.glob(path_work + "**/*" + sufix, recursive=True)
+        """
+        Returns the path to all npz files under path_work directory.
+
+        If path_work starts with s3://my-bucket-name/my/prefix/path, files are searched on S3.
+        """
+        if path_work.startsiwth("s3://"):
+            # Prepare files list.
+            files = []
+            # Split input path into bucket and prefix path.
+            path_work_split = path_work.split("s3://").split("/")
+            self.bucket = path_work_split[0]
+            prefix = "/".join(path_work_split[1:])
+            # Create paginator.
+            paginator = s3.get_paginator("list_objects_v2")
+            pages = paginator.paginate(
+                Bucket=self.bucket,
+                Prefix=prefix,
+            )
+            # Get keys using paginator.
+            for page in pages:
+                for obj in page["Contents"]:
+                    files.append(obj["Key"])
+        else:
+            files = glob.glob(path_work + "**/*" + sufix, recursive=True)
+
         return files
 
     def on_epoch_end(self):
@@ -162,15 +194,21 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         return np.array(tensor_X), np.array(tensor_Y)
 
     def _data_generation(self, IDs_temp):
-        """Generates data containing from a file"""
+        """
+        Generates data containing from a file.
+        """
         # X : (n_samples, *dim, n_channels)
         # Initialization
         # Iterate over paths given. Important: There is always one path given, but it is important to have
         # an iteration to be able to use continue on no data cases
         # TODO: Find better way around this
         for path in IDs_temp:
-            # Loading data from file. TODO: pass the file labels to class as an argument
-            data = np.load(path, allow_pickle=True)
+            if self.bucket:
+                data = s3.get_object(Bucket=self.bucket, Key=path)["Body"].read()
+                data = numpy.load(io.BytesIO(data), allow_pickle=True)
+            else:
+                # Loading data from file. TODO: pass the file labels to class as an argument
+                data = np.load(path, allow_pickle=True)
             # Make cloud mask
             mask = cloud_filter(data["x_data"])
             # Extract images
@@ -197,7 +235,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         shp = np.array(X[0, 0, :, :, 0].shape) * 10
         X_res = np.zeros((*X.shape[:2], *shp, *X.shape[-1:]))
         for time in range(len(X[0])):
-            X_res[0][time] = upscaling_sample(X[0][time], factor)
+            X_res[0][time] = generator_augmentation_2D.upscaling_sample(
+                X[0][time], factor
+            )
         return X_res
 
     def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False):
