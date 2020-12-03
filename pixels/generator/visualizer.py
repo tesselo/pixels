@@ -29,8 +29,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     ).astype("uint8")
     # Get data for Y.
     # Greyscale -> grey_max/min limit values to clip
-    grey_max = 10
-    grey_min = 0
+    # grey_max = 10
+    # grey_min = 0
     ydata = cm.viridis_r(np.squeeze(dat))
     ydata = np.ceil((255 * ydata)).astype("uint8")
     # ydata = np.ceil((255 * np.clip(dat, grey_min, grey_max) / grey_max))#.astype('uint8')

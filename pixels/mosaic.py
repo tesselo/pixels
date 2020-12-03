@@ -270,9 +270,7 @@ def composite(
         # Add scene to stack.
         layer = numpy.array([dat[1] for dat in data])
         # Compute cloud mask for new layer.
-        layer_clouds = combined_mask(
-            *(layer[idx] for idx in required_band_indices)
-        )
+        layer_clouds = combined_mask(*(layer[idx] for idx in required_band_indices))
         # Shadow mask only uses RGB, so limit to first three bands.
         logger.debug(
             "Cloud mask {}".format(numpy.unique(layer_clouds, return_counts=True))

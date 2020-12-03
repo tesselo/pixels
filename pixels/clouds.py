@@ -1,8 +1,21 @@
 import numpy
+
 from pixels.const import NODATA_VALUE, S2_MAX_LUMINOSITY
 
 
-def pixels_mask(B02, B03, B04, B08, B8A, B11, B12, clouds=True, light_clouds=False, snow=True, shadow=True):
+def pixels_mask(
+    B02,
+    B03,
+    B04,
+    B08,
+    B8A,
+    B11,
+    B12,
+    clouds=True,
+    light_clouds=False,
+    snow=True,
+    shadow=True,
+):
     """
     Central mask function, choose what to include.
     """
@@ -10,7 +23,18 @@ def pixels_mask(B02, B03, B04, B08, B8A, B11, B12, clouds=True, light_clouds=Fal
     mask = B02 == NODATA_VALUE
 
     if clouds or light_clouds or snow:
-        mask = mask | _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=True, light_clouds=light_clouds, snow=snow)
+        mask = mask | _composite_or_cloud(
+            B02,
+            B03,
+            B04,
+            B08,
+            B8A,
+            B11,
+            B12,
+            cloud_only=True,
+            light_clouds=light_clouds,
+            snow=snow,
+        )
 
     if shadow:
         mask = mask | shadow_mask(B02, B03, B04, B08)
@@ -27,7 +51,18 @@ def composite_index(B02, B03, B04, B08, B8A, B11, B12, light_clouds=False, snow=
     """
     Shortcut for composite index.
     """
-    return _composite_or_cloud(B02, B03, B04, B08, B8A, B11, B12, cloud_only=False, light_clouds=light_clouds, snow=snow)
+    return _composite_or_cloud(
+        B02,
+        B03,
+        B04,
+        B08,
+        B8A,
+        B11,
+        B12,
+        cloud_only=False,
+        light_clouds=light_clouds,
+        snow=snow,
+    )
 
 
 def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
@@ -40,7 +75,16 @@ def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
 
 
 def _composite_or_cloud(
-    B02in, B03in, B04in, B08in, B8Ain, B11in, B12in, cloud_only=True, light_clouds=False, snow=True,
+    B02in,
+    B03in,
+    B04in,
+    B08in,
+    B8Ain,
+    B11in,
+    B12in,
+    cloud_only=True,
+    light_clouds=False,
+    snow=True,
 ):
     """
     Compute cloud and snow mask or create a composite.

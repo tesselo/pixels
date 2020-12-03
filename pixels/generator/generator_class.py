@@ -1,28 +1,18 @@
 import glob
-import math
-from os import listdir
-from os.path import isdir, isfile, join
 
 import generator_augmentation_2D
-## Defining cloud mask to apply
-import matplotlib.pyplot as plt
+
 import numpy as np
 from generator_augmentation_2D import upscaling_sample
-from PIL import Image
 from tensorflow import keras
 from visualizer import visualize_in_item
 
-from pixels.clouds import combined_mask, composite_index
-from pixels.retrieve import retrieve
+from pixels.clouds import combined_mask
 
 
 # Defining cloud mask to apply
 def cloud_filter(X):
-    mask = combined_mask(
-        X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9]
-    )
-    #    for i in range(X.shape[1]):
-    #       X[:, i][mask] = 0
+    mask = combined_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
     return mask
 
 
@@ -70,7 +60,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         indexes = np.random.choice(
             self.DataBaseSize, self.steps_per_epoch, replace=False
         )
-        if self.shuffle == True:
+        if self.shuffle:
             np.random.shuffle(self.indexes)
             self.list_IDs = [self.files_ID[k] for k in indexes]
 
@@ -84,12 +74,12 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             self.DataBaseSize, self.steps_per_epoch, replace=False
         )
         # If a for test, the indexes are update for the all the other ones left behind
-        if train == False:
+        if not train:
             indexes = np.setdiff1d(np.arange(self.DataBaseSize), indexes)
         # Fetch the actual paths based on the indexes
         self.list_IDs = [self.files_ID[k] for k in indexes]
         # If it is a test and there is a given train dataset, fetches all the others
-        if train == False:
+        if not train:
             if train_split:
                 self.list_IDs = np.setdiff1d(self.files_ID, train_split)
             self.steps_per_epoch = len(self.list_IDs)
