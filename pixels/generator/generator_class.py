@@ -213,7 +213,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 data = np.load(path, allow_pickle=True)
             # Extract images
             X = data["x_data"]
-            X = np.array([np.array(x) for x in X if x.any()])
+            X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X)
             # Apply mask
@@ -255,7 +255,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 # Loading data from file. TODO: pass the file labels to class as an argument
                 data = np.load(IDs_temp, allow_pickle=True)
             X, Y = data["x_data"], data["y_data"]
-            X = np.array([np.array(x) for x in X if x.any()])
+            X = np.array([np.array(x) for x in X if x.shape])
             if self.upsampling:
                 X = self.upscale_tiles(X, factor=self.upsampling)
         if in_out == "OUT":
