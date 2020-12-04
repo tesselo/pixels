@@ -254,6 +254,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             else:
                 # Loading data from file. TODO: pass the file labels to class as an argument
                 data = np.load(IDs_temp, allow_pickle=True)
+            if self.upsampling:
+                X = self.upscale_tiles(X, factor=self.upsampling)
             X, Y = data["x_data"], data["y_data"]
         if in_out == "OUT":
             X, Y = self.__getitem__(index)
