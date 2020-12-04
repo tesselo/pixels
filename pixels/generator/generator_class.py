@@ -249,11 +249,11 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         if in_out == "IN":
             IDs_temp = self.list_IDs[index]
             if self.bucket:
-                data = s3.get_object(Bucket=self.bucket, Key=path)["Body"].read()
+                data = s3.get_object(Bucket=self.bucket, Key=IDs_temp)["Body"].read()
                 data = numpy.load(io.BytesIO(data), allow_pickle=True)
             else:
                 # Loading data from file. TODO: pass the file labels to class as an argument
-                data = np.load(path, allow_pickle=True)
+                data = np.load(IDs_temp, allow_pickle=True)
             X, Y = data["x_data"], data["y_data"]
         if in_out == "OUT":
             X, Y = self.__getitem__(index)
