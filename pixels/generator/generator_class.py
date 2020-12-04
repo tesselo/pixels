@@ -15,8 +15,8 @@ s3 = boto3.client("s3")
 
 
 # Defining cloud mask to apply
-def cloud_filter(X):
-    mask = pixels_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
+def cloud_filter(X, bands=[8, 7, 6, 2, 1, 0, 9]):
+    mask = pixels_mask(X[:, bands[0]], X[:, bands[1]], X[:, bands[2]], X[:, bands[3]], X[:, bands[4]], X[:, bands[5]], X[:, bands[6]])
     return mask
 
 
@@ -36,6 +36,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         num_time=12,
         seed=None,
         upsampling=False,
+        bands=[8, 7, 6, 2, 1, 0, 9],
     ):
         self.bucket = None
         self.files_ID = self.get_files(path_work)
@@ -47,6 +48,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.mode = mode
         self.num_time = num_time
         self.upsampling = upsampling
+        self.bands = bands
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -215,7 +217,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             X = data["x_data"]
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
-            mask = cloud_filter(X)
+            mask = cloud_filter(X, self.bands)
             # Apply mask
             for i in range(X.shape[1]):
                 X[:, i][mask] = 0
@@ -234,15 +236,19 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             return np.array(tensor_X), np.array(tensor_Y)
 
     def upscale_tiles(self, X, factor=10):
-        shp = np.array(X[0, 0, :, :, 0].shape) * 10
-        X_res = np.zeros((*X.shape[:2], *shp, *X.shape[-1:]))
+        try:
+            shp = np.array(X[0, 0, :, :, 0].shape) * 10
+            X_res = np.zeros((*X.shape[:2], *shp, *X.shape[-1:]))
+        except:
+            shp = np.array(X[0, 0, :, :].shape) * 10
+            X_res = np.zeros((*X.shape[:2], *shp))
         for time in range(len(X[0])):
             X_res[0][time] = generator_augmentation_2D.upscaling_sample(
                 X[0][time], factor
             )
         return X_res
 
-    def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False):
+    def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000):
         original_mode = self.mode
         self.mode = mode
         prediction = False
@@ -262,5 +268,5 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             X, Y = self.__getitem__(index)
             if model:
                 prediction = model.predict(X)
-        visualize_in_item(X, Y, prediction, in_out=in_out)
+        visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
