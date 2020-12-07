@@ -185,10 +185,12 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             tensor_Y.append(y)
         return np.array(tensor_X), np.array(tensor_Y)
 
-    def get_array(self, array):
+
+    def get_array(self, array, only=None):
         """
         Get an all the data from given array of paths
         """
+        #Create empty arrays
         tensor_X = []
         tensor_Y = []
         for path in array:
@@ -198,9 +200,20 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     X = self.upscale_tiles(X, factor=self.upsampling)
             except:
                 continue
-            tensor_X.append(X)
-            tensor_Y.append(y)
-        return np.array(tensor_X), np.array(tensor_Y)
+            if not only:
+                tensor_X.append(X)
+                tensor_Y.append(y)
+            elif only == 'X':
+                tensor_X.append(X)
+            elif only == 'Y':
+                tensor_Y.append(Y)
+        if not only:
+            return np.array(tensor_X), np.array(tensor_Y)
+        elif only == 'X':
+            return np.array(tensor_X)
+        elif only == 'Y':
+            return np.array(tensor_Y)
+
 
     def upscale_tiles(self, X, factor=10):
         '''
