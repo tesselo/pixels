@@ -206,7 +206,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             elif only == 'X':
                 tensor_X.append(X)
             elif only == 'Y':
-                tensor_Y.append(Y)
+                tensor_Y.append(y)
         if not only:
             return np.array(tensor_X), np.array(tensor_Y)
         elif only == 'X':
