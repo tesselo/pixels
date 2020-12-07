@@ -281,3 +281,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 prediction = model.predict(X)
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
+
+    def get_prediction_inputs(self):
+        for i in range(self.steps_per_epoch)
+            X, Y = self.__getitem__(i)
+            yield Y
