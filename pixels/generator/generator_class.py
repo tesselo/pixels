@@ -126,15 +126,16 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # The try and excepts are in case a file does not have a single valid outuput
         try:
             X, y = self._data_generation([IDs_temp])
+            if self.upsampling:
+                X = self.upscale_tiles(X, factor=self.upsampling)
         except Exception as e:
             print(e)
-            # index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
-            if index == 0:
-                X, y = self.__getitem__(index + 2)
-            else:
-                X, y = self.__getitem__(index - 1)
-        if self.upsampling:
-            X = self.upscale_tiles(X, factor=self.upsampling)
+            new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
+            X, y = self.__getitem__(new_index)
+            #if index == 0:
+            #    X, y = self.__getitem__(index + 2)
+            #else:
+            #    X, y = self.__getitem__(index - 1)
         return X, y
 
     def _pixel_generation(self, X, Y, mask):
@@ -196,6 +197,24 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             tensor_Y.append(y)
         return np.array(tensor_X), np.array(tensor_Y)
 
+    def upscale_tiles(self, X, factor=10):
+        '''
+        Upscale incoming images by factor
+        '''
+        try:
+            shp = np.array(X[0, 0, :, :, 0].shape) * 10
+            s = (*X.shape[:2], *shp, *X.shape[-1:])
+            X_res = np.zeros(s)
+        except:
+            shp = np.array(X[0, 0, :, :].shape) * 10
+            s = (*X.shape[:2], *shp)
+            X_res = np.zeros(s)
+        for time in range(len(X[0])):
+            X_res[0][time] = generator_augmentation_2D.upscaling_sample(
+                X[0][time], factor
+            )
+        return X_res
+
     def _data_generation(self, IDs_temp):
         """
         Generates data containing from a file.
@@ -221,7 +240,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             # Apply mask
             for i in range(X.shape[1]):
                 X[:, i][mask] = 0
-
             # input data here
             # choose type of generator
             Y = data["y_data"]
@@ -235,18 +253,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 continue
             return np.array(tensor_X), np.array(tensor_Y)
 
-    def upscale_tiles(self, X, factor=10):
-        try:
-            shp = np.array(X[0, 0, :, :, 0].shape) * 10
-            X_res = np.zeros((*X.shape[:2], *shp, *X.shape[-1:]))
-        except:
-            shp = np.array(X[0, 0, :, :].shape) * 10
-            X_res = np.zeros((*X.shape[:2], *shp))
-        for time in range(len(X[0])):
-            X_res[0][time] = generator_augmentation_2D.upscaling_sample(
-                X[0][time], factor
-            )
-        return X_res
 
     def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000):
         original_mode = self.mode
