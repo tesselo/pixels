@@ -285,4 +285,4 @@ class DataGenerator_NPZ(keras.utils.Sequence):
     def get_prediction_inputs(self):
         for i in range(self.steps_per_epoch)
             X, Y = self.__getitem__(i)
-            yield Y
+            yield X
