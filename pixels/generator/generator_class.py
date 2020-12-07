@@ -194,6 +194,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for path in array:
             try:
                 X, y = self._data_generation([path])
+                if self.upsampling:
+                    X = self.upscale_tiles(X, factor=self.upsampling)
             except:
                 continue
             tensor_X.append(X)
