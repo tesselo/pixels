@@ -49,6 +49,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.num_time = num_time
         self.upsampling = upsampling
         self.bands = bands
+        self.showerror = True
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -129,7 +130,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if self.upsampling:
                 X = self.upscale_tiles(X, factor=self.upsampling)
         except Exception as e:
-            print(e)
+            if self.showerror:
+                print(e)
+                self.showerror = False
             new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
             X, y = self.__getitem__(new_index)
             #if index == 0:
