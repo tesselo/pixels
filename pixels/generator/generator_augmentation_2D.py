@@ -90,8 +90,8 @@ def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     # cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
     # X = X[np.logical_not(cloud_mask.mask)]
     # Mute cloudy pixels.
-    for i in range(X.shape[0]):
-        X[i][:, mask[i]] = 0
+    #for i in range(X.shape[0]):
+    #    X[i][:, mask[i]] = 0
     # Reshape X to have bands (features) last.
     X = np.swapaxes(X, 1, 2)
     X = np.swapaxes(X, 2, 3)

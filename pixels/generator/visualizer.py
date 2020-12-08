@@ -94,7 +94,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
         # Compute offset for this date (adding 2 to account for the Y slot, and for the Composite).
         xoffset = (i + 2) % width
         yoffset = math.floor((i + 2) / width)
-
         try:
             target[
                 (yoffset * img_c + yoffset * padding) : (
@@ -107,7 +106,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
         except:
             print("Failed")
             raise
-
     img = Image.fromarray(target)
     plt.figure(figsize=(15, 15))
     plt.imshow(img)

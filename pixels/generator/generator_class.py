@@ -223,14 +223,19 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             shp = np.array(X[0, 0, :, :, 0].shape) * 10
             s = (*X.shape[:2], *shp, *X.shape[-1:])
             X_res = np.zeros(s)
+            for time in range(len(X[0])):
+                X_res[0][time] = generator_augmentation_2D.upscaling_sample(
+                    X[0][time], factor
+                )
         except:
             shp = np.array(X[0, 0, :, :].shape) * 10
             s = (*X.shape[:2], *shp)
             X_res = np.zeros(s)
-        for time in range(len(X[0])):
-            X_res[0][time] = generator_augmentation_2D.upscaling_sample(
-                X[0][time], factor
-            )
+            for time in range(len(X)):
+                for band in range(len(X[time])):
+                    X_res[time][band] = generator_augmentation_2D.upscaling_sample(
+                        X[time][band], factor
+                    )
         return X_res
 
     def _data_generation(self, IDs_temp):
