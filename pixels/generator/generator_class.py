@@ -37,6 +37,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         seed=None,
         upsampling=False,
         bands=[8, 7, 6, 2, 1, 0, 9],
+        cloud_mask_filter=True
     ):
         self.bucket = None
         self.files_ID = self.get_files(path_work)
@@ -50,6 +51,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.upsampling = upsampling
         self.bands = bands
         self.showerror = True
+        self.cloud_mask_filter = cloud_mask_filter
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -261,8 +263,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
             # Apply mask
-            for i in range(X.shape[1]):
-                X[:, i][mask] = 0
+            if self.cloud_mask_filter:
+                for i in range(X.shape[1]):
+                    X[:, i][mask] = 0
             # input data here
             # choose type of generator
             Y = data["y_data"]
