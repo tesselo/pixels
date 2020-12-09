@@ -300,6 +300,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             X, Y = self.__getitem__(index)
             if model:
                 prediction = model.predict(X)
+                # If the output is expected to be binary set prediciton to binary
+                if len(np.unique(Y))<=2:
+                    prediction[prediction<=0.5] = 0
+                    prediction[prediction>=0.5] = 1
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
 
