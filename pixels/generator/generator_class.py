@@ -323,4 +323,4 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             for t in range(len(X[0])):
-                yield np.array([X[0][t]]), np.array([Y])
+                yield np.array([X[0][t]]), np.array(Y)
