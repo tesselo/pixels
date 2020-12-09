@@ -304,6 +304,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.mode = original_mode
 
     def get_prediction_inputs(self):
+        '''
+        Yield only train data, used for predictions
+        '''
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             yield X
@@ -320,4 +323,4 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             for t in range(len(X[0])):
-                yield X[0][t], Y
+                yield np.array(X[0][t]), np.array(Y)
