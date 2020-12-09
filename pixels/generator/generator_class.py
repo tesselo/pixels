@@ -307,3 +307,17 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             yield X
+
+    def flatten_time_len(self):
+        counter = 0
+        for i in range(self.steps_per_epoch):
+            X, Y = self.__getitem__(i)
+            for t in range(len(X[0])):
+                counter = counter + 1
+        self.steps_no_time = counter
+
+    def yield_flatten_time(self):
+        for i in range(self.steps_per_epoch):
+            X, Y = self.__getitem__(i)
+            for t in range(len(X[0])):
+                yield X[0][t], Y
