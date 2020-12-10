@@ -104,3 +104,25 @@ def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     X = X[:num_time]
     # Return data.
     return np.array([X]), np.array([Y])
+
+
+def generator_single_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
+    area = np.prod(mask.shape[1:])
+    cloud_sum = np.sum(mask, axis=(1, 2))
+    cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
+    X = X[np.logical_not(cloud_mask.mask)]
+        # Mute cloudy pixels.
+        #for i in range(X.shape[0]):
+        #    X[i][:, mask[i]] = 0
+        # Reshape X to have bands (features) last.
+    X = np.swapaxes(X, 1, 2)
+    X = np.swapaxes(X, 2, 3)
+        # Increase dims to match the shape of the last layer's output tensor.
+    Y = np.expand_dims(Y, axis=(0, -1))
+        # Pad array wit zeros to ensure 12 time steps.
+    #if X.shape[0] < num_time:
+    #    X = np.vstack((X, np.zeros((num_time - X.shape[0], *X.shape[1:]))))
+        # Limit X to 12 time steps incase there are more.
+    #X = X[:num_time]
+        # Return data.
+    return np.array(X), np.array([Y])
