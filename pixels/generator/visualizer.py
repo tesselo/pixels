@@ -73,8 +73,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                 preddata[preddata == 0] = 255
                 preddata = preddata[:img_c, :img_l]
 
-                xoffset = ((i*2) + 2) % width
-                yoffset = math.floor(((i*2) + 2) / width)
+                xoffset = ((i+count) + 2) % width
+                yoffset = math.floor(((i+count) + 2) / width)
                 try:
                     target[
                         (yoffset * img_c + yoffset * padding) : (
