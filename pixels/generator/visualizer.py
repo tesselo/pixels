@@ -20,7 +20,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     img_c = dat.shape[0]
     img_l = dat.shape[1]
     if np.any(prediction):
-        if len(prediction.shape) > 2:
+        if len(np.squeeze(prediction).shape) > 2:
             count = 2 * len(X)
             width = math.ceil(math.sqrt(count))
             height = math.ceil(math.sqrt(count))
@@ -46,9 +46,9 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     target[:img_c, :img_l, 0] = ydata[:, :, 0]
     target[:img_c, :img_l, 1] = ydata[:, :, 1]
     target[:img_c, :img_l, 2] = ydata[:, :, 2]
-
+    print(prediction.shape)
     if np.any(prediction):
-        if len(prediction.shape) <= 2:
+        if len(np.squeeze(prediction).shape) <= 2:
             # Get data for prediction.
             preddata = cm.viridis_r(np.squeeze(prediction))
             preddata = np.ceil((255 * preddata)).astype("uint8")
