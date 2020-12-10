@@ -83,7 +83,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                         (xoffset * img_c + xoffset * padding) : (
                             (xoffset + 1) * img_l + xoffset * padding
                         ),
-                    ] = preddata
+                    ] = preddata[:, :, :3]
                 except:
                     print("Failed")
                     raise
