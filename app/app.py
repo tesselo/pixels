@@ -158,15 +158,15 @@ def tiles(z, x, y, platform=""):
     platform = platform.upper()
     if platform == "LANDSAT_4":
         bands = ["B3", "B2", "B1"]
-        scaling = 256
+        scaling = 255
     elif platform == "LANDSAT_5" or end < "2000-01-01":
         platform = ["LANDSAT_4", "LANDSAT_5"]
         bands = ["B3", "B2", "B1"]
-        scaling = 256
+        scaling = 255
     elif platform == "LANDSAT_7" or end < "2014-01-01":
         platform = ["LANDSAT_7"]
         bands = ["B3", "B2", "B1"]
-        scaling = 256
+        scaling = 255
     elif platform == "LANDSAT_8" or end < "2018-01-01":
         platform = ["LANDSAT_8"]
         bands = ["B4", "B3", "B2"]
