@@ -320,6 +320,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             for t in range(len(X[0])):
+                x = np.swapaxes(X[0][t], 1, 2)
+                mask = cloud_filter(x, self.bands)
+                if np.sum(mask)/(mask.size) > 1 - self.cloud_cover:
+                    continue
                 counter = counter + 1
         self.steps_no_time = counter
 
@@ -327,4 +331,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         for i in range(self.steps_per_epoch):
             X, Y = self.__getitem__(i)
             for t in range(len(X[0])):
+                x = np.swapaxes(X[0][t], 1, 2)
+                mask = cloud_filter(x, self.bands)
+                if np.sum(mask)/(mask.size) > 1 - self.cloud_cover:
+                    continue
                 yield np.array([X[0][t]]), np.array(Y)
