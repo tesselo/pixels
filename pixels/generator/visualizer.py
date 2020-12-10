@@ -22,8 +22,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     if np.any(prediction):
         if len(prediction.shape) > 2:
             count = 2 * len(X)
-            img_c = dat.shape[1]
-            img_l = dat.shape[2]
             width = math.ceil(math.sqrt(count))
             height = math.ceil(math.sqrt(count))
 
