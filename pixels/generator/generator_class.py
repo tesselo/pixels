@@ -279,11 +279,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             # choose type of generator
             Y = data["y_data"]
             if self.mode == "SQUARE":
+                # Build the output as a tensor of squares. Squares with all timesteps. (N, timesteps, size, bands)-> (1, 12, 360, 360, 10)
                 tensor_X, tensor_Y = generator_augmentation_2D.generator_2D(X, Y, mask)
             if self.mode == "PIXEL":
-                # Build results on a pixel level
+                # Build output on a pixel level. (N, timesteps, bands)-> (1, 12, 10)
                 tensor_X, tensor_Y = self._pixel_generation(X, Y, mask, cloud_cover=self.cloud_cover)
             if self.mode == "SINGLE_SQUARE":
+                # Build the output as as single image in time. (N, size, bands)-> (1, 360, 360, 10)
                 tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(X, Y, mask, cloud_cover=self.cloud_cover)
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
@@ -292,8 +294,14 @@ class DataGenerator_NPZ(keras.utils.Sequence):
 
 
     def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000):
+        '''
+        Function to visualize image data
+        '''
+        # Retain the original mode to change back in the end
         original_mode = self.mode
+        # Change the mode, usually to square, you won't visualize just single pixels
         self.mode = mode
+        # Initiate empty prediction
         prediction = False
         if in_out == "IN":
             IDs_temp = self.list_IDs[index]
@@ -318,6 +326,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
 
+
     def get_prediction_inputs(self):
         '''
         Yield only train data, used for predictions
@@ -337,13 +346,3 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     continue
                 counter = counter + 1
         self.steps_no_time = counter
-
-    def yield_flatten_time(self):
-        for i in range(self.steps_per_epoch):
-            X, Y = self.__getitem__(i)
-            for t in range(len(X[0])):
-                x = np.swapaxes(X[0][t], 1, 2)
-                mask = cloud_filter(x, self.bands)
-                if np.sum(mask)/(mask.size) > 1 - self.cloud_cover:
-                    continue
-                yield np.array([X[0][t]]), np.array(Y)

@@ -19,6 +19,14 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     padding = 5
     img_c = dat.shape[0]
     img_l = dat.shape[1]
+    if np.any(prediction):
+        if len(prediction.shape) > 2:
+            count = 2 * len(X)
+            img_c = dat.shape[1]
+            img_l = dat.shape[2]
+            width = math.ceil(math.sqrt(count))
+            height = math.ceil(math.sqrt(count))
+
     # Construct target array for image.
     target = np.zeros(
         (
@@ -42,23 +50,47 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     target[:img_c, :img_l, 2] = ydata[:, :, 2]
 
     if np.any(prediction):
-        # Get data for prediction.
-        preddata = cm.viridis_r(np.squeeze(prediction))
-        preddata = np.ceil((255 * preddata)).astype("uint8")
-        # preddata = np.ceil((255 * np.clip(np.squeeze(preddata), grey_min, grey_max) / grey_max)).astype('uint8')
-        preddata[preddata == 0] = 255
-        preddata = preddata[:img_c, :img_l]
-        # preddata = cm.viridis_r(preddata)
-        # print(preddata[:,:,0])
-        target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 0] = preddata[
-            :, :, 0
-        ]
-        target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 1] = preddata[
-            :, :, 1
-        ]
-        target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 2] = preddata[
-            :, :, 2
-        ]
+        if len(prediction.shape) <= 2:
+            # Get data for prediction.
+            preddata = cm.viridis_r(np.squeeze(prediction))
+            preddata = np.ceil((255 * preddata)).astype("uint8")
+            # preddata = np.ceil((255 * np.clip(np.squeeze(preddata), grey_min, grey_max) / grey_max)).astype('uint8')
+            preddata[preddata == 0] = 255
+            preddata = preddata[:img_c, :img_l]
+            # preddata = cm.viridis_r(preddata)
+            # print(preddata[:,:,0])
+            target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 0] = preddata[
+                :, :, 0
+            ]
+            target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 1] = preddata[
+                :, :, 1
+            ]
+            target[:img_c, (img_l + padding) : ((img_c * 2) + padding), 2] = preddata[
+                :, :, 2
+            ]
+        else:
+            for i in range(len(prediction)):
+                preddata = cm.viridis_r(np.squeeze(prediction[i]))
+                preddata = np.ceil((255 * preddata)).astype("uint8")
+                preddata[preddata == 0] = 255
+                preddata = preddata[:img_c, :img_l]
+
+                xoffset = ((i*2) + 2) % width
+                yoffset = math.floor(((i*2) + 2) / width)
+                try:
+                    target[
+                        (yoffset * img_c + yoffset * padding) : (
+                            (yoffset + 1) * img_l + yoffset * padding
+                        ),
+                        (xoffset * img_c + xoffset * padding) : (
+                            (xoffset + 1) * img_l + xoffset * padding
+                        ),
+                    ] = preddata
+                except:
+                    print("Failed")
+                    raise
+
+
     # Compute composite.
     # X = src['x_data']
     # cidx  = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
