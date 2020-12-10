@@ -285,9 +285,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 tensor_X, tensor_Y = self._pixel_generation(X, Y, mask, cloud_cover=self.cloud_cover)
             if self.mode == "SINGLE_SQUARE":
                 tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(X, Y, mask, cloud_cover=self.cloud_cover)
-                print('XXXX',tensor_X.shape)
-                print('YYYY',tensor_Y.shape)
-            print('xx',  np.array(tensor_X).shape)
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
                 continue
@@ -349,6 +346,4 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 mask = cloud_filter(x, self.bands)
                 if np.sum(mask)/(mask.size) > 1 - self.cloud_cover:
                     continue
-                print('array',np.array([X[0][t]]).shape)
-                print('yyyy',Y.shape)
                 yield np.array([X[0][t]]), np.array(Y)
