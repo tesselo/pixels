@@ -7,12 +7,10 @@ from PIL import Image
 
 
 def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
-    dat = Y[0]
-    print(Y.shape)
-    print(dat.shape)
     dat = np.squeeze(Y)
-    print(dat.shape)
     if in_out == "OUT":
+        dat = Y[0]
+        dat = np.squeeze(dat)
         img_c = dat.shape[0]
         # If the second dimension is an image size do not squeeze. Prevent squezing on sinlge image inputs. (N, 360, 360, bands), prevents failing if N==1
         if np.array(X).shape[1] != img_c:
@@ -25,6 +23,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     padding = 5
     img_c = dat.shape[0]
     img_l = dat.shape[1]
+    print(X.shape)
     if np.any(prediction):
         if len(np.squeeze(prediction).shape) > 2:
             count = (2 * len(X)) + 2
