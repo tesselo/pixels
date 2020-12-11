@@ -99,7 +99,7 @@ def augmentation(X, Y, sizex=360, sizey=360):
         ]
     )
 
-    return np.append(**results_x, axis=1), results_y
+    return results_x.reshape(np.prod(results_x.shape[:2]), *results_x.shape[2:]), results_y.reshape(np.prod(results_y.shape[:2]), *results_y.shape[2:])
     # Flip
     # Add noise
     # brightness_range # ran > 1  Brightness of Image increases

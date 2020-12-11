@@ -37,7 +37,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         seed=None,
         upsampling=False,
         bands=[8, 7, 6, 2, 1, 0, 9],
-        cloud_mask_filter=True
+        cloud_mask_filter=True,
+        augmentation=False
     ):
         self.bucket = None
         self.files_ID = self.get_files(path_work)
@@ -52,6 +53,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.bands = bands
         self.showerror = True
         self.cloud_mask_filter = cloud_mask_filter
+        self.augmentation = augmentation
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -131,6 +133,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             X, y = self._data_generation([IDs_temp])
             if self.upsampling:
                 X = self.upscale_tiles(X, factor=self.upsampling)
+            if self.augmentation:
+                X, y = generator_augmentation_2D.augmentation(X, y)
         except Exception as e:
             if self.showerror:
                 print(e)

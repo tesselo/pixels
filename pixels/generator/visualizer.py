@@ -23,7 +23,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     padding = 5
     img_c = dat.shape[0]
     img_l = dat.shape[1]
-    print(X.shape)
     if np.any(prediction):
         if len(np.squeeze(prediction).shape) > 2:
             count = (2 * len(X)) + 2
