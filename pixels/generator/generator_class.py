@@ -286,7 +286,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 tensor_X, tensor_Y = self._pixel_generation(X, Y, mask, cloud_cover=self.cloud_cover)
             if self.mode == "SINGLE_SQUARE":
                 # Build the output as as single image in time. (N, size, bands)-> (1, 360, 360, 10)
-                tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(X, Y, mask, cloud_cover=1-self.cloud_cover)
+                tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(X, Y, mask, cloud_cover=(1-self.cloud_cover))
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
                 continue

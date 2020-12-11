@@ -7,10 +7,16 @@ from PIL import Image
 
 
 def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
-    dat = Y
+    dat = Y[0]
+    print(Y.shape)
+    print(dat.shape)
+    dat = np.squeeze(Y)
+    print(dat.shape)
     if in_out == "OUT":
-        dat = np.squeeze(Y)
-        X = np.squeeze(X)
+        img_c = dat.shape[0]
+        # If the second dimension is an image size do not squeeze. Prevent squezing on sinlge image inputs. (N, 360, 360, bands), prevents failing if N==1
+        if np.array(X).shape[1] != img_c:
+            X = np.squeeze(X)
     # Export Y and RGB as images.
     # Count number of items for the combined image, adding +2 for Y and Composite viz.
     count = 2 + len(X)
@@ -71,7 +77,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                 preddata[preddata == 0] = 255
                 preddata = preddata[:img_c, :img_l]
                 xoffset = (i + 2 + len(X)) % width
-                yoffset = math.floor((i + 2 + len(X)) / width)                
+                yoffset = math.floor((i + 2 + len(X)) / width)
                 try:
                     target[
                         (yoffset * img_c + yoffset * padding) : (

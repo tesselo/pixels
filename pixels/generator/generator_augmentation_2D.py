@@ -14,6 +14,22 @@ def upscaling_sample(tile, factor):
     # Expand data repeating values by the factor to get back to the original size.
     return data.repeat(factor, axis=0).repeat(factor, axis=1)
 
+def set_standard_shape(tensor, sizex=360, sizey=360):
+    '''
+    Set input data from any shape to (*dims, sizex, sizey)
+    '''
+    shp = tensor.shape
+    size_tuple = (sizex, sizey)
+    for i in range(len(shp)):
+        curent_pair = shp[i:i+2]
+        if curent_pair == size_tuple:
+            beg = i
+            end = i+2
+    if end < len(shp):
+        tensor = np.swapaxes(tensor, end-1, end)
+        tensor = np.swapaxes(tensor, end-2, end-1)
+        tensor = set_standard_shape(tensor, sizex, sizey)
+    return tensor
 
 def img_flip(X, axis=None):
     X_f = np.flip(X, axis)
@@ -33,7 +49,12 @@ def change_bright(image, ran=1):
     return np.array(image * ran)
 
 
-def augmentation(data_X, data_Y):
+def augmentation(X, Y, sizex=360, sizey=360):
+    original_shape_X = X.shape
+    original_shape_Y = Y.shape
+    data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
+    data_Y = np.squeeze(Y)
+    data_X = np.squeeze(data_X)
     timeseries_flip = []
     timeseries_flip0 = []
     timeseries_flip1 = []
@@ -57,31 +78,32 @@ def augmentation(data_X, data_Y):
         timeseries_noise.append(bands_noise)
         timeseries_bright.append(bands_bright)
 
-    results = np.asarray(
+    results_x = np.asarray(
         [
-            [np.array(timeseries_flip), img_flip(data_Y)],
-            [np.array(timeseries_flip0), img_flip(data_Y, 0)],
-            [np.array(timeseries_flip1), img_flip(data_Y, 1)],
-            [np.array(timeseries_noise), data_Y],
-            [np.array(timeseries_bright), data_Y],
+            np.array(timeseries_flip).reshape(original_shape_X),
+            np.array(timeseries_flip0).reshape(original_shape_X),
+            np.array(timeseries_flip1).reshape(original_shape_X),
+            np.array(timeseries_noise).reshape(original_shape_X),
+            np.array(timeseries_bright).reshape(original_shape_X),
+            X,
         ]
     )
-    return results
+    results_y = np.asarray(
+        [
+            np.array([img_flip(data_Y)]).reshape(original_shape_Y),
+            np.array([img_flip(data_Y, 0)]).reshape(original_shape_Y),
+            np.array([img_flip(data_Y, 1)]).reshape(original_shape_Y),
+            np.array([data_Y]).reshape(original_shape_Y),
+            np.array([data_Y]).reshape(original_shape_Y),
+            np.array([data_Y]).reshape(original_shape_Y),
+        ]
+    )
+
+    return np.append(**results_x, axis=1), results_y
     # Flip
     # Add noise
     # brightness_range # ran > 1  Brightness of Image increases
 
-
-def generator_augmentation(data, num_time):
-
-    results = augmentation(data["x_data"], data["y_data"])
-    ori = np.array([data["x_data"], data["y_data"]])
-    results = np.concatenate((results, [ori]), axis=0)
-    for res in results:
-        X = np.swapaxes(res[0], 1, 2)
-        X = np.swapaxes(X, 2, 3)
-        Y = np.expand_dims(res[1], axis=(0, -1))
-        yield (np.array([X[:num_time]]), np.array([Y]))
 
 
 def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
@@ -119,10 +141,15 @@ def generator_single_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     X = np.swapaxes(X, 2, 3)
         # Increase dims to match the shape of the last layer's output tensor.
     Y = np.expand_dims(Y, axis=(0, -1))
+    #Y = [Y]
+    Y_aux = Y
+    for i in range(len(X)-1):
+        Y_aux = np.append(Y_aux, Y, axis=0)
+    Y = Y_aux
         # Pad array wit zeros to ensure 12 time steps.
     #if X.shape[0] < num_time:
     #    X = np.vstack((X, np.zeros((num_time - X.shape[0], *X.shape[1:]))))
         # Limit X to 12 time steps incase there are more.
     #X = X[:num_time]
         # Return data.
-    return np.array(X), np.array([Y])
+    return np.array(X), np.array(Y)
