@@ -293,7 +293,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             return np.array(tensor_X), np.array(tensor_Y)
 
 
-    def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000):
+    def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000, pred_show='binary'):
         '''
         Function to visualize image data
         '''
@@ -320,7 +320,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if model:
                 prediction = model.predict(X)
                 # If the output is expected to be binary set prediciton to binary
-                if len(np.unique(Y))<=2:
+                if pred_show == 'binary':
                     prediction[prediction<=0.5] = 0
                     prediction[prediction>=0.5] = 1
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
