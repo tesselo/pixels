@@ -101,19 +101,19 @@ def retrieve(
                     )
                     reproject(**proj_args)
 
-                # Get pixel values.
+                # Get pixel values from reprojected raster.
                 pixels = dst.read()
 
-                if clip:
-                    mask = compute_mask(
-                        geojson, height, width, transform, all_touched=all_touched
-                    )
-                    # Apply mask to all bands.
-                    pixels[:, mask] = NODATA_VALUE
+        if clip:
+            mask = compute_mask(
+                geojson, height, width, transform, all_touched=all_touched
+            )
+            # Apply mask to all bands.
+            pixels[:, mask] = NODATA_VALUE
 
-                # If only one band was requested, reshape result to 2D array.
-                if len(bands) == 1:
-                    pixels = pixels[bands[0] - 1]
+        # If only one band was requested, reshape result to 2D array.
+        if len(bands) == 1:
+            pixels = pixels[bands[0] - 1]
 
-                # Return re-creation args and pixel data.
-                return creation_args, pixels
+        # Return re-creation args and pixel data.
+        return creation_args, pixels
