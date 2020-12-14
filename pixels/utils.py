@@ -1,5 +1,6 @@
 import math
 
+import rasterio
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
@@ -130,23 +131,26 @@ def write_raster(numpy_tensor, args, out_path=None, filetype=None, date=None):
     # Set the raster metadata as the same as the input
     out_meta = args
     # Update some fields
-    out_meta.update({
-                    'count':len(numpy_tensor),
-                    'compress': 'DEFLATE',
-            }
-            )
+    out_meta.update(
+        {
+            "count": len(numpy_tensor),
+            "compress": "DEFLATE",
+        }
+    )
     # If a filetype is given, set to it.
     # Possible formats: https://gdal.org/drivers/raster/index.html
     if filetype:
-        out_meta.update({"driver": filetype,
-                    }
-                   )
+        out_meta.update(
+            {
+                "driver": filetype,
+            }
+        )
     # If a path is given write a image file on that path
     if out_path:
         with rasterio.open(out_path, "w", **out_meta) as dest:
             # Create a tag (metadata), with the date of the image
-            dest.update_tags(date=args['date'])
+            dest.update_tags(date=args["date"])
             dest.write(numpy_tensor)
     # else:
-        # return bytesio
-        # TODO: implement the return of a ByteIO if there is no out_path
+    # return bytesio
+    # TODO: implement the return of a ByteIO if there is no out_path
