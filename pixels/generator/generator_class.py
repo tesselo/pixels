@@ -102,7 +102,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             np.random.shuffle(self.indexes)
             self.list_IDs = [self.files_ID[k] for k in indexes]
 
-    def set_train_test(self, train, train_split, split, seed=None):
+    def set_train_test(self, train, train_split, split, seed):
         """
         Builds train or test list of files to open
         """
@@ -122,11 +122,16 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 self.list_IDs = np.setdiff1d(self.files_ID, train_split)
             self.steps_per_epoch = len(self.list_IDs)
 
+
+    def get_item_path(self, index):
+        return self.list_IDs[index]
+
+
     def __getitem__(self, index):
         """Generate one batch of data"""
         # Generate the data from given file (index)
         # Find list of IDs
-        IDs_temp = self.list_IDs[index]
+        IDs_temp = self.get_item_path(index)
         # Generate data
         # The try and excepts are in case a file does not have a single valid outuput
         try:
@@ -139,12 +144,12 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if self.showerror:
                 print(e)
                 self.showerror = False
-            new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
-            X, y = self.__getitem__(new_index)
-            #if index == 0:
-            #    X, y = self.__getitem__(index + 2)
-            #else:
-            #    X, y = self.__getitem__(index - 1)
+            # new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
+            # X, y = self.__getitem__(new_index)
+            if index == 0:
+                X, y = self.__getitem__(index + 2)
+            else:
+                X, y = self.__getitem__(index - 1)
         return X, y
 
     def _pixel_generation(self, X, Y, mask):
@@ -264,6 +269,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # TODO: Find better way around this
 
         for path in IDs_temp:
+            used_images_ind = []
             if self.bucket:
                 data = s3.get_object(Bucket=self.bucket, Key=path)["Body"].read()
                 data = numpy.load(io.BytesIO(data), allow_pickle=True)
