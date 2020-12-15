@@ -1,3 +1,4 @@
+import io
 import math
 
 import rasterio
@@ -151,6 +152,13 @@ def write_raster(numpy_tensor, args, out_path=None, filetype=None, date=None):
             # Create a tag (metadata), with the date of the image
             dest.update_tags(date=args["date"])
             dest.write(numpy_tensor)
-    # else:
-    # return bytesio
-    # TODO: implement the return of a ByteIO if there is no out_path
+    else:
+        # Returns a memory file.
+        output = io.BytesIO()
+        with rasterio.io.MemoryFile() as memfile:
+            with memfile.open(**out_meta) as dst:
+                dst.write(numpy_tensor)
+            memfile.seek(0)
+            output.write(memfile.read())
+        output.seek(0)
+        return output
