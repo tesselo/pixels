@@ -9,7 +9,7 @@ from tensorflow import keras
 from pixels.clouds import pixels_mask
 from pixels.generator import generator_augmentation_2D
 from pixels.generator.visualizer import visualize_in_item
-
+import math
 # S3 class instanciation.
 s3 = boto3.client("s3")
 
@@ -38,13 +38,16 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         upsampling=False,
         bands=[8, 7, 6, 2, 1, 0, 9],
         cloud_mask_filter=True,
-        augmentation=False
+        augmentation=False,
+        batch_size=None,
     ):
         self.bucket = None
         self.files_ID = self.get_files(path_work)
         self.DataBaseSize = len(self.files_ID)
         self.shuffle = shuffle
         self.steps_per_epoch = int(len(self.files_ID) * split)
+        self.batch_size = batch_size
+        self.__len__()
         self.set_train_test(train, train_split, split, seed)
         self.cloud_cover = 0.7
         self.mode = mode
@@ -54,13 +57,18 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.showerror = True
         self.cloud_mask_filter = cloud_mask_filter
         self.augmentation = augmentation
+        self.auxind = None
 
     def __len__(self):
         """Denotes the number of batches per epoch
         Each step is a file read, which means that the total number of steps is the number of files avaible
         (DataBaseSize * split).
         """
-        return self.steps_per_epoch
+        length = self.steps_per_epoch
+        if self.batch_size:
+             length = math.floor(length/self.batch_size)
+        self.length = length
+        return length
 
     def get_files(self, path_work, sufix="npz"):
         """
@@ -96,7 +104,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         Default is off, shuffle=True to turn on
         """
         indexes = np.random.choice(
-            self.DataBaseSize, self.steps_per_epoch, replace=False
+            self.DataBaseSize, self.length, replace=False
         )
         if self.shuffle:
             np.random.shuffle(self.indexes)
@@ -109,7 +117,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # Build a list of indexes, steps_per_epoch size, choosing randomly
         np.random.seed(seed)
         indexes = np.random.choice(
-            self.DataBaseSize, self.steps_per_epoch, replace=False
+            self.DataBaseSize, self.length, replace=False
         )
         # If a for test, the indexes are update for the all the other ones left behind
         if not train:
@@ -120,7 +128,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         if not train:
             if train_split:
                 self.list_IDs = np.setdiff1d(self.files_ID, train_split)
-            self.steps_per_epoch = len(self.list_IDs)
+            self.length = len(self.list_IDs)
 
 
     def get_item_path(self, index):
@@ -132,10 +140,20 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # Generate the data from given file (index)
         # Find list of IDs
         IDs_temp = self.get_item_path(index)
+        IDs_temp = [IDs_temp]
+        if self.batch_size:
+            idx = self.list_IDs[:self.batch_size]
+            if self.auxind:
+                self.auxind = self.auxind + self.batch_size
+                idx = self.list_IDs[self.auxind: self.auxind + self.batch_size]
+            # np.random.randint(len(self.list_IDs), size=self.batch_size)
+            # IDs_temp = np.take(self.list_IDs, idx).tolist()
+            IDs_temp = idx
+            self.auxind = 0
         # Generate data
         # The try and excepts are in case a file does not have a single valid outuput
         try:
-            X, y = self._data_generation([IDs_temp])
+            X, y = self._data_generation(IDs_temp)
             if self.upsampling:
                 X = self.upscale_tiles(X, factor=self.upsampling)
             if self.augmentation:
@@ -267,9 +285,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # Iterate over paths given. Important: There is always one path given, but it is important to have
         # an iteration to be able to use continue on no data cases
         # TODO: Find better way around this
-
+        result_tensor_x = np.array([])
+        result_tensor_y = np.array([])
         for path in IDs_temp:
-            used_images_ind = []
             if self.bucket:
                 data = s3.get_object(Bucket=self.bucket, Key=path)["Body"].read()
                 data = numpy.load(io.BytesIO(data), allow_pickle=True)
@@ -300,7 +318,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
                 continue
-            return np.array(tensor_X), np.array(tensor_Y)
+            if not result_tensor_x.any():
+                result_tensor_x = np.array(tensor_X)
+                result_tensor_y = np.array(tensor_Y)
+            else:
+                result_tensor_x = np.concatenate([result_tensor_x , np.array(tensor_X)])
+                result_tensor_y = np.concatenate([result_tensor_y , np.array(tensor_Y)])
+        return np.array(result_tensor_x), np.array(result_tensor_y)
 
 
     def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000, pred_show='not_binary'):
@@ -341,13 +365,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         '''
         Yield only train data, used for predictions
         '''
-        for i in range(self.steps_per_epoch):
+        for i in range(self.length):
             X, Y = self.__getitem__(i)
             yield X
 
     def flatten_time_len(self):
         counter = 0
-        for i in range(self.steps_per_epoch):
+        for i in range(self.length):
             X, Y = self.__getitem__(i)
             for t in range(len(X[0])):
                 x = np.swapaxes(X[0][t], 1, 2)
