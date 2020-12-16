@@ -1,5 +1,6 @@
 import glob
 import io
+import math
 
 import boto3
 import numpy
@@ -9,14 +10,22 @@ from tensorflow import keras
 from pixels.clouds import pixels_mask
 from pixels.generator import generator_augmentation_2D
 from pixels.generator.visualizer import visualize_in_item
-import math
+
 # S3 class instanciation.
 s3 = boto3.client("s3")
 
 
 # Defining cloud mask to apply
 def cloud_filter(X, bands=[8, 7, 6, 2, 1, 0, 9]):
-    mask = pixels_mask(X[:, bands[0]], X[:, bands[1]], X[:, bands[2]], X[:, bands[3]], X[:, bands[4]], X[:, bands[5]], X[:, bands[6]])
+    mask = pixels_mask(
+        X[:, bands[0]],
+        X[:, bands[1]],
+        X[:, bands[2]],
+        X[:, bands[3]],
+        X[:, bands[4]],
+        X[:, bands[5]],
+        X[:, bands[6]],
+    )
     return mask
 
 
@@ -66,7 +75,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         length = self.steps_per_epoch
         if self.batch_size:
-             length = math.floor(length/self.batch_size)
+            length = math.floor(length / self.batch_size)
         self.length = length
         return length
 
@@ -103,9 +112,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         Updates indexes after each epoch
         Default is off, shuffle=True to turn on
         """
-        indexes = np.random.choice(
-            self.DataBaseSize, self.length, replace=False
-        )
+        indexes = np.random.choice(self.DataBaseSize, self.length, replace=False)
         if self.shuffle:
             np.random.shuffle(self.indexes)
             self.list_IDs = [self.files_ID[k] for k in indexes]
@@ -116,9 +123,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         # Build a list of indexes, steps_per_epoch size, choosing randomly
         np.random.seed(seed)
-        indexes = np.random.choice(
-            self.DataBaseSize, self.length, replace=False
-        )
+        indexes = np.random.choice(self.DataBaseSize, self.length, replace=False)
         # If a for test, the indexes are update for the all the other ones left behind
         if not train:
             indexes = np.setdiff1d(np.arange(self.DataBaseSize), indexes)
@@ -130,10 +135,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 self.list_IDs = np.setdiff1d(self.files_ID, train_split)
             self.length = len(self.list_IDs)
 
-
     def get_item_path(self, index):
         return self.list_IDs[index]
-
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -142,10 +145,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         IDs_temp = self.get_item_path(index)
         IDs_temp = [IDs_temp]
         if self.batch_size:
-            idx = self.list_IDs[:self.batch_size]
+            idx = self.list_IDs[: self.batch_size]
             if self.auxind:
                 self.auxind = self.auxind + self.batch_size
-                idx = self.list_IDs[self.auxind: self.auxind + self.batch_size]
+                idx = self.list_IDs[self.auxind : self.auxind + self.batch_size]
             # np.random.randint(len(self.list_IDs), size=self.batch_size)
             # IDs_temp = np.take(self.list_IDs, idx).tolist()
             IDs_temp = idx
@@ -214,12 +217,11 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             tensor_Y.append(y)
         return np.array(tensor_X), np.array(tensor_Y)
 
-
     def get_array(self, array, only=None):
         """
         Get an all the data from given array of paths
         """
-        #Create empty arrays
+        # Create empty arrays
         tensor_X = []
         tensor_Y = []
         for path in array:
@@ -232,22 +234,21 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if not only:
                 tensor_X.append(X)
                 tensor_Y.append(y)
-            elif only == 'X':
+            elif only == "X":
                 tensor_X.append(X)
-            elif only == 'Y':
+            elif only == "Y":
                 tensor_Y.append(y)
         if not only:
             return np.array(tensor_X), np.array(tensor_Y)
-        elif only == 'X':
+        elif only == "X":
             return np.array(tensor_X)
-        elif only == 'Y':
+        elif only == "Y":
             return np.array(tensor_Y)
 
-
     def upscale_tiles(self, X, factor=10):
-        '''
+        """
         Upscale incoming images by factor
-        '''
+        """
         try:
             shp = np.array(X[0, 0, :, :, 0].shape) * 10
             s = (*X.shape[:2], *shp, *X.shape[-1:])
@@ -311,10 +312,14 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 tensor_X, tensor_Y = generator_augmentation_2D.generator_2D(X, Y, mask)
             if self.mode == "PIXEL":
                 # Build output on a pixel level. (N, timesteps, bands)-> (1, 12, 10)
-                tensor_X, tensor_Y = self._pixel_generation(X, Y, mask, cloud_cover=self.cloud_cover)
+                tensor_X, tensor_Y = self._pixel_generation(
+                    X, Y, mask, cloud_cover=self.cloud_cover
+                )
             if self.mode == "SINGLE_SQUARE":
                 # Build the output as as single image in time. (N, size, bands)-> (1, 360, 360, 10)
-                tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(X, Y, mask, cloud_cover=(1-self.cloud_cover))
+                tensor_X, tensor_Y = generator_augmentation_2D.generator_single_2D(
+                    X, Y, mask, cloud_cover=(1 - self.cloud_cover)
+                )
             if not np.any(np.array(tensor_X)):
                 # TODO: change the way it acts when encounter a empty response
                 continue
@@ -322,15 +327,23 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 result_tensor_x = np.array(tensor_X)
                 result_tensor_y = np.array(tensor_Y)
             else:
-                result_tensor_x = np.concatenate([result_tensor_x , np.array(tensor_X)])
-                result_tensor_y = np.concatenate([result_tensor_y , np.array(tensor_Y)])
+                result_tensor_x = np.concatenate([result_tensor_x, np.array(tensor_X)])
+                result_tensor_y = np.concatenate([result_tensor_y, np.array(tensor_Y)])
         return np.array(result_tensor_x), np.array(result_tensor_y)
 
-
-    def visualize_item(self, index, mode="SQUARE", in_out="IN", model=False, RGB=[8, 7, 6], scaling=1000, pred_show='not_binary'):
-        '''
+    def visualize_item(
+        self,
+        index,
+        mode="SQUARE",
+        in_out="IN",
+        model=False,
+        RGB=[8, 7, 6],
+        scaling=1000,
+        pred_show="not_binary",
+    ):
+        """
         Function to visualize image data
-        '''
+        """
         # Retain the original mode to change back in the end
         original_mode = self.mode
         # Change the mode, usually to square, you won't visualize just single pixels
@@ -354,17 +367,16 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if model:
                 prediction = model.predict(X)
                 # If the output is expected to be binary set prediciton to binary
-                if pred_show == 'binary':
-                    prediction[prediction<=0.5] = 0
-                    prediction[prediction>=0.5] = 1
+                if pred_show == "binary":
+                    prediction[prediction <= 0.5] = 0
+                    prediction[prediction >= 0.5] = 1
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
 
-
     def get_prediction_inputs(self):
-        '''
+        """
         Yield only train data, used for predictions
-        '''
+        """
         for i in range(self.length):
             X, Y = self.__getitem__(i)
             yield X
@@ -376,7 +388,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             for t in range(len(X[0])):
                 x = np.swapaxes(X[0][t], 1, 2)
                 mask = cloud_filter(x, self.bands)
-                if np.sum(mask)/(mask.size) > 1 - self.cloud_cover:
+                if np.sum(mask) / (mask.size) > 1 - self.cloud_cover:
                     continue
                 counter = counter + 1
         self.steps_no_time = counter

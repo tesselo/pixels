@@ -14,22 +14,23 @@ def upscaling_sample(tile, factor):
     # Expand data repeating values by the factor to get back to the original size.
     return data.repeat(factor, axis=0).repeat(factor, axis=1)
 
+
 def set_standard_shape(tensor, sizex=360, sizey=360):
-    '''
+    """
     Set input data from any shape to (*dims, sizex, sizey)
-    '''
+    """
     shp = tensor.shape
     size_tuple = (sizex, sizey)
     for i in range(len(shp)):
-        curent_pair = shp[i:i+2]
+        curent_pair = shp[i : i + 2]
         if curent_pair == size_tuple:
-            beg = i
-            end = i+2
+            end = i + 2
     if end < len(shp):
-        tensor = np.swapaxes(tensor, end-1, end)
-        tensor = np.swapaxes(tensor, end-2, end-1)
+        tensor = np.swapaxes(tensor, end - 1, end)
+        tensor = np.swapaxes(tensor, end - 2, end - 1)
         tensor = set_standard_shape(tensor, sizex, sizey)
     return tensor
+
 
 def img_flip(X, axis=None):
     X_f = np.flip(X, axis)
@@ -99,11 +100,13 @@ def augmentation(X, Y, sizex=360, sizey=360):
         ]
     )
 
-    return results_x.reshape(np.prod(results_x.shape[:2]), *results_x.shape[2:]), results_y.reshape(np.prod(results_y.shape[:2]), *results_y.shape[2:])
+    return (
+        results_x.reshape(np.prod(results_x.shape[:2]), *results_x.shape[2:]),
+        results_y.reshape(np.prod(results_y.shape[:2]), *results_y.shape[2:]),
+    )
     # Flip
     # Add noise
     # brightness_range # ran > 1  Brightness of Image increases
-
 
 
 def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
@@ -112,7 +115,7 @@ def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     # cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
     # X = X[np.logical_not(cloud_mask.mask)]
     # Mute cloudy pixels.
-    #for i in range(X.shape[0]):
+    # for i in range(X.shape[0]):
     #    X[i][:, mask[i]] = 0
     # Reshape X to have bands (features) last.
     X = np.swapaxes(X, 1, 2)
@@ -131,25 +134,25 @@ def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
 def generator_single_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     area = np.prod(mask.shape[1:])
     cloud_sum = np.sum(mask, axis=(1, 2))
-    cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
+    cloud_mask = np.ma.masked_where(cloud_sum >= area * cloud_cover, cloud_sum)
     X = X[np.logical_not(cloud_mask.mask)]
-        # Mute cloudy pixels.
-        #for i in range(X.shape[0]):
-        #    X[i][:, mask[i]] = 0
-        # Reshape X to have bands (features) last.
+    # Mute cloudy pixels.
+    # for i in range(X.shape[0]):
+    #    X[i][:, mask[i]] = 0
+    # Reshape X to have bands (features) last.
     X = np.swapaxes(X, 1, 2)
     X = np.swapaxes(X, 2, 3)
-        # Increase dims to match the shape of the last layer's output tensor.
+    # Increase dims to match the shape of the last layer's output tensor.
     Y = np.expand_dims(Y, axis=(0, -1))
-    #Y = [Y]
+    # Y = [Y]
     Y_aux = Y
-    for i in range(len(X)-1):
+    for i in range(len(X) - 1):
         Y_aux = np.append(Y_aux, Y, axis=0)
     Y = Y_aux
-        # Pad array wit zeros to ensure 12 time steps.
-    #if X.shape[0] < num_time:
+    # Pad array wit zeros to ensure 12 time steps.
+    # if X.shape[0] < num_time:
     #    X = np.vstack((X, np.zeros((num_time - X.shape[0], *X.shape[1:]))))
-        # Limit X to 12 time steps incase there are more.
-    #X = X[:num_time]
-        # Return data.
+    # Limit X to 12 time steps incase there are more.
+    # X = X[:num_time]
+    # Return data.
     return np.array(X), np.array(Y)

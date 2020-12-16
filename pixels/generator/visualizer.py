@@ -89,7 +89,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                     print("Failed")
                     raise
 
-
     # Compute composite.
     # X = src['x_data']
     # cidx  = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
