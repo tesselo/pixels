@@ -1,6 +1,7 @@
 import io
 import math
 
+import numpy
 import rasterio
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -125,17 +126,25 @@ def timeseries_steps(start, end, interval, intervals_per_step=1):
         here_end += delta
 
 
-def write_raster(numpy_tensor, args, out_path=None, filetype=None, date=None):
+def write_raster(data, args, out_path=None, filetype=None, date=None):
     """
     Given a numpy array and necessary metadata, save a image file.
     """
     # Set the raster metadata as the same as the input
     out_meta = args
+    # Ensure right dims.
+    if len(data.shape) == 2:
+        data = data.reshape((1, ) + data.shape)
+    # Convert to uint8.
+    data = data.astype('float32')
+    # Set band count.
+    count = data.shape[0]
     # Update some fields
     out_meta.update(
         {
-            "count": len(numpy_tensor),
+            "count": count,
             "compress": "DEFLATE",
+            "dtype": "float32"
         }
     )
     # If a filetype is given, set to it.
@@ -151,13 +160,13 @@ def write_raster(numpy_tensor, args, out_path=None, filetype=None, date=None):
         with rasterio.open(out_path, "w", **out_meta) as dest:
             # Create a tag (metadata), with the date of the image
             dest.update_tags(date=args["date"])
-            dest.write(numpy_tensor)
+            dest.write(data)
     else:
         # Returns a memory file.
         output = io.BytesIO()
         with rasterio.io.MemoryFile() as memfile:
             with memfile.open(**out_meta) as dst:
-                dst.write(numpy_tensor)
+                dst.write(data)
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
