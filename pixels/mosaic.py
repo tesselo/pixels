@@ -199,14 +199,21 @@ def latest_pixel_s2_stack(
     logger.info(
         "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
     )
+
     if pool_size:
         with Pool(pool_size) as p:
-            return p.starmap(latest_pixel, dates)
+            result = p.starmap(latest_pixel, dates)
     else:
-        data = []
+        result = []
         for date in dates:
-            data.append(latest_pixel(*date))
-        return data
+            result.append()
+
+    # Convert to individual arrays.
+    creation_args = result[0][0]
+    dates = [dat[1] for dat in result]
+    pixels = numpy.array([dat[2] for dat in result])
+
+    return creation_args, dates, pixels
 
 
 def composite(
