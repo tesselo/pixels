@@ -1,7 +1,6 @@
 import io
 import math
 
-import numpy
 import rasterio
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
