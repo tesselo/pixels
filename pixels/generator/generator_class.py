@@ -50,13 +50,12 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         augmentation=False,
         batch_size=None,
     ):
+        self.length = None
         self.bucket = None
         self.files_ID = self.get_files(path_work)
-        self.DataBaseSize = len(self.files_ID)
+        self.data_base_size = len(self.files_ID)
         self.shuffle = shuffle
-        self.steps_per_epoch = int(len(self.files_ID) * split)
         self.batch_size = batch_size
-        self.__len__()
         self.set_train_test(train, train_split, split, seed)
         self.cloud_cover = 0.7
         self.mode = mode
@@ -69,15 +68,37 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.auxind = None
 
     def __len__(self):
-        """Denotes the number of batches per epoch
-        Each step is a file read, which means that the total number of steps is the number of files avaible
-        (DataBaseSize * split).
         """
-        length = self.steps_per_epoch
+        Denotes the number of batches per epoch.
+        Each step is a file read, which means that the total number of steps is the number of files avaible
+        (data_base_size * split).
+        """
+        return self.length
+
+    def set_train_test(self, train, train_split, split, seed):
+        """
+        Builds train or test list of files to open
+        """
+        if train_split:
+            self.list_IDs = np.setdiff1d(self.files_ID, train_split)
+        else:
+            # Compute desired length based on slpit.
+            split_length = math.floor(self.data_base_size * split)
+            # Build a list of indexes, steps_per_epoch size, choosing randomly.
+            np.random.seed(seed)
+            indexes = np.random.choice(self.data_base_size, split_length, replace=False)
+            # If a for test, the indexes are update for the all the other ones left behind.
+            if not train:
+                indexes = np.setdiff1d(np.arange(self.data_base_size), indexes)
+            # Fetch the actual paths based on the indexes
+            self.list_IDs = [self.files_ID[k] for k in indexes]
+        # The default length of the iterator is the number of files available.
+        self.length = len(self.list_IDs)
+        # If a batch size was specified, reduce the length accordingly.
         if self.batch_size:
-            length = math.floor(length / self.batch_size)
-        self.length = length
-        return length
+            self.length = math.floor(self.length / self.batch_size)
+
+        return self.length
 
     def get_files(self, path_work, sufix="npz"):
         """
@@ -112,28 +133,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         Updates indexes after each epoch
         Default is off, shuffle=True to turn on
         """
-        indexes = np.random.choice(self.DataBaseSize, self.length, replace=False)
+        indexes = np.random.choice(self.data_base_size, self.length, replace=False)
         if self.shuffle:
             np.random.shuffle(self.indexes)
             self.list_IDs = [self.files_ID[k] for k in indexes]
-
-    def set_train_test(self, train, train_split, split, seed):
-        """
-        Builds train or test list of files to open
-        """
-        # Build a list of indexes, steps_per_epoch size, choosing randomly
-        np.random.seed(seed)
-        indexes = np.random.choice(self.DataBaseSize, self.length, replace=False)
-        # If a for test, the indexes are update for the all the other ones left behind
-        if not train:
-            indexes = np.setdiff1d(np.arange(self.DataBaseSize), indexes)
-        # Fetch the actual paths based on the indexes
-        self.list_IDs = [self.files_ID[k] for k in indexes]
-        # If it is a test and there is a given train dataset, fetches all the others
-        if not train:
-            if train_split:
-                self.list_IDs = np.setdiff1d(self.files_ID, train_split)
-            self.length = len(self.list_IDs)
 
     def get_item_path(self, index):
         return self.list_IDs[index]
