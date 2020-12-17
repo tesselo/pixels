@@ -134,19 +134,13 @@ def write_raster(data, args, out_path=None, filetype=None, date=None):
     out_meta = args
     # Ensure right dims.
     if len(data.shape) == 2:
-        data = data.reshape((1, ) + data.shape)
+        data = data.reshape((1,) + data.shape)
     # Convert to uint8.
-    data = data.astype('float32')
+    data = data.astype("float32")
     # Set band count.
     count = data.shape[0]
     # Update some fields
-    out_meta.update(
-        {
-            "count": count,
-            "compress": "DEFLATE",
-            "dtype": "float32"
-        }
-    )
+    out_meta.update({"count": count, "compress": "DEFLATE", "dtype": "float32"})
     # If a filetype is given, set to it.
     # Possible formats: https://gdal.org/drivers/raster/index.html
     if filetype:
