@@ -52,11 +52,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
     ):
         self.length = None
         self.bucket = None
-        self.files_ID = self.get_files(path_work)
-        self.data_base_size = len(self.files_ID)
         self.shuffle = shuffle
         self.batch_size = batch_size
-        self.set_train_test(train, train_split, split, seed)
         self.cloud_cover = 0.7
         self.mode = mode
         self.num_time = num_time
@@ -66,6 +63,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.cloud_mask_filter = cloud_mask_filter
         self.augmentation = augmentation
         self.auxind = None
+
+        self.files_ID = self.get_files(path_work)
+        self.data_base_size = len(self.files_ID)
+        self.set_train_test(train, train_split, split, seed)
 
     def __len__(self):
         """
@@ -97,6 +98,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # If a batch size was specified, reduce the length accordingly.
         if self.batch_size:
             self.length = math.floor(self.length / self.batch_size)
+        # Increase size if augmentation is active.
+        if self.augmentation:
+            self.length *= generator_augmentation_2D.AUGMENTATION_FACTOR
 
         return self.length
 
@@ -128,18 +132,23 @@ class DataGenerator_NPZ(keras.utils.Sequence):
 
         return files
 
-    def on_epoch_end(self):
-        """On epoch feature
-        Updates indexes after each epoch
-        Default is off, shuffle=True to turn on
-        """
-        indexes = np.random.choice(self.data_base_size, self.length, replace=False)
-        if self.shuffle:
-            np.random.shuffle(self.indexes)
-            self.list_IDs = [self.files_ID[k] for k in indexes]
+    # def on_epoch_end(self):
+    #     """On epoch feature
+    #     Updates indexes after each epoch
+    #     Default is off, shuffle=True to turn on
+    #     """
+    #     indexes = np.random.choice(self.data_base_size, self.length, replace=False)
+    #     if self.shuffle:
+    #         np.random.shuffle(self.indexes)
+    #         self.list_IDs = [self.files_ID[k] for k in indexes]
 
     def get_item_path(self, index):
-        return self.list_IDs[index]
+        if self.augmentation:
+            return self.list_IDs[
+                math.floor(index / generator_augmentation_2D.AUGMENTATION_FACTOR)
+            ]
+        else:
+            return self.list_IDs[index]
 
     def __getitem__(self, index):
         """Generate one batch of data"""
@@ -163,11 +172,17 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if self.upsampling:
                 X = self.upscale_tiles(X, factor=self.upsampling)
             if self.augmentation:
-                X, y = generator_augmentation_2D.augmentation(X, y)
+                # Compute which augmentation version is required.
+                augmentation_index = (
+                    index % generator_augmentation_2D.AUGMENTATION_FACTOR
+                )
+                X, y = generator_augmentation_2D.augmentation(
+                    X, y, augmentation_index=augmentation_index
+                )
         except Exception as e:
+            raise
             if self.showerror:
                 print(e)
-                self.showerror = False
             # new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
             # X, y = self.__getitem__(new_index)
             if index == 0:

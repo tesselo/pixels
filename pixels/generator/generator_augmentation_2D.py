@@ -1,5 +1,7 @@
 import numpy as np
 
+AUGMENTATION_FACTOR = 6
+
 
 def upscaling_sample(tile, factor):
     """
@@ -50,7 +52,7 @@ def change_bright(image, ran=1):
     return np.array(image * ran)
 
 
-def augmentation(X, Y, sizex=360, sizey=360):
+def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
     original_shape_X = X.shape
     original_shape_Y = Y.shape
     data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
@@ -68,36 +70,118 @@ def augmentation(X, Y, sizex=360, sizey=360):
         bands_noise = []
         bands_bright = []
         for band in time:
-            bands_flip.append(img_flip(band))
-            bands_flip0.append(img_flip(band, 0))
-            bands_flip1.append(img_flip(band, 1))
-            bands_noise.append(add_noise(band, ran=10))
-            bands_bright.append(change_bright(band, ran=10))
+            if augmentation_index is None or augmentation_index == 1:
+                bands_flip.append(img_flip(band))
+            if augmentation_index is None or augmentation_index == 2:
+                bands_flip0.append(img_flip(band, 0))
+            if augmentation_index is None or augmentation_index == 3:
+                bands_flip1.append(img_flip(band, 1))
+            if augmentation_index is None or augmentation_index == 4:
+                bands_noise.append(add_noise(band, ran=10))
+            if augmentation_index is None or augmentation_index == 5:
+                bands_bright.append(change_bright(band, ran=10))
         timeseries_flip.append(bands_flip)
         timeseries_flip0.append(bands_flip0)
         timeseries_flip1.append(bands_flip1)
         timeseries_noise.append(bands_noise)
         timeseries_bright.append(bands_bright)
 
-    timeseries_flip = np.array(timeseries_flip)
-    timeseries_flip = np.swapaxes(timeseries_flip, len(timeseries_flip.shape)-2, len(timeseries_flip.shape)-3)
-    timeseries_flip = np.swapaxes(timeseries_flip, len(timeseries_flip.shape)-1, len(timeseries_flip.shape)-2)
-    timeseries_flip0 = np.array(timeseries_flip0)
-    timeseries_flip0 = np.swapaxes(timeseries_flip0, len(timeseries_flip0.shape)-2, len(timeseries_flip0.shape)-3)
-    timeseries_flip0 = np.swapaxes(timeseries_flip0, len(timeseries_flip0.shape)-1, len(timeseries_flip0.shape)-2)
-    timeseries_flip1 = np.array(timeseries_flip1)
-    timeseries_flip1 = np.swapaxes(timeseries_flip1, len(timeseries_flip1.shape)-2, len(timeseries_flip1.shape)-3)
-    timeseries_flip1 = np.swapaxes(timeseries_flip1, len(timeseries_flip1.shape)-1, len(timeseries_flip1.shape)-2)
-    timeseries_noise = np.array(timeseries_noise)
-    timeseries_noise = np.swapaxes(timeseries_noise, len(timeseries_noise.shape)-2, len(timeseries_noise.shape)-3)
-    timeseries_noise = np.swapaxes(timeseries_noise, len(timeseries_noise.shape)-1, len(timeseries_noise.shape)-2)
-    timeseries_bright = np.array(timeseries_bright)
-    timeseries_bright = np.swapaxes(timeseries_bright, len(timeseries_bright.shape)-2, len(timeseries_bright.shape)-3)
-    timeseries_bright = np.swapaxes(timeseries_bright, len(timeseries_bright.shape)-1, len(timeseries_bright.shape)-2)
+    if augmentation_index is None or augmentation_index == 1:
+        timeseries_flip = np.array(timeseries_flip)
+        timeseries_flip = np.swapaxes(
+            timeseries_flip,
+            len(timeseries_flip.shape) - 2,
+            len(timeseries_flip.shape) - 3,
+        )
+        timeseries_flip = np.swapaxes(
+            timeseries_flip,
+            len(timeseries_flip.shape) - 1,
+            len(timeseries_flip.shape) - 2,
+        )
+    if augmentation_index is None or augmentation_index == 2:
+        timeseries_flip0 = np.array(timeseries_flip0)
+        timeseries_flip0 = np.swapaxes(
+            timeseries_flip0,
+            len(timeseries_flip0.shape) - 2,
+            len(timeseries_flip0.shape) - 3,
+        )
+        timeseries_flip0 = np.swapaxes(
+            timeseries_flip0,
+            len(timeseries_flip0.shape) - 1,
+            len(timeseries_flip0.shape) - 2,
+        )
+    if augmentation_index is None or augmentation_index == 3:
+        timeseries_flip1 = np.array(timeseries_flip1)
+        timeseries_flip1 = np.swapaxes(
+            timeseries_flip1,
+            len(timeseries_flip1.shape) - 2,
+            len(timeseries_flip1.shape) - 3,
+        )
+        timeseries_flip1 = np.swapaxes(
+            timeseries_flip1,
+            len(timeseries_flip1.shape) - 1,
+            len(timeseries_flip1.shape) - 2,
+        )
+    if augmentation_index is None or augmentation_index == 4:
+        timeseries_noise = np.array(timeseries_noise)
+        timeseries_noise = np.swapaxes(
+            timeseries_noise,
+            len(timeseries_noise.shape) - 2,
+            len(timeseries_noise.shape) - 3,
+        )
+        timeseries_noise = np.swapaxes(
+            timeseries_noise,
+            len(timeseries_noise.shape) - 1,
+            len(timeseries_noise.shape) - 2,
+        )
+    if augmentation_index is None or augmentation_index == 5:
+        timeseries_bright = np.array(timeseries_bright)
+        timeseries_bright = np.swapaxes(
+            timeseries_bright,
+            len(timeseries_bright.shape) - 2,
+            len(timeseries_bright.shape) - 3,
+        )
+        timeseries_bright = np.swapaxes(
+            timeseries_bright,
+            len(timeseries_bright.shape) - 1,
+            len(timeseries_bright.shape) - 2,
+        )
+
+    if augmentation_index == 0:
+        return (
+            X,
+            np.array([data_Y]).reshape(original_shape_Y),
+        )
+    elif augmentation_index == 1:
+        return (
+            np.array(timeseries_flip).reshape(original_shape_X),
+            np.array([img_flip(data_Y)]).reshape(original_shape_Y),
+        )
+    elif augmentation_index == 2:
+        return (
+            np.array(timeseries_flip0).reshape(original_shape_X),
+            np.array([img_flip(data_Y, 0)]).reshape(original_shape_Y),
+        )
+    elif augmentation_index == 3:
+        return (
+            np.array(timeseries_flip1).reshape(original_shape_X),
+            np.array([img_flip(data_Y, 1)]).reshape(original_shape_Y),
+        )
+    elif augmentation_index == 4:
+        return (
+            np.array(timeseries_noise).reshape(original_shape_X),
+            np.array([data_Y]).reshape(original_shape_Y),
+        )
+    elif augmentation_index == 5:
+        return (
+            np.array(timeseries_bright).reshape(original_shape_X),
+            np.array([data_Y]).reshape(original_shape_Y),
+        )
+
     results_x = np.asarray(
         [
             np.array(timeseries_flip).reshape(original_shape_X),
-            #np.array(timeseries_flip),
+            # np.array(timeseries_flip),
             np.array(timeseries_flip0).reshape(original_shape_X),
             np.array(timeseries_flip1).reshape(original_shape_X),
             np.array(timeseries_noise).reshape(original_shape_X),

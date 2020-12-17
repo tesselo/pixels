@@ -18,7 +18,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
             X = X.reshape(np.prod(X.shape[:2]), *X.shape[2:])
     # Export Y and RGB as images.
     # Count number of items for the combined image, adding +2 for Y and Composite viz.
-    #count = 2 + len(X)
+    # count = 2 + len(X)
     width = math.ceil(math.sqrt(count))
     height = math.ceil(math.sqrt(count))
     padding = 5
