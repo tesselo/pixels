@@ -8,7 +8,10 @@ from PIL import Image
 
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 
-logging.getLogger("pixels").setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("botocore").setLevel(logging.ERROR)
+logging.getLogger("rasterio").setLevel(logging.ERROR)
+
 
 # center = [-1018560, 4099560]
 # center = [-450862, 4941912]
@@ -48,7 +51,7 @@ geojson = {
 # Get pixels.
 now = datetime.datetime.now()
 
-# creation_args, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, platforms=['SENTINEL_2'], bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
+# creation_args, dates, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, platforms=['SENTINEL_2'], bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'))
 
 # creation_args, stack = composite(
 #     geojson,
@@ -60,17 +63,7 @@ now = datetime.datetime.now()
 #     pool=True,
 # )
 
-# result = latest_pixel_s2_stack(
-#     geojson=geojson,
-#     start="2020-10-01",
-#     end="2020-10-31",
-#     interval="months",
-#     scale=10,
-#     clip=True,
-#     bands=("B02", "B03", "B04", "B08", "B8A", "B11", "B12"),
-# )
-
-result = latest_pixel_s2_stack(
+args, date, stack = latest_pixel_s2_stack(
     geojson=geojson,
     start="2020-07-01",
     end="2020-07-31",
@@ -82,21 +75,17 @@ result = latest_pixel_s2_stack(
     # bands=("B2", "B3", "B4"),
     bands=["B02", "B03", "B04"],  # , "B05", "B06", "B07", "B08", "B8A", "B11", "B12"],
 )
+stack = stack[0]
+
 print("Timing", datetime.datetime.now() - now)
 
-# stack = result[0][2]
-# print(stack)
 
-for args, date, stack in result:
-    plt.imshow(
-        numpy.dstack(
-            [
-                (numpy.clip(dat, 0, 4000) / 4000.0)
-                for dat in [stack[2], stack[1], stack[0]]
-            ]
-        ).astype("float32")
-    )
-    plt.show()
+plt.imshow(
+    numpy.dstack(
+        [(numpy.clip(dat, 0, 4000) / 4000.0) for dat in [stack[2], stack[1], stack[0]]]
+    ).astype("float32")
+)
+plt.show()
 # # Convert to image for visualization.
 # img = numpy.dstack(
 #     [255 * (numpy.clip(dat, 0, 4000) / 4000) for dat in [stack[2], stack[1], stack[0]]]

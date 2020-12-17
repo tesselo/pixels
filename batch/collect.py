@@ -15,11 +15,12 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
-    level=logging.INFO,
+    level=logging.DEBUG,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logging.getLogger("botocore").setLevel(logging.ERROR)
 logging.getLogger("rasterio").setLevel(logging.ERROR)
+logging.getLogger("fiona").setLevel(logging.ERROR)
 
 
 def collect():
@@ -46,6 +47,8 @@ def collect():
         config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
         config = json.loads(config["Body"].read())
 
+    logger.debug("Config {}".format(config))
+
     # Select feature set for this job.
     geofile = config["training_geofile"]
     if local_path:
@@ -70,7 +73,7 @@ def collect():
                 )
     for feature in features:
         # Fetch pixels.
-        result = latest_pixel_s2_stack(
+        creation_args, dates, data = latest_pixel_s2_stack(
             geojson=feature,
             start=config["min_date"],
             end=config["max_date"],
@@ -88,9 +91,9 @@ def collect():
             output,
             feature=feature,
             array_index=array_index,
-            data=[dat[2] for dat in result],
-            dates=[dat[1] for dat in result],
-            creation_args=result[0][0],
+            data=data,
+            dates=dates,
+            creation_args=creation_args,
         )
         output.seek(0)
 
