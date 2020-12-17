@@ -8,21 +8,23 @@ from PIL import Image
 
 def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
     dat = np.squeeze(Y)
+    count = 2 + np.prod(X.shape[:2])
     if in_out == "OUT":
         dat = Y[0]
         dat = np.squeeze(dat)
         img_c = dat.shape[0]
         # If the second dimension is an image size do not squeeze. Prevent squezing on sinlge image inputs. (N, 360, 360, bands), prevents failing if N==1
         if np.array(X).shape[1] != img_c:
-            X = np.squeeze(X)
+            X = X.reshape(np.prod(X.shape[:2]), *X.shape[2:])
     # Export Y and RGB as images.
     # Count number of items for the combined image, adding +2 for Y and Composite viz.
-    count = 2 + len(X)
+    #count = 2 + len(X)
     width = math.ceil(math.sqrt(count))
     height = math.ceil(math.sqrt(count))
     padding = 5
     img_c = dat.shape[0]
     img_l = dat.shape[1]
+    # TODO: Change this for multiple predictions, to use only with single square mode
     if np.any(prediction):
         if len(np.squeeze(prediction).shape) > 2:
             count = (2 * len(X)) + 2

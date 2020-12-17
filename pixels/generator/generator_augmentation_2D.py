@@ -79,9 +79,25 @@ def augmentation(X, Y, sizex=360, sizey=360):
         timeseries_noise.append(bands_noise)
         timeseries_bright.append(bands_bright)
 
+    timeseries_flip = np.array(timeseries_flip)
+    timeseries_flip = np.swapaxes(timeseries_flip, len(timeseries_flip.shape)-2, len(timeseries_flip.shape)-3)
+    timeseries_flip = np.swapaxes(timeseries_flip, len(timeseries_flip.shape)-1, len(timeseries_flip.shape)-2)
+    timeseries_flip0 = np.array(timeseries_flip0)
+    timeseries_flip0 = np.swapaxes(timeseries_flip0, len(timeseries_flip0.shape)-2, len(timeseries_flip0.shape)-3)
+    timeseries_flip0 = np.swapaxes(timeseries_flip0, len(timeseries_flip0.shape)-1, len(timeseries_flip0.shape)-2)
+    timeseries_flip1 = np.array(timeseries_flip1)
+    timeseries_flip1 = np.swapaxes(timeseries_flip1, len(timeseries_flip1.shape)-2, len(timeseries_flip1.shape)-3)
+    timeseries_flip1 = np.swapaxes(timeseries_flip1, len(timeseries_flip1.shape)-1, len(timeseries_flip1.shape)-2)
+    timeseries_noise = np.array(timeseries_noise)
+    timeseries_noise = np.swapaxes(timeseries_noise, len(timeseries_noise.shape)-2, len(timeseries_noise.shape)-3)
+    timeseries_noise = np.swapaxes(timeseries_noise, len(timeseries_noise.shape)-1, len(timeseries_noise.shape)-2)
+    timeseries_bright = np.array(timeseries_bright)
+    timeseries_bright = np.swapaxes(timeseries_bright, len(timeseries_bright.shape)-2, len(timeseries_bright.shape)-3)
+    timeseries_bright = np.swapaxes(timeseries_bright, len(timeseries_bright.shape)-1, len(timeseries_bright.shape)-2)
     results_x = np.asarray(
         [
             np.array(timeseries_flip).reshape(original_shape_X),
+            #np.array(timeseries_flip),
             np.array(timeseries_flip0).reshape(original_shape_X),
             np.array(timeseries_flip1).reshape(original_shape_X),
             np.array(timeseries_noise).reshape(original_shape_X),
