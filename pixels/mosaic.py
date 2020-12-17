@@ -206,7 +206,7 @@ def latest_pixel_s2_stack(
     else:
         result = []
         for date in dates:
-            result.append()
+            result.append(latest_pixel(*date))
 
     # Convert to individual arrays.
     creation_args = result[0][0]
