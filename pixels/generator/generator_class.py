@@ -170,6 +170,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         try:
             X, y = self._data_generation(IDs_temp)
             if self.upsampling:
+                print(X.shape)
                 X = self.upscale_tiles(X, factor=self.upsampling)
             if self.augmentation:
                 # Compute which augmentation version is required.
