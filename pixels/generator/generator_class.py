@@ -424,5 +424,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
 
     def do_augmentation(self):
         if self.mode == 'SQUARE':
-            dl
+            print('s')
         elif self.mode == 'SINGLE_SQUARE':
+            print('s')
