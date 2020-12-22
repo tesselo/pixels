@@ -181,7 +181,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     X, y, augmentation_index=augmentation_index
                 )
         except Exception as e:
-            raise
+            #raise
             if self.showerror:
                 print(e)
             # new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
