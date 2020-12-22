@@ -184,6 +184,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             #raise
             if self.showerror:
                 print(e)
+                self.showerror = False
             # new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
             # X, y = self.__getitem__(new_index)
             if index == 0:
