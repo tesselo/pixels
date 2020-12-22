@@ -267,32 +267,41 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         Upscale incoming images by factor
         """
-        try:
-            shp = np.array(X[0, 0, :, :, 0].shape) * 10
-            s = (*X.shape[:2], *shp, *X.shape[-1:])
+        if self.mode == "SINGLE_SQUARE":
+            shp = np.array(X[0, :, :, 0].shape) * 10
+            s = (*X.shape[:1], *shp, *X.shape[-1:])
             X_res = np.zeros(s)
-            for time in range(len(X[0])):
-                X_res[0][time] = generator_augmentation_2D.upscaling_sample(
-                    X[0][time], factor
+            for time in range(len(X)):
+                X_res[time] = generator_augmentation_2D.upscaling_sample(
+                    X[time], factor
                 )
-        except:
-            if self.mode == "SINGLE_SQUARE":
-                shp = np.array(X[0, :, :, 0].shape) * 10
-                s = (*X.shape[:1], *shp, *X.shape[-1:])
+        else:
+            try:
+                shp = np.array(X[0, 0, :, :, 0].shape) * 10
+                s = (*X.shape[:2], *shp, *X.shape[-1:])
                 X_res = np.zeros(s)
-                for time in range(len(X)):
-                    X_res[time] = generator_augmentation_2D.upscaling_sample(
-                        X[time], factor
+                for time in range(len(X[0])):
+                    X_res[0][time] = generator_augmentation_2D.upscaling_sample(
+                        X[0][time], factor
                     )
-            else:
-                shp = np.array(X[0, 0, :, :].shape) * 10
-                s = (*X.shape[:2], *shp)
-                X_res = np.zeros(s)
-                for time in range(len(X)):
-                    for band in range(len(X[time])):
-                        X_res[time][band] = generator_augmentation_2D.upscaling_sample(
-                            X[time][band], factor
+            except:
+                if self.mode == "SINGLE_SQUARE":
+                    shp = np.array(X[0, :, :, 0].shape) * 10
+                    s = (*X.shape[:1], *shp, *X.shape[-1:])
+                    X_res = np.zeros(s)
+                    for time in range(len(X)):
+                        X_res[time] = generator_augmentation_2D.upscaling_sample(
+                            X[time], factor
                         )
+                else:
+                    shp = np.array(X[0, 0, :, :].shape) * 10
+                    s = (*X.shape[:2], *shp)
+                    X_res = np.zeros(s)
+                    for time in range(len(X)):
+                        for band in range(len(X[time])):
+                            X_res[time][band] = generator_augmentation_2D.upscaling_sample(
+                                X[time][band], factor
+                            )
         return X_res
 
     def _data_generation(self, IDs_temp):
@@ -352,7 +361,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
     def visualize_item(
         self,
         index,
-        mode="SQUARE",
         in_out="IN",
         model=False,
         RGB=[8, 7, 6],
@@ -364,8 +372,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         # Retain the original mode to change back in the end
         original_mode = self.mode
-        # Change the mode, usually to square, you won't visualize just single pixels
-        self.mode = mode
+        if self.mode == 'PIXEL':
+            print('Visualization not possibel in PIXEL mode')
+            break
         # Initiate empty prediction
         prediction = False
         if in_out == "IN":
@@ -388,6 +397,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 if pred_show == "binary":
                     prediction[prediction <= 0.5] = 0
                     prediction[prediction >= 0.5] = 1
+        if original_mode == 'SINGLE_SQUARE':
+            X = np.array([X])
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
 
@@ -410,3 +421,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     continue
                 counter = counter + 1
         self.steps_no_time = counter
+
+    def do_augmentation(self):
+        if self.mode == 'SQUARE':
+            dl
+        elif self.mode == 'SINGLE_SQUARE':
