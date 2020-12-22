@@ -49,12 +49,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         cloud_mask_filter=True,
         augmentation=False,
         batch_size=None,
+        cloud_cover=0.7
     ):
         self.length = None
         self.bucket = None
         self.shuffle = shuffle
         self.batch_size = batch_size
-        self.cloud_cover = 0.7
+        self.cloud_cover = cloud_cover
         self.mode = mode
         self.num_time = num_time
         self.upsampling = upsampling
