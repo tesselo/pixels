@@ -374,7 +374,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         original_mode = self.mode
         if self.mode == 'PIXEL':
             print('Visualization not possibel in PIXEL mode')
-            break
+            return
         # Initiate empty prediction
         prediction = False
         if in_out == "IN":
