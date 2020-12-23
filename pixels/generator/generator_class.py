@@ -16,7 +16,14 @@ s3 = boto3.client("s3")
 
 
 # Defining cloud mask to apply
-def cloud_filter(X, bands=[8, 7, 6, 2, 1, 0, 9]):
+def cloud_filter(
+    X,
+    bands=[8, 7, 6, 2, 1, 0, 9],
+    clouds=True,
+    light_clouds=True,
+    snow=True,
+    shadow_threshold=0.3,
+):
     mask = pixels_mask(
         X[:, bands[0]],
         X[:, bands[1]],
@@ -25,6 +32,10 @@ def cloud_filter(X, bands=[8, 7, 6, 2, 1, 0, 9]):
         X[:, bands[4]],
         X[:, bands[5]],
         X[:, bands[6]],
+        clouds=clouds,
+        light_clouds=light_clouds,
+        snow=snow,
+        shadow_threshold=shadow_threshold,
     )
     return mask
 
@@ -49,7 +60,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         cloud_mask_filter=True,
         augmentation=False,
         batch_size=None,
-        cloud_cover=0.7
+        cloud_cover=0.7,
     ):
         self.length = None
         self.bucket = None
@@ -181,7 +192,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     X, y, augmentation_index=augmentation_index
                 )
         except Exception as e:
-            #raise
+            # raise
             if self.showerror:
                 print(e)
                 self.showerror = False
@@ -265,45 +276,59 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         elif only == "Y":
             return np.array(tensor_Y)
 
-    def upscale_tiles(self, X, factor=10):
+    def upscale_tiles(self, X, factor=10, in_out=None):
         """
         Upscale incoming images by factor
         """
-        if self.mode == "SINGLE_SQUARE":
-            shp = np.array(X[0, :, :, 0].shape) * 10
-            s = (*X.shape[:1], *shp, *X.shape[-1:])
+        if in_out == 'IN':
+            shp = np.array(X[0, 0, :, :].shape) * 10
+            s = (*X.shape[:2], *shp)
             X_res = np.zeros(s)
             for time in range(len(X)):
-                X_res[time] = generator_augmentation_2D.upscaling_sample(
-                    X[time], factor
-                )
-        else:
-            try:
-                shp = np.array(X[0, 0, :, :, 0].shape) * 10
-                s = (*X.shape[:2], *shp, *X.shape[-1:])
-                X_res = np.zeros(s)
-                for time in range(len(X[0])):
-                    X_res[0][time] = generator_augmentation_2D.upscaling_sample(
-                        X[0][time], factor
+                for band in range(len(X[time])):
+                    X_res[time][
+                        band
+                    ] = generator_augmentation_2D.upscaling_sample(
+                        X[time][band], factor
                     )
-            except:
-                if self.mode == "SINGLE_SQUARE":
-                    shp = np.array(X[0, :, :, 0].shape) * 10
-                    s = (*X.shape[:1], *shp, *X.shape[-1:])
+        else:
+            if self.mode == "SINGLE_SQUARE":
+                shp = np.array(X[0, :, :, 0].shape) * 10
+                s = (*X.shape[:1], *shp, *X.shape[-1:])
+                X_res = np.zeros(s)
+                for time in range(len(X)):
+                    X_res[time] = generator_augmentation_2D.upscaling_sample(
+                        X[time], factor
+                    )
+            else:
+                try:
+                    shp = np.array(X[0, 0, :, :, 0].shape) * 10
+                    s = (*X.shape[:2], *shp, *X.shape[-1:])
                     X_res = np.zeros(s)
-                    for time in range(len(X)):
-                        X_res[time] = generator_augmentation_2D.upscaling_sample(
-                            X[time], factor
+                    for time in range(len(X[0])):
+                        X_res[0][time] = generator_augmentation_2D.upscaling_sample(
+                            X[0][time], factor
                         )
-                else:
-                    shp = np.array(X[0, 0, :, :].shape) * 10
-                    s = (*X.shape[:2], *shp)
-                    X_res = np.zeros(s)
-                    for time in range(len(X)):
-                        for band in range(len(X[time])):
-                            X_res[time][band] = generator_augmentation_2D.upscaling_sample(
-                                X[time][band], factor
+                except:
+                    if self.mode == "SINGLE_SQUARE":
+                        shp = np.array(X[0, :, :, 0].shape) * 10
+                        s = (*X.shape[:1], *shp, *X.shape[-1:])
+                        X_res = np.zeros(s)
+                        for time in range(len(X)):
+                            X_res[time] = generator_augmentation_2D.upscaling_sample(
+                                X[time], factor
                             )
+                    else:
+                        shp = np.array(X[0, 0, :, :].shape) * 10
+                        s = (*X.shape[:2], *shp)
+                        X_res = np.zeros(s)
+                        for time in range(len(X)):
+                            for band in range(len(X[time])):
+                                X_res[time][
+                                    band
+                                ] = generator_augmentation_2D.upscaling_sample(
+                                    X[time][band], factor
+                                )
         return X_res
 
     def _data_generation(self, IDs_temp):
@@ -374,8 +399,8 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         # Retain the original mode to change back in the end
         original_mode = self.mode
-        if self.mode == 'PIXEL':
-            print('Visualization not possibel in PIXEL mode')
+        if self.mode == "PIXEL":
+            print("Visualization not possibel in PIXEL mode")
             return
         # Initiate empty prediction
         prediction = False
@@ -390,7 +415,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             X, Y = data["x_data"], data["y_data"]
             X = np.array([np.array(x) for x in X if x.shape])
             if self.upsampling:
-                X = self.upscale_tiles(X, factor=self.upsampling)
+                X = self.upscale_tiles(X, factor=self.upsampling, in_out=in_out)
         if in_out == "OUT":
             X, Y = self.__getitem__(index)
             if model:
@@ -399,7 +424,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 if pred_show == "binary":
                     prediction[prediction <= 0.5] = 0
                     prediction[prediction >= 0.5] = 1
-        if original_mode == 'SINGLE_SQUARE':
+        if original_mode == "SINGLE_SQUARE" and in_out=='OUT':
             X = np.array([X])
         visualize_in_item(X, Y, prediction, in_out=in_out, RGB=RGB, scaling=scaling)
         self.mode = original_mode
@@ -425,7 +450,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.steps_no_time = counter
 
     def do_augmentation(self):
-        if self.mode == 'SQUARE':
+        if in_out=='IN':
             print('s')
-        elif self.mode == 'SINGLE_SQUARE':
-            print('s')
+        else:
+            if self.mode == "SQUARE":
+                print("s")
+            elif self.mode == "SINGLE_SQUARE":
+                print("s")
