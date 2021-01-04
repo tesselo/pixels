@@ -61,6 +61,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         augmentation=False,
         batch_size=None,
         cloud_cover=0.7,
+        x_data_name = "x_data",
+        y_data_name = "y_data",
+        prediction_mode = False
     ):
         self.length = None
         self.bucket = None
@@ -75,10 +78,12 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.cloud_mask_filter = cloud_mask_filter
         self.augmentation = augmentation
         self.auxind = None
-
+        self.x_data_name = x_data_name
+        self.y_data_name = y_data_name
         self.files_ID = self.get_files(path_work)
         self.data_base_size = len(self.files_ID)
         self.set_train_test(train, train_split, split, seed)
+        self.set_variables_for_predictions(prediction_mode)
 
     def __len__(self):
         """
@@ -87,6 +92,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         (data_base_size * split).
         """
         return self.length
+
+    def set_variables_for_predictions(self, prediction_mode):
+        if prediction_mode:
+            self.x_data_name = 'data'
+            self.y_data_name = None
+        return None
+
 
     def set_train_test(self, train, train_split, split, seed):
         """
@@ -294,7 +306,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 # Loading data from file. TODO: pass the file labels to class as an argument
                 data = np.load(path, allow_pickle=True)
             # Extract images
-            X = data["x_data"]
+            X = data[self.x_data_name]
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
@@ -304,7 +316,10 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     X[:, i][mask] = 0
             # input data here
             # choose type of generator
-            Y = data["y_data"]
+            if not self.y_data_name:
+                Y = np.zeros(X.shape[-2:])
+            else:
+                Y = data[self.y_data_name]
             if self.mode == "SQUARE":
                 # Build the output as a tensor of squares. Squares with all timesteps. (N, timesteps, size, bands)-> (1, 12, 360, 360, 10)
                 tensor_X, tensor_Y = generator_augmentation_2D.generator_2D(X, Y, mask)
@@ -344,7 +359,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         # Retain the original mode to change back in the end
         original_mode = self.mode
         if self.mode == "PIXEL":
-            print("Visualization not possibel in PIXEL mode")
+            print("Visualization not possible in PIXEL mode")
             return
         # Initiate empty prediction
         prediction = False
