@@ -212,8 +212,8 @@ def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
 def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     area = np.prod(mask.shape[1:])
     cloud_sum = np.sum(mask, axis=(1, 2))
-    if num_times>len(cloud_sum):
-        num_times = len(cloud_sum)
+    if num_time>len(cloud_sum):
+        num_time = len(cloud_sum)
     ind = np.sort(np.argpartition(cloud_sum,num_time)[:num_time])
     X = X[ind]
     # cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
