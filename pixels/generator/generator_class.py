@@ -307,6 +307,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 data = np.load(path, allow_pickle=True)
             # Extract images
             X = data[self.x_data_name]
+            X = np.array([[[np.array(coord) for coord in xk if coord is not None] for xk in xj if xk is not None] for xj in X if xj is not None])
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
