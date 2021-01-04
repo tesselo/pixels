@@ -61,9 +61,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         augmentation=False,
         batch_size=None,
         cloud_cover=0.7,
-        x_data_name = "x_data",
-        y_data_name = "y_data",
-        prediction_mode = False
+        x_data_name="x_data",
+        y_data_name="y_data",
+        prediction_mode=False,
     ):
         self.length = None
         self.bucket = None
@@ -95,10 +95,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
 
     def set_variables_for_predictions(self, prediction_mode):
         if prediction_mode:
-            self.x_data_name = 'data'
+            self.x_data_name = "data"
             self.y_data_name = None
         return None
-
 
     def set_train_test(self, train, train_split, split, seed):
         """
@@ -200,7 +199,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 augmentation_index = (
                     index % generator_augmentation_2D.AUGMENTATION_FACTOR
                 )
-                X, y = self.do_augmentation(X, y, augmentation_index=augmentation_index, augmentations=3)
+                X, y = self.do_augmentation(
+                    X, y, augmentation_index=augmentation_index, augmentations=3
+                )
         except Exception as e:
             # raise
             if self.showerror:
@@ -286,7 +287,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         elif only == "Y":
             return np.array(tensor_Y)
 
-
     def _data_generation(self, IDs_temp):
         """
         Generates data containing from a file.
@@ -307,7 +307,17 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 data = np.load(path, allow_pickle=True)
             # Extract images
             X = data[self.x_data_name]
-            X = np.array([[[np.array(coord) for coord in xk if coord is not None] for xk in xj if xk is not None] for xj in X if xj is not None])
+            X = np.array(
+                [
+                    [
+                        [np.array(coord) for coord in xk if coord is not None]
+                        for xk in xj
+                        if xk is not None
+                    ]
+                    for xj in X
+                    if xj is not None
+                ]
+            )
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
@@ -442,14 +452,14 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         return X_res
 
     def do_augmentation(self, X, y, augmentation_index=None, augmentations=None):
-        '''
+        """
         Define how many augmentations to do, and build the correct input for the augmentation function
-        '''
-        augmentation_index=augmentations
-        if self.mode == 'SINGLE_SQUARE':
+        """
+        augmentation_index = augmentations
+        if self.mode == "SINGLE_SQUARE":
             X = np.array([X])
             y = np.array([np.array([y[0]])])
-        elif self.mode == 'SQUARE':
+        elif self.mode == "SQUARE":
             X = X
             y = y
         if not augmentation_index:
@@ -461,13 +471,13 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             yyy = y
             for i in range(augmentations):
                 xx, yy = generator_augmentation_2D.augmentation(
-                    X, y, augmentation_index=i+1
+                    X, y, augmentation_index=i + 1
                 )
                 xxx = np.concatenate([xxx, xx])
                 yyy = np.concatenate([yyy, yy])
             X = xxx
             y = yyy
-        if self.mode == 'SINGLE_SQUARE':
+        if self.mode == "SINGLE_SQUARE":
             y = np.repeat(y, X.shape[1], axis=1)
             y = y.reshape(np.prod(X.shape[:2]), *y.shape[2:])
             X = X.reshape(np.prod(X.shape[:2]), *X.shape[2:])
