@@ -83,6 +83,7 @@ def collect():
             limit=config["limit"],
             clip=config["clip"],
             maxcloud=config.get("max_cloud_cover", None),
+            pool_size=config.get("pool_size", 20),
         )
 
         # Combine data into numpy array.
