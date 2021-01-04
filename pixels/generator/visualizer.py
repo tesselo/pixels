@@ -8,7 +8,10 @@ from PIL import Image
 
 def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
     dat = np.squeeze(Y)
-    count = 2 + np.prod(X.shape[:2])
+    if len(X.shape) > 4:
+        count = 2 + np.prod(X.shape[:2])
+    else:
+        count = 2 + len(X)
     if in_out == "OUT":
         dat = Y[0]
         dat = np.squeeze(dat)
@@ -102,7 +105,6 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
     #   255 * (np.clip(composite[:256, :256, 6], 0, 1000) / 1000),
     # ]).astype('uint8')
     # target[:256, (256 + padding):(512 + padding), :] = rgb
-
     for i in range(len(X)):
         # date = src['dates'][i][0]['properties']['datetime'][:10]
         # print(date)
