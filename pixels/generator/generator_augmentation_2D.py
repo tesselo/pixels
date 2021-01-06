@@ -209,18 +209,14 @@ def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
     # brightness_range # ran > 1  Brightness of Image increases
 
 
-def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
-    area = np.prod(mask.shape[1:])
-    cloud_sum = np.sum(mask, axis=(1, 2))
-    if num_time > len(cloud_sum):
-        num_time = len(cloud_sum)
-    ind = np.sort(np.argpartition(cloud_sum, num_time)[:num_time])
-    X = X[ind]
-    # cloud_mask = np.ma.masked_where(cloud_sum >= area*cloud_cover, cloud_sum)
-    # X = X[np.logical_not(cloud_mask.mask)]
-    # Mute cloudy pixels.
-    # for i in range(X.shape[0]):
-    #    X[i][:, mask[i]] = 0
+def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7, prediction_mode=False):
+    # For prediction from uncleaned data, alter the shape.
+    if prediction_mode:
+        cloud_sum = np.sum(mask, axis=(1, 2))
+        if num_time > len(cloud_sum):
+            num_time = len(cloud_sum)
+        ind = np.sort(np.argpartition(cloud_sum, num_time)[:num_time])
+        X = X[ind]
     # Reshape X to have bands (features) last.
     X = np.swapaxes(X, 1, 2)
     X = np.swapaxes(X, 2, 3)

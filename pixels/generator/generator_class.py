@@ -50,7 +50,6 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         path_work,
         split=1,
         train=True,
-        train_split=[],
         shuffle=False,
         mode="PIXEL",
         num_time=12,
@@ -80,10 +79,11 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         self.auxind = None
         self.x_data_name = x_data_name
         self.y_data_name = y_data_name
+        self.prediction_mode = prediction_mode
         self.files_ID = self.get_files(path_work)
         self.data_base_size = len(self.files_ID)
-        self.set_train_test(train, train_split, split, seed)
-        self.set_variables_for_predictions(prediction_mode)
+        self.set_train_test(train, split, seed)
+        self.set_variables_for_predictions()
 
     def __len__(self):
         """
@@ -93,29 +93,25 @@ class DataGenerator_NPZ(keras.utils.Sequence):
         """
         return self.length
 
-    def set_variables_for_predictions(self, prediction_mode):
-        if prediction_mode:
+    def set_variables_for_predictions(self):
+        if self.prediction_mode:
             self.x_data_name = "data"
             self.y_data_name = None
-        return None
 
-    def set_train_test(self, train, train_split, split, seed):
+    def set_train_test(self, train, split, seed):
         """
         Builds train or test list of files to open
         """
-        if train_split:
-            self.list_IDs = np.setdiff1d(self.files_ID, train_split)
-        else:
-            # Compute desired length based on slpit.
-            split_length = math.floor(self.data_base_size * split)
-            # Build a list of indexes, steps_per_epoch size, choosing randomly.
-            np.random.seed(seed)
-            indexes = np.random.choice(self.data_base_size, split_length, replace=False)
-            # If a for test, the indexes are update for the all the other ones left behind.
-            if not train:
-                indexes = np.setdiff1d(np.arange(self.data_base_size), indexes)
-            # Fetch the actual paths based on the indexes
-            self.list_IDs = [self.files_ID[k] for k in indexes]
+        # Compute desired length based on slpit.
+        split_length = math.floor(self.data_base_size * split)
+        # Build a list of indexes, steps_per_epoch size, choosing randomly.
+        np.random.seed(seed)
+        indexes = np.random.choice(self.data_base_size, split_length, replace=False)
+        # If a for test, the indexes are update for the all the other ones left behind.
+        if not train:
+            indexes = np.setdiff1d(np.arange(self.data_base_size), indexes)
+        # Fetch the actual paths based on the indexes
+        self.list_IDs = [self.files_ID[k] for k in indexes]
         # The default length of the iterator is the number of files available.
         self.length = len(self.list_IDs)
         # If a batch size was specified, reduce the length accordingly.
@@ -190,29 +186,18 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             self.auxind = 0
         # Generate data
         # The try and excepts are in case a file does not have a single valid outuput
-        try:
-            X, y = self._data_generation(IDs_temp)
-            if self.upsampling:
-                X = self.upscale_tiles(X, factor=self.upsampling)
-            if self.augmentation:
-                # Compute which augmentation version is required.
-                augmentation_index = (
-                    index % generator_augmentation_2D.AUGMENTATION_FACTOR
-                )
-                X, y = self.do_augmentation(
-                    X, y, augmentation_index=augmentation_index, augmentations=3
-                )
-        except Exception as e:
-            # raise
-            if self.showerror:
-                print(e)
-                self.showerror = False
-            # new_index = np.random.choice(len(self.list_IDs), 1, replace=False)[0]
-            # X, y = self.__getitem__(new_index)
-            if index == 0:
-                X, y = self.__getitem__(index + 2)
-            else:
-                X, y = self.__getitem__(index - 1)
+        X, y = self._data_generation(IDs_temp)
+
+        if self.upsampling:
+            X = self.upscale_tiles(X, factor=self.upsampling)
+
+        if self.augmentation:
+            # Compute which augmentation version is required.
+            augmentation_index = index % generator_augmentation_2D.AUGMENTATION_FACTOR
+            X, y = self.do_augmentation(
+                X, y, augmentation_index=augmentation_index, augmentations=3
+            )
+
         return X, y
 
     def _pixel_generation(self, X, Y, mask):
@@ -307,17 +292,20 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 data = np.load(path, allow_pickle=True)
             # Extract images
             X = data[self.x_data_name]
-            X = np.array(
-                [
+
+            if self.prediction_mode:
+                X = np.array(
                     [
-                        [np.array(coord) for coord in xk if coord is not None]
-                        for xk in xj
-                        if xk is not None
+                        [
+                            [np.array(coord) for coord in xk if coord is not None]
+                            for xk in xj
+                            if xk is not None
+                        ]
+                        for xj in X
+                        if xj is not None
                     ]
-                    for xj in X
-                    if xj is not None
-                ]
-            )
+                )
+
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
@@ -333,7 +321,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 Y = data[self.y_data_name]
             if self.mode == "SQUARE":
                 # Build the output as a tensor of squares. Squares with all timesteps. (N, timesteps, size, bands)-> (1, 12, 360, 360, 10)
-                tensor_X, tensor_Y = generator_augmentation_2D.generator_2D(X, Y, mask)
+                tensor_X, tensor_Y = generator_augmentation_2D.generator_2D(
+                    X, Y, mask, prediction_mode=self.prediction_mode
+                )
             if self.mode == "PIXEL":
                 # Build output on a pixel level. (N, timesteps, bands)-> (1, 12, 10)
                 tensor_X, tensor_Y = self._pixel_generation(
