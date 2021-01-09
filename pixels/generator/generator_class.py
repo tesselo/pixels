@@ -292,7 +292,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                 data = np.load(path, allow_pickle=True)
             # Extract images
             X = data[self.x_data_name]
-
+            # For prediction mode, reshape data.
             if self.prediction_mode:
                 X = np.array(
                     [
@@ -305,7 +305,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                         if xj is not None
                     ]
                 )
-
+            # Ensure X is a proper array.
             X = np.array([np.array(x) for x in X if x.shape])
             # Make cloud mask
             mask = cloud_filter(X, self.bands)
@@ -313,8 +313,7 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             if self.cloud_mask_filter:
                 for i in range(X.shape[1]):
                     X[:, i][mask] = 0
-            # input data here
-            # choose type of generator
+            # Choose type of generator
             if not self.y_data_name:
                 Y = np.zeros(X.shape[-2:])
             else:
