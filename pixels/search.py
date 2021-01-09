@@ -30,7 +30,7 @@ def search_data(
     platforms=None,
     maxcloud=None,
     scene=None,
-    level=None
+    level=None,
     limit=10,
     sort="sensing_time",
 ):
@@ -41,7 +41,7 @@ def search_data(
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
     # SQL query template
-    query = "SELECT product_id, granule_id,  sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
+    query = "SELECT product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
     # Check inputs
     if start is not None:
@@ -103,6 +103,7 @@ def format_sentinel_band(value):
     sequence = 0
     granule = value["granule_id"]
     level = granule[:3]
+    level = "L2A"
     data = {}
 
     for band in S2_BANDS:
