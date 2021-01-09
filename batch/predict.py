@@ -1,13 +1,13 @@
 #!/usr/bin/env python3.7
 
+import json
 import logging
 import os
-import tempfile
 import shutil
-import json
-import fiona
+import tempfile
 
 import boto3
+import fiona
 import numpy
 import numpy as np
 import tensorflow
@@ -48,8 +48,8 @@ if local_path:
     model = load_model(os.path.join(local_path, "model_3D_13epochs.h5"))
 else:
     with tempfile.TemporaryDirectory() as dirpath:
-        logger.info('Loading model from S3')
-        filename = os.path.join(dirpath, 'model.h5')
+        logger.info("Loading model from S3")
+        filename = os.path.join(dirpath, "model.h5")
         s3.download_file(
             Bucket=bucket,
             Key=project_id + "/model_3D_13epochs.h5",
@@ -72,10 +72,13 @@ logging.info("Predicting indices from {} to {}.".format(range_min, range_max))
 
 for file_index in index_range:
     with tempfile.TemporaryDirectory() as dirpath:
-        logger.info('Getting object {}'.format(file_index))
-        filename = os.path.join(dirpath, 'data.npz')
+        logger.info("Getting object {}".format(file_index))
+        filename = os.path.join(dirpath, "data.npz")
         if local_path:
-            shutil.copy(os.path.join(local_path, 'training/pixels_{}.npz'.format(file_index)), filename)
+            shutil.copy(
+                os.path.join(local_path, "training/pixels_{}.npz".format(file_index)),
+                filename,
+            )
         else:
             # Get prediction data.
             s3.download_file(
@@ -125,7 +128,9 @@ for file_index in index_range:
             for j in range(10):
                 # Predict output.
                 prediction = model.predict(
-                    data[0][:, :, (i * 360) : ((i + 1) * 360), (j * 360) : ((j + 1) * 360)]
+                    data[0][
+                        :, :, (i * 360) : ((i + 1) * 360), (j * 360) : ((j + 1) * 360)
+                    ]
                 )
                 # Reduce dimensions.
                 prediction = np.squeeze(prediction)
@@ -163,7 +168,7 @@ for file_index in index_range:
         utils.write_raster(prediction, args, out_path=out_path)
         # Upload result to bucket.
         if not local_path:
-            logger.info('Uploading prediction to S3')
+            logger.info("Uploading prediction to S3")
             s3.upload_file(
                 Bucket=bucket,
                 Key="{project_id}/predicted/prediction_{fid}.tif".format(

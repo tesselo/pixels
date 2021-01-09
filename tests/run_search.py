@@ -54,13 +54,12 @@ geojson = {
 # geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
 result = search_data(
     geojson,
-    start='1972-07-23',
-    end='1978-01-07',
+    start="1972-07-23",
+    end="1978-01-07",
     maxcloud=100,
     limit=10,
 )
 print(result)
-
 
 
 # import requests

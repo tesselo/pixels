@@ -34,7 +34,7 @@ LS_BANDS = [
 S2_BANDS_10 = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
 
 
-LS_PLATFORMS = ["LANDSAT_7", "LANDSAT_8"] 
+LS_PLATFORMS = ["LANDSAT_7", "LANDSAT_8"]
 
 LANDSAT_1_LAUNCH_DATE = "1972-07-23"
 
@@ -43,25 +43,25 @@ GOOGLE_URL = "https://gcp-public-data-landsat.commondatastorage.googleapis.com"
 AWS_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
 BASE_SENTINEL = "gs://gcp-public-data-sentinel-2/tiles"
 BASE_LANDSAT = "gs://gcp-public-data-landsat"
-BUCKET_AWS_L1C ="s3://sentinel-s2-l1c "
+BUCKET_AWS_L1C = "s3://sentinel-s2-l1c "
 PREFIX_S2_AWS_S3 = "tiles/{utm}/{lz}/{grid}/{year}/{month}/{day}/"
 
 # Platform Dates [min,max]
-L1_DATES = ['1972-07-23', '1978-01-07']
-L2_DATES = ['1975-01-24', '1982-02-18']
-L3_DATES = ['1978-03-07', '1983-03-31']
-L4_DATES = ['1982-08-06', '1993-11-18']
-L5_DATES = ['1984-03-04', '2013-01-07']
+L1_DATES = ["1972-07-23", "1978-01-07"]
+L2_DATES = ["1975-01-24", "1982-02-18"]
+L3_DATES = ["1978-03-07", "1983-03-31"]
+L4_DATES = ["1982-08-06", "1993-11-18"]
+L5_DATES = ["1984-03-04", "2013-01-07"]
 
 # Actives
-S2_DATES = '2015-06-27'
-L7_DATES = '1999-05-28'
-L8_DATES = '2013-03-08'
+S2_DATES = "2015-06-27"
+L7_DATES = "1999-05-28"
+L8_DATES = "2013-03-08"
 
 # Scaling
-#80m - L1, L2
+# 80m - L1, L2
 # 30m - L3,L4, L5
-#L8_
+# L8_
 
 # Sentinel 2:
 
@@ -73,13 +73,13 @@ L8_DATES = '2013-03-08'
 
 # Datatype
 # Platform Dates [min,max]
-L1_DATES = ''
-L2_DATES = ''
-L3_DATES = ''
-L4_DATES = ''
-L5_DATES = ''
+L1_DATES = ""
+L2_DATES = ""
+L3_DATES = ""
+L4_DATES = ""
+L5_DATES = ""
 
 # Actives
-S2_DATES = ''
-L7_DATES = ''
-L8_DATES = ''
+S2_DATES = ""
+L7_DATES = ""
+L8_DATES = ""

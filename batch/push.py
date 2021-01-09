@@ -72,7 +72,7 @@ def push_training_collection(bucket, project_id, features_per_job=50):
             # "command": ["collect.py"],
             "vcpus": 8,
             "memory": int(1024 * 30.5),
-            'resourceRequirements': [
+            "resourceRequirements": [
                 {
                     "type": "GPU",
                     "value": "1",
