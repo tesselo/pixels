@@ -1,135 +1,170 @@
-import datetime
-import json
+#!/usr/bin/env python3.7
+
 import logging
 import os
+import tempfile
+import shutil
 
 import boto3
-import mercantile
 import numpy
-import pyproj
-import rasterio
-from shapely.geometry import mapping, shape
-from shapely.ops import transform
-from supermercado.burntiles import burn
+import numpy as np
+import tensorflow
+from rasterio import Affine
+from tensorflow.keras.models import load_model
 
-from pixels.clouds import pixels_mask
-from pixels.mosaic import latest_pixel_s2_stack
+import pixels.generator.generator_class as gen
+import pixels.utils as utils
 
-logging.basicConfig(level=logging.WARNING)
+# Setup tensorflow session for model to use GPU.
+config = tensorflow.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tensorflow.compat.v1.InteractiveSession(config=config)
+
+# Logging.
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 s3 = boto3.client("s3")
 
 bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
 project_id = os.environ.get("PIXELS_PROJECT_ID", "test")
-
-config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
-config = json.loads(config["Body"].read())
-
-studyarea = {
-    "type": "FeatureCollection",
-    "name": "aoi_lx_3857",
-    "crs": {"init": "EPSG:3857"},
-    "features": [
-        {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    [
-                        [4221106.735919824, -1736265.598606449],
-                        [4193357.887847751, -1872923.001226717],
-                        [4193357.887847751, -1872923.001226717],
-                        [4168839.871963011, -2000260.921782380],
-                        [4059250.149940649, -2146427.525249328],
-                        [3957791.871378712, -2192621.624387202],
-                        [3908895.935608357, -2423814.498744275],
-                        [3746235.752146748, -2382705.686221981],
-                        [3736327.010446677, -2426564.146185098],
-                        [3575745.634752777, -2380980.764413798],
-                        [3645024.390525834, -2029048.342937532],
-                        [3805756.588984016, -2064205.766222333],
-                        [3849309.791841074, -1842019.460616930],
-                        [4026940.635842372, -1881828.503819331],
-                        [4071817.876159736, -1710962.181728938],
-                        [4221106.735919824, -1736265.598606449],
-                    ]
-                ],
-            },
-        },
-    ],
-}
-
-src_crs = pyproj.CRS("EPSG:3857")
-dst_crs = pyproj.CRS("EPSG:4326")
-
-project = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True).transform
-rep = transform(project, shape(studyarea["features"][0]["geometry"]))
-rep = mapping(rep)
-rep = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": rep,
-        },
-    ],
-}
-
-total = len([i for i, (x, y, z) in enumerate(burn(rep["features"], 11))])
-
-for i, (x, y, z) in enumerate(burn(rep["features"], 11)):
-    print("At {} out of {} - ({}, {}, {})".format(i, total, z, x, y))
-    now = datetime.datetime.now()
-    bounds = mercantile.xy_bounds(x, y, z)
-    geojson = {
-        "type": "FeatureCollection",
-        "crs": {"init": "EPSG:3857"},
-        "features": [mercantile.feature((x, y, z), projected="mercator")],
-    }
-    zoom_level_14_scale = 9.554628535654047
-    result = latest_pixel_s2_stack(
-        geojson,
-        config["min_date"],
-        config["max_date"],
-        zoom_level_14_scale,
-        config["interval"],
-        config["bands"],
-        config["limit"],
-        clip=False,
-        pool=False,
+local_path = os.environ.get("PIXELS_LOCAL_PATH", None)
+array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 0))
+features_per_job = int(os.environ.get("BATCH_FEATURES_PER_JOB", 100))
+logger.info(
+    "Bucket {} | Project {} | ArrayIndex {} | FeatPerJob {}".format(
+        bucket, project_id, array_index, features_per_job
     )
+)
 
-    X = numpy.array([dat[2] for dat in result])
-    X = X.swapaxes(0, 2).swapaxes(1, 3)
-    X = X.reshape(X.shape[0] * X.shape[1], X.shape[2], X.shape[3])
+# Construct model.
+if local_path:
+    model = load_model(os.path.join(local_path, "model_3D_13epochs.h5"))
+else:
+    with tempfile.TemporaryDirectory() as dirpath:
+        logger.info('Loading model from S3')
+        filename = os.path.join(dirpath, 'model.h5')
+        s3.download_file(
+            Bucket=bucket,
+            Key=project_id + "/model_3D_13epochs.h5",
+            Filename=filename,
+        )
+        model = load_model(filename)
 
-    cloud_mask = pixels_mask(
-        X[:, :, 8],
-        X[:, :, 7],
-        X[:, :, 6],
-        X[:, :, 2],
-        X[:, :, 1],
-        X[:, :, 0],
-        X[:, :, 9],
-    )
-    X[cloud_mask] = 0
+index_range = range(
+    array_index * features_per_job, (array_index + 1) * features_per_job
+)
 
-    Y_predicted = model.predict(X)
-    Y_predicted = numpy.argmax(Y_predicted, axis=1) + 1
+for file_index in index_range:
+    with tempfile.TemporaryDirectory() as dirpath:
+        logger.info('Getting object {}'.format(file_index))
+        filename = os.path.join(dirpath, 'data.npz')
+        if local_path:
+            shutil.copy(os.path.join(local_path, 'training/pixels_{}.npz'.format(file_index)), filename)
+        else:
+            # Get prediction data.
+            s3.download_file(
+                Bucket=bucket,
+                Key=project_id + "/training/pixels_{}.npz".format(file_index),
+                Filename=filename,
+            )
+        # Setup generator with only one file in it.
+        full_set = gen.DataGenerator_NPZ(
+            dirpath,
+            train=True,
+            split=1,
+            mode="SQUARE",
+            upsampling=10,
+            bands=[0, 1, 2, 6, 7, 8, 9],
+            cloud_mask_filter=False,
+            seed=24,
+            prediction_mode=True,
+        )
+        # Run generator using the only file with index 0.
+        INDEX = 0
+        # Get input path.
+        in_path = full_set.get_item_path(INDEX)
+        # Create ouput path.
+        filename = "_".join(in_path.split("/")[-2:]).replace(".npz", ".tif")
+        if local_path:
+            out_path = os.path.join(
+                local_path, "predicted/prediction_{}.tif".format(file_index)
+            )
+        else:
+            out_path = os.path.join(
+                dirpath,
+                filename,
+            )
+        # Pre create variables.
+        original_data = None
+        data = None
+        vstack = None
+        hstack = None
+        prediction = None
+        # Load data from generator.
+        data = full_set[INDEX]
+        # Assume size 10x10.
+        vstack = []
+        for i in range(10):
+            hstack = []
+            for j in range(10):
+                # Predict output.
+                prediction = model.predict(
+                    data[0][:, :, (i * 360) : ((i + 1) * 360), (j * 360) : ((j + 1) * 360)]
+                )
+                # Reduce dimensions.
+                prediction = np.squeeze(prediction)
+                hstack.append(prediction)
+            hstack = np.hstack(hstack)
+            vstack.append(hstack)
+        prediction = np.vstack(vstack)
+        # Get the orignal data for this item.
+        original_data = np.load(in_path, allow_pickle=True)
+        # Convert the creation args to the target size.
+        try:
+            args = original_data["args"][0]
+        except IndexError:
+            args = original_data["args"].item()
+        except KeyError:
+            args = original_data["creation_args"].item()
 
-    creation_args = result[0][0]
-    Y_predicted = Y_predicted.reshape(
-        1, creation_args["height"], creation_args["width"]
-    ).astype("uint16")
-
-    with rasterio.open(
-        "/home/tam/Desktop/pixels_test/nonseq_zxy/prediction_{}_{}_{}.tif".format(
-            z, x, y
-        ),
-        "w",
-        **creation_args
-    ) as dst:
-        dst.write(Y_predicted)
-
-    print(datetime.datetime.now() - now)
+        args["width"] = 3600
+        args["height"] = 3600
+        args["count"] = 1
+        args["transform"] = Affine(
+            1,
+            args["transform"][1],
+            args["transform"][2],
+            args["transform"][3],
+            -1,
+            args["transform"][5],
+        )
+        # Add date to args.
+        args["date"] = original_data["dates"][-1]
+        # Ensure output directory exists.
+        if not os.path.exists(os.path.dirname(out_path)):
+            os.makedirs(os.path.dirname(out_path))
+        # Write raster file from prediction.
+        utils.write_raster(prediction, args, out_path=out_path)
+        # Upload result to bucket.
+        if not local_path:
+            logger.info('Uploading prediction to S3')
+            s3.upload_file(
+                Bucket=bucket,
+                Key="{project_id}/predicted/prediction_{fid}.tif".format(
+                    project_id=project_id,
+                    fid=file_index,
+                ),
+                Filename=out_path,
+            )
+        # Ensure memory is released.
+        del original_data
+        del data
+        del vstack
+        del hstack
+        del prediction
+        del full_set

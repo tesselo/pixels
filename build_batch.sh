@@ -11,6 +11,7 @@ cp -r pixels build
 cp batch/collect.py build
 cp batch/pack.py build
 cp batch/train.py build
+cp batch/predict.py build
 cp batch/pyramid/pyramid.py build
 cp batch/pyramid/pyramid_up.py build
 cp batch/pyramid/tile_range.py build

@@ -42,7 +42,7 @@ def push_training_collection(bucket, project_id, features_per_job=50):
     job = {
         "jobQueue": "fetch-and-run-queue",
         "jobDefinition": "first-run-job-definition",
-        "jobName": "collect-{}".format(project_id),
+        "jobName": "predict-{}".format(project_id),
         "arrayProperties": {"size": batch_array_size},
         "containerOverrides": {
             "environment": [
@@ -67,9 +67,18 @@ def push_training_collection(bucket, project_id, features_per_job=50):
                 {"name": "DB_HOST", "value": os.environ.get("DB_HOST")},
                 {"name": "DB_USER", "value": os.environ.get("DB_USER")},
             ],
-            "vcpus": 2,
-            "memory": 1024 * 2,
-            "command": ["collect.py"],
+            # "vcpus": 2,
+            # "memory": 1024 * 2,
+            # "command": ["collect.py"],
+            "vcpus": 8,
+            "memory": int(1024 * 30.5),
+            'resourceRequirements': [
+                {
+                    "type": "GPU",
+                    "value": "1",
+                }
+            ],
+            "command": ["predict.py"],
         },
         "retryStrategy": {"attempts": 1},
     }
@@ -83,7 +92,7 @@ def push_training_collection(bucket, project_id, features_per_job=50):
 # Get path from env.
 bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
 project = os.environ.get("PIXELS_PROJECT_ID")
-features_per_job = os.environ.get("PIXELS_FEATURES_PER_JOB", 50)
+features_per_job = int(os.environ.get("BATCH_FEATURES_PER_JOB", 50))
 if project is None:
     raise ValueError("Specify PIXELS_PROJECT_ID env var.")
 jobid = push_training_collection(bucket, project, features_per_job)
