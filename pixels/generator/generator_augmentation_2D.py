@@ -210,12 +210,14 @@ def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
 
 
 def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7, prediction_mode=False):
-    # For prediction from uncleaned data, alter the shape.
+    # For prediction from uncleaned data, keep the least cloudy dates.
     if prediction_mode:
+        # Compute number of cloudy pixels per date.
         cloud_sum = np.sum(mask, axis=(1, 2))
-        if num_time > len(cloud_sum):
-            num_time = len(cloud_sum)
-        ind = np.sort(np.argpartition(cloud_sum, num_time)[:num_time])
+        # Create an index of the least cloudy dates, with a maximum of
+        # "num_time" dates.
+        ind = np.sort(np.argpartition(cloud_sum, len(cloud_sum) - 1)[:num_time])
+        # Reduce to the best dates.
         X = X[ind]
     # Reshape X to have bands (features) last.
     X = np.swapaxes(X, 1, 2)
