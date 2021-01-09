@@ -54,55 +54,28 @@ geojson = {
 # geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
 result = search_data(
     geojson,
-    start="2012-01-01",
-    end="2020-01-16",
+    start='1972-07-23',
+    end='1978-01-07',
     maxcloud=100,
-    platform=LS_PLATFORMS,
     limit=10,
 )
 print(result)
-print(len(result))
-# se retornar landsat 7 e 8 dar preferencia a 8!
 
 
-# platform = 'SENTINEL_2'
-# query += ' AND spacecraft_id IN {}'.format(str(tuple(platform)))
-# result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
 
-# platform = 'SENTINEL_2'
-# query += ' AND spacecraft_id IN {}'.format(tuple(platform))
-# result = spacecraft_id IN ('S', 'E', 'N', 'T', 'I', 'N', 'E', 'L', '_', '2') wrong
+# import requests
 
-# platform = 'SENTINEL_2'
-#  query += ' AND spacecraft_id IN {}'.format(platform)
-#  = spacecraft_id IN SENTINEL_2  wrong
-
-
-# platform = 'SENTINEL_2', 'LANDSAT_7'
-#  query += ' AND spacecraft_id IN {}'.format(platform)
-#  = spacecraft_id IN ('SENTINEL_2', 'LANDSAT_7') ok
-
-
-# platform= "('LANDSAT_7')"
-# query += ' AND spacecraft_id IN {}'.format(platform)
-# spacecraft_id IN ('LANDSAT_7') ok
-
-#  query += ' AND spacecraft_id IN {}'.format(tuple([platform])
-# spacecraft_id IN ('LANDSAT_7',) wrong
-
-import requests
-
-url = "http://127.0.0.1:5000/search"
-url = "https://pixels.tesselo.com/search?key=1c969a457a1e9936834e6db011375e2d00a5dca2"
-response = requests.post(
-    url,
-    json={
-        "geojson": geojson,
-        "start": "2020-01-01",
-        "end": "2020-10-16",
-        "maxcloud": 100,
-        # 'platforms': ['SENTINEL_2'],
-        "limit": 100,
-    },
-)
-print(len(response.json()))
+# url = "http://127.0.0.1:5000/search"
+# url = "https://pixels.tesselo.com/search?key=1c969a457a1e9936834e6db011375e2d00a5dca2"
+# response = requests.post(
+#     url,
+#     json={
+#         "geojson": geojson,
+#         "start": "2020-01-01",
+#         "end": "2020-10-16",
+#         "maxcloud": 100,
+#         # 'platforms': ['SENTINEL_2'],
+#         "limit": 100,
+#     },
+# )
+# print(len(response.json()))
