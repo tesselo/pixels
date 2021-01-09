@@ -4,6 +4,8 @@ import logging
 import os
 import tempfile
 import shutil
+import json
+import fiona
 
 import boto3
 import numpy
@@ -16,9 +18,9 @@ import pixels.generator.generator_class as gen
 import pixels.utils as utils
 
 # Setup tensorflow session for model to use GPU.
-config = tensorflow.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tensorflow.compat.v1.InteractiveSession(config=config)
+tf_config = tensorflow.compat.v1.ConfigProto()
+tf_config.gpu_options.allow_growth = True
+session = tensorflow.compat.v1.InteractiveSession(config=tf_config)
 
 # Logging.
 logger = logging.getLogger(__name__)
@@ -55,9 +57,18 @@ else:
         )
         model = load_model(filename)
 
-index_range = range(
-    array_index * features_per_job, (array_index + 1) * features_per_job
+# Determine job index range.
+config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
+config = json.loads(config["Body"].read())
+geo_object = s3.get_object(
+    Bucket=bucket, Key=project_id + "/{}".format(config["training_geofile"])
 )
+with fiona.open(geo_object["Body"]) as src:
+    feature_count = len(src)
+range_min = array_index * features_per_job
+range_max = min((array_index + 1) * features_per_job, feature_count)
+index_range = range(range_min, range_max)
+logging.info("Predicting indices from {} to {}.".format(range_min, range_max))
 
 for file_index in index_range:
     with tempfile.TemporaryDirectory() as dirpath:
