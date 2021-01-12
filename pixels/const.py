@@ -43,8 +43,7 @@ GOOGLE_URL = "https://gcp-public-data-landsat.commondatastorage.googleapis.com"
 AWS_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
 BASE_SENTINEL = "gs://gcp-public-data-sentinel-2/tiles"
 BASE_LANDSAT = "gs://gcp-public-data-landsat"
-BUCKET_AWS_L1C = "s3://sentinel-s2-l1c "
-PREFIX_S2_AWS_S3 = "tiles/{utm}/{lz}/{grid}/{year}/{month}/{day}/"
+AWS_L1C = "s3://sentinel-s2-l1c"
 
 # Platform Dates [min,max]
 L1_DATES = ["1972-07-23", "1978-01-07"]

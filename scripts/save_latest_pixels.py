@@ -13,7 +13,7 @@ from PIL import Image
 
 from pixels import search
 from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
-from pixels.mosaic import composite, latest_pixel_s2, latest_pixel_s2_stack
+from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.retrieve import retrieve
 from pixels.utils import compute_wgs83_bbox, timeseries_steps
 
@@ -57,8 +57,9 @@ result = latest_pixel(
     clip=True,
     maxcloud=30,
     limit=10,
-    bands=["B4", "B3", "B2"],
-    platforms="LANDSAT_8",
+    bands=["B02", "B03", "B04"],
+    platforms="SENTINEL_2",
+    level="L1C",
 )
 
 print("Timing", datetime.datetime.now() - now)

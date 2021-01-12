@@ -24,6 +24,7 @@ def latest_pixel(
     clip=False,
     pool=False,
     maxcloud=None,
+    level=None,
 ):
     """
     Get the latest pixel for the input items over the input fetures.
@@ -43,6 +44,7 @@ def latest_pixel(
             limit=limit,
             platforms=platforms,
             maxcloud=maxcloud,
+            level=level,
         )
 
         if not items:
