@@ -4,7 +4,7 @@ import os
 import sqlalchemy
 from dateutil.parser import parse
 
-from pixels.const import AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
+from pixels.const import AWS_L1C, AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
 from pixels.utils import compute_wgs83_bbox
 
 logger = logging.getLogger(__name__)
@@ -89,39 +89,51 @@ def get_bands(response):
 
     return result
 
-# Atualizar base url para buscar no bucket AWS S3
+
 def format_sentinel_band(value):
 
     mgr = value["mgrs_tile"]
     utm_zone = mgr[:2]
     latitude_code = mgr[2:3]
     square_grid = mgr[3:5]
-    base_url = AWS_URL
     date = parse(str(value["sensing_time"]))
     product_id = value["product_id"]
     sensing_time = str(date.date()).replace("-", "")
     sequence = 0
-    granule = value["granule_id"]
-    level = granule[:3]
-    level = "L2A"
+    level = value["granule_id"][:3]
     data = {}
 
-    for band in S2_BANDS:
-        band_template_url = "{base_url}/{utm}/{latitude}/{square_grid}/{year}/{month}/{product_id}_{mgr}_{sensing_time}_{sequence}_{level}/{band}.tif"
-        data[band] = band_template_url.format(
-            base_url=base_url,
-            utm=utm_zone,
-            latitude=latitude_code,
-            square_grid=square_grid,
-            year=date.year,
-            month=date.month,
-            product_id=product_id[:3],
-            mgr=mgr,
-            sensing_time=sensing_time,
-            sequence=sequence,
-            level=level,
-            band=band,
-        )
+    if level == "L2A":
+        for band in S2_BANDS:
+            band_template_url = "{base_url}/{utm}/{latitude}/{grid}/{year}/{month}/{product_id}_{mgr}_{sensing_time}_{sequence}_{level}/{band}.tif"
+            data[band] = band_template_url.format(
+                base_url=AWS_URL,
+                utm=utm_zone,
+                latitude=latitude_code,
+                grid=square_grid,
+                year=date.year,
+                month=date.month,
+                product_id=product_id[:3],
+                mgr=mgr,
+                sensing_time=sensing_time,
+                sequence=sequence,
+                level=level,
+                band=band,
+            )
+    else:
+        for band in S2_BANDS:
+            band_template_url = "{base_url}/tiles/{utm}/{latitude}/{grid}/{year}/{month}/{day}/{sequence}/{band}.jp2"
+            data[band] = band_template_url.format(
+                base_url=AWS_L1C,
+                utm=utm_zone,
+                latitude=latitude_code,
+                grid=square_grid,
+                year=date.year,
+                month=date.month,
+                day=date.day,
+                sequence=sequence,
+                band=band,
+            )
 
     return data
 

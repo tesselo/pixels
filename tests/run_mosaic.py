@@ -4,7 +4,8 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy
-from PIL import Image
+
+# from PIL import Image
 
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 

@@ -1,32 +1,6 @@
 from pixels.const import LS_PLATFORMS
 from pixels.search import search_data
 
-# geojson = {
-#     "type": "FeatureCollection",
-#     "name": "belem",
-#     "crs": {"init": "EPSG:3857"},
-#     "features": [{
-#         "type": "Feature",
-#         "properties": {
-#             "id": 1
-#         },
-#         "geometry": {
-#             "type": "MultiPolygon",
-#             "coordinates": [
-#                 [
-#                     [
-#                         [-5401422.027732782997191, -153715.220885783957783],
-#                         [-5388736.031396471895278, -153480.139550630614394],
-#                         [-5388610.094966925680637, -164713.669066172820749],
-#                         [-5401195.342159599997103, -164856.397019658790668],
-#                         [-5401422.027732782997191, -153715.220885783957783]
-#                     ]
-#                 ]
-#             ]
-#         }
-#     }]
-# }
-
 geojson = {
     "type": "FeatureCollection",
     "name": "m_grande",
@@ -54,10 +28,12 @@ geojson = {
 # geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
 result = search_data(
     geojson,
-    start="1972-07-23",
-    end="1978-01-07",
-    maxcloud=100,
+    start="2019-12-01",
+    end="2021-01-01",
+    maxcloud=20,
     limit=10,
+    level="L2A",
+    platforms=["SENTINEL_2"],
 )
 print(result)
 
