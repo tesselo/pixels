@@ -14,10 +14,12 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def push_training_collection(bucket, project_id, features_per_job=50):
+def push_training_collection(command, bucket, project_id, features_per_job=50):
     """
     Push a training data collection job to Batch.
     """
+    if command not in ['collect', 'predict']:
+        raise ValueError('Unknown command {}.'.format(command))
     # Compute number of geometries to process.
     s3 = boto3.client("s3")
     config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
@@ -42,7 +44,7 @@ def push_training_collection(bucket, project_id, features_per_job=50):
     job = {
         "jobQueue": "fetch-and-run-queue",
         "jobDefinition": "first-run-job-definition",
-        "jobName": "predict-{}".format(project_id),
+        "jobName": "{}-{}".format(command, project_id),
         "arrayProperties": {"size": batch_array_size},
         "containerOverrides": {
             "environment": [
@@ -67,9 +69,18 @@ def push_training_collection(bucket, project_id, features_per_job=50):
                 {"name": "DB_HOST", "value": os.environ.get("DB_HOST")},
                 {"name": "DB_USER", "value": os.environ.get("DB_USER")},
             ],
-            # "vcpus": 2,
-            # "memory": 1024 * 2,
-            # "command": ["collect.py"],
+        },
+        "retryStrategy": {"attempts": 1},
+    }
+    # Choose collect or predict mode.
+    if command == 'collect':
+        job["containerOverrides"].update({
+            "vcpus": 2,
+            "memory": 1024 * 2,
+            "command": ["collect.py"],
+        })
+    else:
+        job["containerOverrides"].update({
             "vcpus": 8,
             "memory": int(1024 * 30.5),
             "resourceRequirements": [
@@ -79,21 +90,19 @@ def push_training_collection(bucket, project_id, features_per_job=50):
                 }
             ],
             "command": ["predict.py"],
-        },
-        "retryStrategy": {"attempts": 1},
-    }
+        })
     logging.info(job)
-
     # Push training collection job.
     batch = boto3.client("batch", region_name="eu-central-1")
     return batch.submit_job(**job)
 
 
-# Get path from env.
+# Get data from env.
+command = os.environ.get("PIXELS_COMMAND")
 bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
 project = os.environ.get("PIXELS_PROJECT_ID")
 features_per_job = int(os.environ.get("BATCH_FEATURES_PER_JOB", 50))
 if project is None:
     raise ValueError("Specify PIXELS_PROJECT_ID env var.")
-jobid = push_training_collection(bucket, project, features_per_job)
+jobid = push_training_collection(command, bucket, project, features_per_job)
 print(jobid)
