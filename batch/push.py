@@ -18,8 +18,8 @@ def push_training_collection(command, bucket, project_id, features_per_job=50):
     """
     Push a training data collection job to Batch.
     """
-    if command not in ['collect', 'predict']:
-        raise ValueError('Unknown command {}.'.format(command))
+    if command not in ["collect", "predict"]:
+        raise ValueError("Unknown command {}.".format(command))
     # Compute number of geometries to process.
     s3 = boto3.client("s3")
     config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
@@ -73,24 +73,28 @@ def push_training_collection(command, bucket, project_id, features_per_job=50):
         "retryStrategy": {"attempts": 1},
     }
     # Choose collect or predict mode.
-    if command == 'collect':
-        job["containerOverrides"].update({
-            "vcpus": 2,
-            "memory": 1024 * 2,
-            "command": ["collect.py"],
-        })
+    if command == "collect":
+        job["containerOverrides"].update(
+            {
+                "vcpus": 2,
+                "memory": 1024 * 2,
+                "command": ["collect.py"],
+            }
+        )
     else:
-        job["containerOverrides"].update({
-            "vcpus": 8,
-            "memory": int(1024 * 30.5),
-            "resourceRequirements": [
-                {
-                    "type": "GPU",
-                    "value": "1",
-                }
-            ],
-            "command": ["predict.py"],
-        })
+        job["containerOverrides"].update(
+            {
+                "vcpus": 8,
+                "memory": int(1024 * 30.5),
+                "resourceRequirements": [
+                    {
+                        "type": "GPU",
+                        "value": "1",
+                    }
+                ],
+                "command": ["predict.py"],
+            }
+        )
     logging.info(job)
     # Push training collection job.
     batch = boto3.client("batch", region_name="eu-central-1")
