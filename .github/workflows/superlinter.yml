@@ -30,3 +30,6 @@ jobs:
           VALIDATE_PYTHON_FLAKE8: true
           VALIDATE_PYTHON_ISORT: true
           VALIDATE_PYTHON_BLACK: true
+          PYTHON_BLACK_CONFIG_FILE: setup.cfg
+          PYTHON_FLAKE8_CONFIG_FILE: setup.cfg
+          PYTHON_ISORT_CONFIG_FILE: setup.cfg
