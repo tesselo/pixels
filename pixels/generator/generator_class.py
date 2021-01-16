@@ -195,7 +195,9 @@ class DataGenerator_NPZ(keras.utils.Sequence):
             # Compute which augmentation version is required.
             augmentation_index = index % generator_augmentation_2D.AUGMENTATION_FACTOR
             X, y = self.do_augmentation(
-                X, y, augmentation_index=augmentation_index, augmentations=3
+                X,
+                y,
+                augmentation_index=augmentation_index,
             )
 
         return X, y
@@ -440,34 +442,20 @@ class DataGenerator_NPZ(keras.utils.Sequence):
                     )
         return X_res
 
-    def do_augmentation(self, X, y, augmentation_index=None, augmentations=None):
+    def do_augmentation(self, X, y, augmentation_index=None):
         """
         Define how many augmentations to do, and build the correct input for the augmentation function
         """
-        augmentation_index = augmentations
         if self.mode == "SINGLE_SQUARE":
             X = np.array([X])
             y = np.array([np.array([y[0]])])
         elif self.mode == "SQUARE":
-            X = X
-            y = y
-        if not augmentation_index:
             X, y = generator_augmentation_2D.augmentation(
                 X, y, augmentation_index=augmentation_index
             )
-        else:
-            xxx = X
-            yyy = y
-            for i in range(augmentations):
-                xx, yy = generator_augmentation_2D.augmentation(
-                    X, y, augmentation_index=i + 1
-                )
-                xxx = np.concatenate([xxx, xx])
-                yyy = np.concatenate([yyy, yy])
-            X = xxx
-            y = yyy
-        if self.mode == "SINGLE_SQUARE":
+        elif self.mode == "SINGLE_SQUARE":
             y = np.repeat(y, X.shape[1], axis=1)
             y = y.reshape(np.prod(X.shape[:2]), *y.shape[2:])
             X = X.reshape(np.prod(X.shape[:2]), *X.shape[2:])
+
         return X, y

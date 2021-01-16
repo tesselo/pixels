@@ -156,6 +156,7 @@ def tiles(z, x, y, platform=""):
     }
     # Specify the platform to use.
     platform = platform.upper()
+    level = None
     if platform == "LANDSAT_4":
         bands = ["B3", "B2", "B1"]
         scaling = 255
@@ -175,6 +176,7 @@ def tiles(z, x, y, platform=""):
         platform = ["SENTINEL_2"]
         bands = ["B04", "B03", "B02"]
         scaling = 4000
+        level = "L1C"
     # Get pixels.
     creation_args, date, stack = latest_pixel(
         geojson,
@@ -186,6 +188,7 @@ def tiles(z, x, y, platform=""):
         clip=False,
         pool=False,
         maxcloud=max_cloud_cover_percentage,
+        level=level,
     )
     # Convert stack to image array in uint8.
     img = numpy.array(

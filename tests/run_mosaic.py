@@ -5,9 +5,10 @@ import logging
 import matplotlib.pyplot as plt
 import numpy
 
+from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
+
 # from PIL import Image
 
-from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("botocore").setLevel(logging.ERROR)

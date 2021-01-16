@@ -1,6 +1,6 @@
 import numpy as np
 
-AUGMENTATION_FACTOR = 3
+AUGMENTATION_FACTOR = 4
 
 
 def upscaling_sample(tile, factor):
