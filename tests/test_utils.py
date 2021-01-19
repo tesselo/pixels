@@ -5,7 +5,12 @@ import unittest
 import numpy
 import rasterio
 
-from pixels.utils import timeseries_steps, write_raster
+from pixels.utils import (
+    compute_transform,
+    compute_wgs83_bbox,
+    timeseries_steps,
+    write_raster,
+)
 
 
 class TestUtils(unittest.TestCase):
@@ -30,6 +35,28 @@ class TestUtils(unittest.TestCase):
         self.data = numpy.arange(size ** 2, dtype="uint16").reshape((1, size, size))
         with rasterio.open(self.raster.name, "w", **self.creation_args) as dst:
             dst.write(self.data)
+        self.geojson = {
+            "type": "FeatureCollection",
+            "crs": {"init": "EPSG:3857"},
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {},
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [-1020256.0, 4680156.0],
+                                [-1020256.0, 4680000.0],
+                                [-1020000.0, 4680000.0],
+                                [-1020000.0, 4680156.0],
+                                [-1020256.0, 4680156.0],
+                            ]
+                        ],
+                    },
+                },
+            ],
+        }
 
     def test_write_raster(self):
         # Create file based case.
@@ -75,3 +102,38 @@ class TestUtils(unittest.TestCase):
         ]
         result = list(timeseries_steps("2021-01-01", "2021-02-01", "weeks", 2))
         self.assertEqual(result, expected)
+
+    def test_compute_transform(self):
+        transform, width, height = compute_transform(self.geojson, 1)
+        self.assertEqual(height, 156)
+        self.assertEqual(width, 256)
+        self.assertEqual(
+            list(transform),
+            [1.0, 0.0, -1020256.0, 0.0, -1.0, 4680156.0, 0.0, 0.0, 1.0],
+        )
+
+    def test_compute_wgs84_bbox(self):
+        # Geojson feature case.
+        bbox = compute_wgs83_bbox(self.geojson)
+        expected = {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [-9.165115585146461, 38.70848390053471],
+                    [-9.165115585146461, 38.70957743561777],
+                    [-9.162815898019115, 38.70957743561777],
+                    [-9.162815898019115, 38.70848390053471],
+                    [-9.165115585146461, 38.70848390053471],
+                ]
+            ],
+        }
+        self.assertEqual(bbox, expected)
+        # BBox case.
+        bbox = compute_wgs83_bbox(self.geojson, return_bbox=True)
+        expected = (
+            -9.165115585146461,
+            38.70848390053471,
+            -9.162815898019115,
+            38.70957743561777,
+        )
+        self.assertEqual(bbox, expected)
