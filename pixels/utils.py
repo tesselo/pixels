@@ -6,6 +6,7 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
 from rasterio.crs import CRS
+from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
@@ -125,41 +126,53 @@ def timeseries_steps(start, end, interval, intervals_per_step=1):
         here_end += delta
 
 
-def write_raster(data, args, out_path=None, filetype=None, date=None):
+def write_raster(
+    data, args, out_path=None, driver="GTiff", dtype="float32", overviews=True, tags={}
+):
     """
     Given a numpy array and necessary metadata, save a image file.
     """
     # Set the raster metadata as the same as the input
     out_meta = args
-    # Ensure right dims.
+    # Ensure right shape, the first dimension of the data should be the band count.
     if len(data.shape) == 2:
         data = data.reshape((1,) + data.shape)
-    # Convert to uint8.
-    data = data.astype("float32")
-    # Set band count.
-    count = data.shape[0]
-    # Update some fields
-    out_meta.update({"count": count, "compress": "DEFLATE", "dtype": "float32"})
-    # If a filetype is given, set to it.
-    # Possible formats: https://gdal.org/drivers/raster/index.html
-    if filetype:
-        out_meta.update(
-            {
-                "driver": filetype,
-            }
-        )
+    # Ensure correct datatype.
+    data = data.astype(dtype)
+    # Update some fields to ensure COG compatability.
+    out_meta.update(
+        {
+            "count": data.shape[0],
+            "dtype": dtype,
+            "driver": driver,
+            "tiled": "YES",
+            "compress": "DEFLATE",
+        }
+    )
+    # Determine resampling type for overviews.
+    if "int" in dtype.lower():
+        resampling = Resampling.nearest
+    else:
+        resampling = Resampling.average
+    # Determine overview factors.
+    factors = [2, 4, 8, 16, 32, 64]
     # If a path is given write a image file on that path
     if out_path:
-        with rasterio.open(out_path, "w", **out_meta) as dest:
-            # Create a tag (metadata), with the date of the image
-            dest.update_tags(date=args["date"])
-            dest.write(data)
+        with rasterio.open(out_path, "w", **out_meta) as dst:
+            # Set the given metadata tags.
+            for key, val in tags.items():
+                dst.update_tags(ns="tesselo", **tags)
+            dst.write(data)
+            dst.build_overviews(factors, resampling)
     else:
         # Returns a memory file.
         output = io.BytesIO()
         with rasterio.io.MemoryFile() as memfile:
             with memfile.open(**out_meta) as dst:
+                # Set the given metadata tags.
+                dst.update_tags(ns="tesselo", **tags)
                 dst.write(data)
+                dst.build_overviews(factors, resampling)
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
