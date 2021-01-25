@@ -12,13 +12,19 @@ from shapely.geometry import Polygon, mapping
 def get_bbox_and_footprint(raster_uri):
     """Get bounding box and footprint from raster
 
-    Args:
-        raster_uri (str or bytes_io): the raster file location or bytes_io
+    Parameters
+    ----------
+        raster_uri : str or bytes_io
+            the raster file location or bytes_io
 
-    Returns:
-        bbox (list): boundind box of input raster
-        footprint (list): footprint of input raster
-        datetime_var (datetime type): datetime from image
+    Returns
+    -------
+        bbox : list
+            boundind box of input raster
+        footprint : list
+            footprint of input raster
+        datetime_var : datetime type
+            datetime from image
     """
     with rasterio.open(raster_uri) as ds:
         bounds = ds.bounds
@@ -42,12 +48,14 @@ def get_bbox_and_footprint(raster_uri):
 def parse_training_data(zip_path, save_files=False, description=""):
     """From a zip files of rasters or a folder build a stac catalog
 
-    Args:
+    Parameters
+    ----------
         zip_path (str): Path to the zip file or folder containing the rasters.
         save_files (bool): Boolean, set True to save files from catalog and items.
         description (str): Description to be used in the catalog.
 
-    Returns:
+    Returns
+    -------
         catalog: Stac catalog variable, contain all the items (rasters).
     """
     if zip_path.endswith(".zip"):
@@ -92,3 +100,15 @@ def parse_training_data(zip_path, save_files=False, description=""):
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
+
+def set_pixels_config(catalog):
+    """ Based on a catalog build a config file to use on pixels.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    return config
