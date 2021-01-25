@@ -8,6 +8,7 @@ import zipfile
 import numpy
 import pystac
 import rasterio
+
 from pixels.stac import parse_training_data
 
 
