@@ -6,7 +6,6 @@ import zipfile
 import pystac
 import rasterio
 from dateutil import parser
-from shapely.geometry import Polygon, mapping
 
 
 def get_bbox_and_footprint(raster_uri):
@@ -28,21 +27,28 @@ def get_bbox_and_footprint(raster_uri):
         Datetime from image.
     """
     with rasterio.open(raster_uri) as ds:
+        # Get bounds.
         bounds = ds.bounds
+        # Create bbox as list.
         bbox = [bounds.left, bounds.bottom, bounds.right, bounds.top]
-        footprint = Polygon(
-            [
-                [bounds.left, bounds.bottom],
-                [bounds.left, bounds.top],
-                [bounds.right, bounds.top],
-                [bounds.right, bounds.bottom],
-            ]
-        )
+        # Create bbox as polygon feature.
+        footprint = {
+            "type": "Polygon",
+            "coordinates": (
+                (
+                    (bounds.left, bounds.bottom),
+                    (bounds.left, bounds.top),
+                    (bounds.right, bounds.top),
+                    (bounds.right, bounds.bottom),
+                    (bounds.left, bounds.bottom),
+                )
+            ),
+        }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
         datetime_var = ds.meta.get("datetime")
 
-        return bbox, mapping(footprint), datetime_var
+        return bbox, footprint, datetime_var
 
 
 def parse_training_data(
