@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import tempfile
@@ -36,8 +35,6 @@ def write_temp_raster(
 class TestUtils(unittest.TestCase):
     def setUp(self, origin_x=-1028560.0, origin_y=4689560.0):
         # Create 3 temp raster.
-        scale = 10
-        skew = 0
         size = 256
         origin_x = -1028560.0
         origin_y = 4689560.0

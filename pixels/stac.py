@@ -2,7 +2,6 @@ import glob
 import io
 import os
 import zipfile
-from datetime import datetime
 
 import pystac
 import rasterio
@@ -119,4 +118,5 @@ def set_pixels_config(catalog):
     -------
 
     """
+    config = {}
     return config
