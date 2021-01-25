@@ -24,8 +24,11 @@ def get_bbox_and_footprint(raster_uri):
                 [bounds.right, bounds.bottom],
             ]
         )
-
-        return (bbox, mapping(footprint))
+        if "datetime" in ds.meta:
+            datetime_var = ds.meta["datetime"]
+        else:
+            datetime_var = datetime.datetime.now()
+        return (bbox, mapping(footprint), datetime_var)
 
 
 def parse_training_data(zip_path, save_files=False, description=""):
@@ -52,13 +55,13 @@ def parse_training_data(zip_path, save_files=False, description=""):
             bytes_io = io.BytesIO(img_data)
         else:
             bytes_io = raster
-        bbox, footprint = get_bbox_and_footprint(bytes_io)
+        bbox, footprint, datetime_var = get_bbox_and_footprint(bytes_io)
         id_raster = raster.replace(".tif", "")
         item = pystac.Item(
             id=id_raster,
             geometry=footprint,
             bbox=bbox,
-            datetime=datetime(2020, 12, 31),
+            datetime=datetime_var,
             properties={},
         )
         item.add_asset(
