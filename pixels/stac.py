@@ -101,8 +101,9 @@ def parse_training_data(zip_path, save_files=False, description=""):
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
 
+
 def set_pixels_config(catalog):
-    """ Based on a catalog build a config file to use on pixels.
+    """Based on a catalog build a config file to use on pixels.
 
     Parameters
     ----------
