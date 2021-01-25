@@ -9,17 +9,21 @@ from pixels.utils import compute_wgs83_bbox
 
 logger = logging.getLogger(__name__)
 
-DB_NAME = os.environ.get("DB_NAME", "pixels")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
-DB_HOST = os.environ.get("DB_HOST", None)
-DB_USER = os.environ.get("DB_USER", "postgres")
+DB_NAME = os.environ.get("DB_NAME")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+DB_HOST = os.environ.get("DB_HOST")
+DB_USER = os.environ.get("DB_USER")
 
 # Setup db engine and connect.
-DB_TEMPLATE = "postgresql+pg8000://{username}:{password}@{host}:{port}/{database}"
-db_url = DB_TEMPLATE.format(
-    username=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=5432, database=DB_NAME
-)
-if DB_USER is not None:
+if DB_NAME is not None:
+    DB_TEMPLATE = "postgresql+pg8000://{username}:{password}@{host}:{port}/{database}"
+    db_url = DB_TEMPLATE.format(
+        username=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=5432,
+        database=DB_NAME,
+    )
     engine = sqlalchemy.create_engine(db_url, client_encoding="utf8")
     connection = engine.connect()
 
