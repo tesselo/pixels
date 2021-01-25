@@ -312,4 +312,4 @@ def composite(
             logger.debug("Finalized compositing early.")
             break
 
-    return creation_args, stack
+    return creation_args, numpy.array(stack)

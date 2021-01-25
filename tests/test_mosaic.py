@@ -30,7 +30,8 @@ def mock_search_data(
                 "cloud_cover": 70.091273,
                 "base_url": "gs://data-sentinel-2/S2A_{}.SAFE".format(i),
                 "bands": {
-                    "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif")
+                    "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B02": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                 },
             },
         )
@@ -65,7 +66,22 @@ class TestMosaic(unittest.TestCase):
 
     def test_latest_pixel(self):
         creation_args, first_end_date, stack = latest_pixel(
-            self.geojson, end_date="2020-02-01", scale=500, bands=["B01"]
+            self.geojson,
+            end_date="2020-02-01",
+            scale=500,
+            bands=["B01", "B02"],
+            clip=False,
         )
         self.assertEqual(first_end_date, "2020-01-20")
-        numpy.testing.assert_array_equal(stack, [[[2956, 2996], [7003, 7043]]])
+        expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
+        numpy.testing.assert_array_equal(stack, expected)
+
+        creation_args, first_end_date, stack = latest_pixel(
+            self.geojson,
+            end_date="2020-02-01",
+            scale=500,
+            bands=["B01", "B02"],
+            clip=True,
+        )
+        expected = [[[2956, 0], [0, 0]], [[2956, 0], [0, 0]]]
+        numpy.testing.assert_array_equal(stack, expected)
