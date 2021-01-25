@@ -12,7 +12,7 @@ from pixels.stac import parse_training_data
 
 
 def write_temp_raster(
-    origin_x=-1028560.0, origin_y=4689560.0, scale=10, skew=0, size=256
+    origin_x=-1028560.0, origin_y=4689560.0, scale=10, skew=0, size=256, tags={}
 ):
     # Create temp raster.
     raster = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
@@ -28,6 +28,7 @@ def write_temp_raster(
     }
     data = numpy.arange(size ** 2, dtype="uint16").reshape((1, size, size))
     with rasterio.open(raster.name, "w", **creation_args) as dst:
+        dst.update_tags(**tags)
         dst.write(data)
     return raster.name
 
@@ -44,7 +45,9 @@ class TestUtils(unittest.TestCase):
         self.raster.append(raster)
         raster = write_temp_raster(origin_x=origin_x + size)
         self.raster.append(raster)
-        raster = write_temp_raster(origin_y=origin_y + size)
+        raster = write_temp_raster(
+            origin_y=origin_y + size, tags={"datetime": "2021-01-01"}
+        )
         self.raster.append(raster)
         # Zip them.
         with zipfile.ZipFile(self.zip_file.name, "w") as zipF:
@@ -85,7 +88,7 @@ class TestUtils(unittest.TestCase):
         }
 
     def test_parse_training_data(self):
-        catalog = parse_training_data(self.zip_file.name)
+        catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
 
         # Check content.
