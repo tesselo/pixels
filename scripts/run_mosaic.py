@@ -53,7 +53,14 @@ geojson = {
 # Get pixels.
 now = datetime.datetime.now()
 
-creation_args, dates, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, platforms=['SENTINEL_2'], bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'))
+creation_args, dates, stack = latest_pixel(
+    geojson,
+    end_date="2020-10-31",
+    scale=10,
+    clip=True,
+    platforms=["SENTINEL_2"],
+    bands=("B02", "B03", "B04", "B08", "B8A", "B11", "B12"),
+)
 
 creation_args, stack = composite(
     geojson,

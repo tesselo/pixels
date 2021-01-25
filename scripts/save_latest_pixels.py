@@ -37,7 +37,14 @@ geojson = {
 
 # Get pixels.
 now = datetime.datetime.now()
-creation_args, stack = latest_pixel(geojson, end_date='2020-10-31', scale=10, clip=True, bands=('B02', 'B03', 'B04', 'B08', 'B8A', 'B11', 'B12'), pool=True)
+creation_args, stack = latest_pixel(
+    geojson,
+    end_date="2020-10-31",
+    scale=10,
+    clip=True,
+    bands=("B02", "B03", "B04", "B08", "B8A", "B11", "B12"),
+    pool=True,
+)
 
 
 result = latest_pixel(
@@ -59,12 +66,19 @@ stack = numpy.array(result[2])
 creation_args["count"] = 3
 
 # Convert to img
-img = numpy.dstack([255 * (numpy.clip(dat, 0, 100000) / 100000) for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')
-img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype('uint8')    # Without normalization
+img = numpy.dstack(
+    [
+        255 * (numpy.clip(dat, 0, 100000) / 100000)
+        for dat in [stack[2], stack[1], stack[0]]
+    ]
+).astype("uint8")
+img = numpy.dstack([dat for dat in [stack[2], stack[1], stack[0]]]).astype(
+    "uint8"
+)  # Without normalization
 img = Image.fromarray(img)
 img.show()
 # Save
-img.save(f"/home/keren/projects/API_Images/tests/{result[1]}.png", 'PNG')
+img.save(f"/home/keren/projects/API_Images/tests/{result[1]}.png", "PNG")
 
 # Save raster as tif file
 height = creation_args["height"]

@@ -38,7 +38,7 @@ for page in pages:
         data = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
         data = numpy.load(io.BytesIO(data), allow_pickle=True)
         result.append(data)
-numpy.savez_compressed('/home/tam/Desktop/replant_result_array.npz', result)
+numpy.savez_compressed("/home/tam/Desktop/replant_result_array.npz", result)
 result = numpy.load("/home/tam/Desktop/replant_result_array.npz")["arr_0"].item()
 
 Xs = []
@@ -52,7 +52,13 @@ for data in result:
     X = data["data"]
     # Data shape is ("scenes", bands, height, width)
     cloud_mask = pixels_mask(
-        X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9],
+        X[:, 8],
+        X[:, 7],
+        X[:, 6],
+        X[:, 2],
+        X[:, 1],
+        X[:, 0],
+        X[:, 9],
     )
     # Reorder the data to have
     X = X.swapaxes(0, 2).swapaxes(1, 3)
@@ -117,10 +123,18 @@ Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 
 model = Sequential()
 model.add(layers.BatchNormalization())
-model.add(layers.GRU(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.5))
+model.add(
+    layers.GRU(
+        300,
+        return_sequences=False,
+        return_state=False,
+        dropout=0.5,
+        recurrent_dropout=0.5,
+    )
+)
 model.add(layers.BatchNormalization())
-model.add(layers.Dense(100, activation='relu'))
-model.add(layers.Dense(len(valuemap), activation='softmax'))
+model.add(layers.Dense(100, activation="relu"))
+model.add(layers.Dense(len(valuemap), activation="softmax"))
 
 visible = layers.Input(shape=X_train.shape[1:])
 normed = layers.BatchNormalization()(visible)
