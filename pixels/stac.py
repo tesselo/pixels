@@ -10,21 +10,22 @@ from shapely.geometry import Polygon, mapping
 
 
 def get_bbox_and_footprint(raster_uri):
-    """Get bounding box and footprint from raster
+    """
+    Get bounding box and footprint from raster.
 
     Parameters
     ----------
-        raster_uri : str or bytes_io
-            the raster file location or bytes_io
+    raster_uri : str or bytes_io
+        The raster file location or bytes_io.
 
     Returns
     -------
-        bbox : list
-            boundind box of input raster
-        footprint : list
-            footprint of input raster
-        datetime_var : datetime type
-            datetime from image
+    bbox : list
+        Bounding box of input raster.
+    footprint : list
+        Footprint of input raster.
+    datetime_var : datetime type
+        Datetime from image.
     """
     with rasterio.open(raster_uri) as ds:
         bounds = ds.bounds
@@ -46,17 +47,22 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def parse_training_data(zip_path, save_files=False, description=""):
-    """From a zip files of rasters or a folder build a stac catalog
+    """
+    From a zip files of rasters or a folder build a stac catalog.
 
     Parameters
     ----------
-        zip_path (str): Path to the zip file or folder containing the rasters.
-        save_files (bool): Boolean, set True to save files from catalog and items.
-        description (str): Description to be used in the catalog.
+        zip_path : str
+            Path to the zip file or folder containing the rasters.
+        save_files : bool
+            Boolean, set True to save files from catalog and items.
+        description : str
+            Description to be used in the catalog.
 
     Returns
     -------
-        catalog: Stac catalog variable, contain all the items (rasters).
+        catalog : dict
+            Stac catalog dictionary containing all the raster items.
     """
     if zip_path.endswith(".zip"):
         # Open zip file
@@ -103,7 +109,8 @@ def parse_training_data(zip_path, save_files=False, description=""):
 
 
 def set_pixels_config(catalog):
-    """Based on a catalog build a config file to use on pixels.
+    """
+    Based on a catalog build a config file to use on pixels.
 
     Parameters
     ----------
