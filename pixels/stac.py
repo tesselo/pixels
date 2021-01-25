@@ -5,6 +5,7 @@ import zipfile
 
 import pystac
 import rasterio
+from dateutil import parser
 from shapely.geometry import Polygon, mapping
 
 
@@ -37,26 +38,33 @@ def get_bbox_and_footprint(raster_uri):
                 [bounds.right, bounds.bottom],
             ]
         )
-        # If the datetime is not in raster it is set as None
-        if "datetime" in ds.meta:
-            datetime_var = ds.meta["datetime"]
-        else:
-            datetime_var = None
-        return (bbox, mapping(footprint), datetime_var)
+        # Try getting the datetime in the raster metadata. Set to None if not
+        # found.
+        datetime_var = ds.meta.get("datetime")
+
+        return bbox, mapping(footprint), datetime_var
 
 
-def parse_training_data(zip_path, save_files=False, description=""):
+def parse_training_data(
+    zip_path, save_files=False, description="", reference_date=None
+):
     """
     From a zip files of rasters or a folder build a stac catalog.
+
+    If a "datetime" tag is found in the metadata of the rastes, that value is
+    extracted and passed as date to the catalog items.
 
     Parameters
     ----------
         zip_path : str
             Path to the zip file or folder containing the rasters.
-        save_files : bool
-            Boolean, set True to save files from catalog and items.
-        description : str
+        save_files : bool, optional
+            Set True to save files from catalog and items.
+        description : str, optional
             Description to be used in the catalog.
+        reference_date : str, optional
+            Date or datetime string. Used as the date on catalog items if not
+            found in the input files.
 
     Returns
     -------
@@ -64,9 +72,9 @@ def parse_training_data(zip_path, save_files=False, description=""):
             Stac catalog dictionary containing all the raster items.
     """
     if zip_path.endswith(".zip"):
-        # Open zip file
+        # Open zip file.
         archive = zipfile.ZipFile(zip_path, "r")
-        # Create stac catalog
+        # Create stac catalog.
         id_name = zip_path.replace(os.path.dirname(zip_path), "").replace(".zip", "")
         raster_list = []
         for af in archive.filelist:
@@ -75,7 +83,7 @@ def parse_training_data(zip_path, save_files=False, description=""):
         raster_list = glob.glob(zip_path + "*/*.tif", recursive=True)
 
     catalog = pystac.Catalog(id=id_name, description=description)
-    # For every raster in the zip file create an item, add it to catalog
+    # For every raster in the zip file create an item, add it to catalog.
     for raster in raster_list:
         if zip_path.endswith(".zip"):
             img_data = archive.read(raster)
@@ -83,6 +91,14 @@ def parse_training_data(zip_path, save_files=False, description=""):
         else:
             bytes_io = raster
         bbox, footprint, datetime_var = get_bbox_and_footprint(bytes_io)
+        # Ensure datetime var is set properly.
+        if datetime_var is None:
+            if reference_date is None:
+                raise ValueError("Datetime could not be determined for stac.")
+            else:
+                datetime_var = reference_date
+        # Ensure datetime is object not string.
+        datetime_var = parser.parse(datetime_var)
         id_raster = raster.replace(".tif", "")
         item = pystac.Item(
             id=id_raster,
@@ -101,7 +117,7 @@ def parse_training_data(zip_path, save_files=False, description=""):
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
-    # Save files if bool is set,
+    # Save files if bool is set.
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
