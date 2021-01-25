@@ -3,6 +3,7 @@ import io
 import json
 import os
 import zipfile
+import rasterio
 
 import matplotlib.pyplot as plt
 import numpy
@@ -17,7 +18,6 @@ data = json.load(
 
 for geom in data:
     geom["crs"] = "EPSG:4326"
-    print(geom["properties"]["name"])
     # Request a weekly timestep series from March to June 2018.
     config = {
         "interval": "weeks",
@@ -163,17 +163,10 @@ plt.savefig(
     "/media/tam/rhino/work/projects/tesselo/projects/neer/results/ndvi_parcels.pdf"
 )
 plt.close("all")
-
+rowlength = 8
 fig, axs = plt.subplots(
     figsize=(16, 1),
     nrows=1,
     ncols=rowlength,  # fix as above
     gridspec_kw=dict(hspace=0.4),
 )  # Much control of gridspec
-
-targets = zip(grouped.groups.keys(), axs.flatten())
-for i, (key, ax) in enumerate(targets):
-    ax.plot(grouped.get_group(key))
-    ax.set_title("a=%d" % key)
-ax.legend()
-plt.show()

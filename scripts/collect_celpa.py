@@ -1,20 +1,10 @@
 import datetime
 import logging
-import pickle
-from multiprocessing import Pool
-from multiprocessing.pool import ThreadPool
 
-import fiona
 import numpy
-import requests
-from fiona.transform import transform_geom
 from PIL import Image
 
-from pixels import search
-from pixels.const import LS_BANDS, LS_PLATFORMS, NODATA_VALUE, S2_BANDS
-from pixels.mosaic import composite, latest_pixel_s2, latest_pixel_s2_stack
-from pixels.retrieve import retrieve
-from pixels.utils import compute_wgs83_bbox, timeseries_steps
+from pixels.mosaic import latest_pixel_s2_stack
 
 logging.basicConfig(level=logging.INFO)
 

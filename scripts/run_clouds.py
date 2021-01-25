@@ -11,7 +11,7 @@ print(X.shape)
 
 # "bands": ["B11", "B8A", "B08", "B07", "B06", "B05", "B04", "B03", "B02", "B12"],
 
-# dat = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
+dat = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
 mask = pixels_mask(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
 for i in range(X.shape[1]):
     X[:, i][mask] = 0

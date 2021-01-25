@@ -2,8 +2,9 @@ import json
 
 import boto3
 import rasterio
-from rasterio.io import MemoryFile
 from train.train import load_data
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
 
 from pixels import utils
 
@@ -38,7 +39,7 @@ with rasterio.open("/home/tam/Desktop/result.tif", "w", **creation_args) as rst:
 
 # define GRU
 model = Sequential()
-model.add(BatchNormalization())
-model.add(Bidirectional(GRU(250, dropout=0.3, recurrent_dropout=0.3)))
-model.add(BatchNormalization())
+model.add(layers.BatchNormalization())
+model.add(layers.Bidirectional(layers.GRU(250, dropout=0.3, recurrent_dropout=0.3)))
+model.add(layers.BatchNormalization())
 model.to_json()

@@ -25,6 +25,8 @@ project_id = os.environ.get("PIXELS_PROJECT_ID", "test")
 config = s3.get_object(Bucket=bucket, Key=project_id + "/config.json")
 config = json.loads(config["Body"].read())
 
+model = None
+
 studyarea = {
     "type": "FeatureCollection",
     "name": "aoi_lx_3857",
