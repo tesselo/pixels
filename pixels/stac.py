@@ -27,14 +27,13 @@ def get_bbox_and_footprint(raster_uri):
         if "datetime" in ds.meta:
             datetime_var = ds.meta["datetime"]
         else:
-            datetime_var = datetime.datetime.now()
+            datetime_var = None
         return (bbox, mapping(footprint), datetime_var)
 
 
 def parse_training_data(zip_path, save_files=False, description=""):
     """
     From a zip files of rasters or a folder build a stac catalog
-    TODO: get datetime from raster
     """
     if zip_path.endswith(".zip"):
         # Open zip file
