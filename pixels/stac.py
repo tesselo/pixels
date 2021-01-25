@@ -10,8 +10,15 @@ from shapely.geometry import Polygon, mapping
 
 
 def get_bbox_and_footprint(raster_uri):
-    """
-    Get bounding box and footprint from raster
+    """Get bounding box and footprint from raster
+
+    Args:
+        raster_uri (str or bytes_io): the raster file location or bytes_io
+
+    Returns:
+        bbox (list): boundind box of input raster
+        footprint (list): footprint of input raster
+        datetime_var (datetime type): datetime from image
     """
     with rasterio.open(raster_uri) as ds:
         bounds = ds.bounds
@@ -24,6 +31,7 @@ def get_bbox_and_footprint(raster_uri):
                 [bounds.right, bounds.bottom],
             ]
         )
+        # If the datetime is not in raster it is set as None
         if "datetime" in ds.meta:
             datetime_var = ds.meta["datetime"]
         else:
@@ -32,8 +40,15 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def parse_training_data(zip_path, save_files=False, description=""):
-    """
-    From a zip files of rasters or a folder build a stac catalog
+    """From a zip files of rasters or a folder build a stac catalog
+
+    Args:
+        zip_path (str): Path to the zip file or folder containing the rasters.
+        save_files (bool): Boolean, set True to save files from catalog and items.
+        description (str): Description to be used in the catalog.
+
+    Returns:
+        catalog: Stac catalog variable, contain all the items (rasters).
     """
     if zip_path.endswith(".zip"):
         # Open zip file
@@ -71,7 +86,9 @@ def parse_training_data(zip_path, save_files=False, description=""):
             ),
         )
         catalog.add_item(item)
+    # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
+    # Save files if bool is set,
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
