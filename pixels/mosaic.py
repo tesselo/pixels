@@ -122,7 +122,7 @@ def latest_pixel(
         for i in range(len(stack)):
             stack[i][mask] = NODATA_VALUE
 
-    return creation_args, first_end_date, stack
+    return creation_args, first_end_date, numpy.array(stack)
 
 
 def latest_pixel_s2_stack(
@@ -312,4 +312,4 @@ def composite(
             logger.debug("Finalized compositing early.")
             break
 
-    return creation_args, stack
+    return creation_args, numpy.array(stack)

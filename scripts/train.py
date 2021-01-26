@@ -17,43 +17,49 @@ from pixels.clouds import pixels_mask
 config = tensorflow.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tensorflow.compat.v1.InteractiveSession(config=config)
-### Remove in production.
-# # Setup boto client.
-# s3 = boto3.client("s3")
-# # Fetch all data to memory.
-# bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
-# project_id = os.environ.get("PIXELS_PROJECT_ID", "replant")
-# # config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
-# # config = json.loads(config['Body'].read())
-# paginator = s3.get_paginator("list_objects_v2")
-# pages = paginator.paginate(
-#     Bucket=bucket,
-#     Prefix="{}/training/".format(project_id),
-# )
-# result = []
-# for page in pages:
-#     print(page["KeyCount"])
-#     for obj in page["Contents"]:
-#         print(obj["Size"])
-#         data = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
-#         data = numpy.load(io.BytesIO(data), allow_pickle=True)
-#         result.append(data)
-# numpy.savez_compressed('/home/tam/Desktop/replant_result_array.npz', result)
+# Remove in production.
+# Setup boto client.
+s3 = boto3.client("s3")
+# Fetch all data to memory.
+bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
+project_id = os.environ.get("PIXELS_PROJECT_ID", "replant")
+# config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
+# config = json.loads(config['Body'].read())
+paginator = s3.get_paginator("list_objects_v2")
+pages = paginator.paginate(
+    Bucket=bucket,
+    Prefix="{}/training/".format(project_id),
+)
+result = []
+for page in pages:
+    print(page["KeyCount"])
+    for obj in page["Contents"]:
+        print(obj["Size"])
+        data = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
+        data = numpy.load(io.BytesIO(data), allow_pickle=True)
+        result.append(data)
+numpy.savez_compressed("/home/tam/Desktop/replant_result_array.npz", result)
 result = numpy.load("/home/tam/Desktop/replant_result_array.npz")["arr_0"].item()
 
 Xs = []
 Ys = []
 ids = []
 valuemap = {}
-# for path in glob.glob("/home/tam/Desktop/esb/esblandcover/training/*.npz"):
-#     with open(path, "rb") as fl:
-#         data = numpy.load(fl, allow_pickle=True)
+for path in glob.glob("/home/tam/Desktop/esb/esblandcover/training/*.npz"):
+    with open(path, "rb") as fl:
+        data = numpy.load(fl, allow_pickle=True)
 for data in result:
     X = data["data"]
     # Data shape is ("scenes", bands, height, width)
-    # cloud_mask = pixels_mask(
-    #     X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9],
-    # )
+    cloud_mask = pixels_mask(
+        X[:, 8],
+        X[:, 7],
+        X[:, 6],
+        X[:, 2],
+        X[:, 1],
+        X[:, 0],
+        X[:, 9],
+    )
     # Reorder the data to have
     X = X.swapaxes(0, 2).swapaxes(1, 3)
     # Flatten the 2D data into pixel level.
@@ -115,12 +121,20 @@ Y_test = to_categorical(Ys[numpy.logical_not(selector)])
 # model.add(layers.Dense(100, activation='relu'))
 # model.add(layers.Dense(len(valuemap), activation='softmax'))
 
-# model = Sequential()
-# model.add(layers.BatchNormalization())
-# model.add(layers.GRU(300, return_sequences=False, return_state=False, dropout=0.5, recurrent_dropout=0.5))
-# model.add(layers.BatchNormalization())
-# model.add(layers.Dense(100, activation='relu'))
-# model.add(layers.Dense(len(valuemap), activation='softmax'))
+model = Sequential()
+model.add(layers.BatchNormalization())
+model.add(
+    layers.GRU(
+        300,
+        return_sequences=False,
+        return_state=False,
+        dropout=0.5,
+        recurrent_dropout=0.5,
+    )
+)
+model.add(layers.BatchNormalization())
+model.add(layers.Dense(100, activation="relu"))
+model.add(layers.Dense(len(valuemap), activation="softmax"))
 
 visible = layers.Input(shape=X_train.shape[1:])
 normed = layers.BatchNormalization()(visible)

@@ -2,12 +2,10 @@ import pickle
 
 import h5py
 import numpy
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, cohen_kappa_score, confusion_matrix
+from sklearn.metrics import cohen_kappa_score, confusion_matrix
 from sklearn.neural_network import MLPClassifier
-from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import RobustScaler
-from sklearn.svm import SVC, LinearSVC
 
 data = numpy.load(
     open(

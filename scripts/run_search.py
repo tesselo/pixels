@@ -1,4 +1,3 @@
-from pixels.const import LS_PLATFORMS
 from pixels.search import search_data
 
 geojson = {
