@@ -2,9 +2,9 @@ import json
 
 import boto3
 import rasterio
-from train.train import load_data
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
+from train.train import load_data
 
 from pixels import utils
 

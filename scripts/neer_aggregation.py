@@ -3,11 +3,11 @@ import io
 import json
 import os
 import zipfile
-import rasterio
 
 import matplotlib.pyplot as plt
 import numpy
 import pandas
+import rasterio
 import requests
 
 from pixels import const
