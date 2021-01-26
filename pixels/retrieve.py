@@ -22,6 +22,42 @@ def retrieve(
 ):
     """
     Get pixels from a source raster over the a geojson feature collection.
+
+    Parameters
+    ----------
+    source : str
+        The raster source location, can be local, html or s3 paths. Anything
+        that rasterio can open.
+    geojson : dict
+        The area over which the raster data will be collected. The geometry
+        extent will be used as bounding box for the raster. A custom CRS
+        property can be used to define the projection.
+    scale : int or float, optional
+        The scale (resolution) of the output raster. This number needs to be in
+        the uints of the input geojson. If not provided, the scale of the input
+        raster is used, but only if the projection of the raster is the same as
+        the projection of the geojson.
+    discrete : bool, optional
+        If True, the input raster file is assumed to be discrete (ingeger). The
+        resampling strategy is nearest neighbor for discrete rasters, and
+        bilinear for continuous rasters.
+    clip : boolean, optional
+        If True, the raster is clipped against the geometry. All values outside
+        the geometry will be set to nodata.
+    all_touched : boolean, optional
+        If True, the all_touched option will be used when rasterizing the
+        geometries. Ignored if clip is False.
+    bands : list of int, optional
+        Defines which band indices shall be extracted from the source raster. If
+        it is empty or None, all bands will be extracted.
+
+    Returns
+    -------
+    creation_args : dict
+        The creation arguments metadata for the extracted pixel matrix. Can be
+        used to write the extracted pixels to a file if desired.
+    pixels : array
+        The extracted pixel array, with a shape (bands, height, width).
     """
     logger.debug("Retrieving {}".format(source))
 
