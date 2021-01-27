@@ -7,6 +7,16 @@ import pystac
 import rasterio
 from dateutil import parser
 
+from pixels.const import (
+    PIXELS_COMPOSITE_MODE,
+    PIXELS_LATEST_PIXEL_MODE,
+    PIXELS_MODES,
+    PIXELS_S2_STACK_MODE,
+    TESSELO_TAG_NAMESPACE,
+)
+from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
+from pixels.utils import write_raster
+
 
 def get_bbox_and_footprint(raster_uri):
     """
@@ -25,6 +35,8 @@ def get_bbox_and_footprint(raster_uri):
         Footprint of input raster.
     datetime_var : datetime type
         Datetime from image.
+    out_meta : rasterio meta type
+        Metadata from raster.
     """
     with rasterio.open(raster_uri) as ds:
         # Get bounds.
@@ -46,9 +58,8 @@ def get_bbox_and_footprint(raster_uri):
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
-        datetime_var = ds.meta.get("datetime")
-
-        return bbox, footprint, datetime_var
+        datetime_var = ds.tags(ns=TESSELO_TAG_NAMESPACE).get("datetime")
+        return bbox, footprint, datetime_var, ds.meta
 
 
 def parse_training_data(
@@ -86,6 +97,7 @@ def parse_training_data(
         for af in archive.filelist:
             raster_list.append(af.filename)
     else:
+        id_name = zip_path.replace(os.path.dirname(zip_path), "")
         raster_list = glob.glob(zip_path + "*/*.tif", recursive=True)
 
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -96,7 +108,7 @@ def parse_training_data(
             bytes_io = io.BytesIO(img_data)
         else:
             bytes_io = raster
-        bbox, footprint, datetime_var = get_bbox_and_footprint(bytes_io)
+        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(bytes_io)
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
@@ -106,12 +118,13 @@ def parse_training_data(
         # Ensure datetime is object not string.
         datetime_var = parser.parse(datetime_var)
         id_raster = raster.replace(".tif", "")
+        out_meta["crs"] = out_meta["crs"].to_epsg()
         item = pystac.Item(
             id=id_raster,
             geometry=footprint,
             bbox=bbox,
             datetime=datetime_var,
-            properties={},
+            properties=out_meta,
         )
         item.add_asset(
             key=id_raster,
@@ -120,6 +133,8 @@ def parse_training_data(
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
+        crs = out_meta["crs"]
+        pystac.extensions.projection.ProjectionItemExt(item).apply(crs)
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
@@ -129,16 +144,184 @@ def parse_training_data(
     return catalog
 
 
-def set_pixels_config(catalog):
+def build_geometry_geojson(item):
     """
-    Based on a catalog build a config file to use on pixels.
+    Build GeoJson from item bounding box.
 
     Parameters
     ----------
-
+        item : pystac item type
+            Item representing one raster.
     Returns
     -------
-
+        geojson: dict
+            Dictionary containing the bounding box from input raster.
     """
-    config = {}
+    geojson = {
+        "type": "FeatureCollection",
+        "crs": {"init": "EPSG:" + str(item.properties["proj:epsg"])},
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [list(coords) for coords in item.geometry["coordinates"]]
+                    ],
+                },
+            },
+        ],
+    }
+    return geojson
+
+
+def set_pixels_config(
+    item,
+    start="2020-01-01",
+    end=None,
+    interval="all",
+    scale=10,
+    clip=True,
+    bands=("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"),
+    maxcloud=20,
+    pool_size=0,
+):
+    """
+    Based on a item build a config file to use on pixels.
+
+    Parameters
+    ----------
+        item : pystac item type
+            Item representing one raster.
+        start : str, optional
+            Date to start search on pixels.
+        end : str, optional
+            Date to end search on pixels.
+        interval : str, optional
+        scale : int, optional
+        clip : boolean, optional
+        bands : tuple, optional
+        maxcloud: int, optional
+            Maximun accepted cloud coverage in image.
+        pool_size: int, optional
+    Returns
+    -------
+        config : dict
+            Dictionary containing the parameters to pass on to pixels.
+    """
+    if item is str:
+        item = pystac.read_file(item)
+    geojson = build_geometry_geojson(item)
+    # If no end data is specify, fetch from item. Datetime to format 'YYYY-MM-DD'
+    if not end:
+        end = item.datetime.isoformat()[:10]
+
+    config = {
+        "geojson": geojson,
+        "start": start,
+        "end": end,
+        "interval": interval,
+        "scale": scale,
+        "clip": clip,
+        "bands": bands,
+        "maxcloud": maxcloud,
+        "pool_size": pool_size,
+    }
     return config
+
+
+def run_pixels(config, mode="s2_stack"):
+    """
+    Run pixels, based on a config file and a chosen mode.
+
+    Parameters
+    ----------
+        config : dict
+            Dictionary containing the parameters to pass on to pixels.
+        mode : str, optional
+            Mode to use pixel. Avaible modes:
+                's2_stack' : All avaible timesteps in timerange. -> latest_pixel_s2_stack()
+                'latest': Lastest avaible scene in timerange. -> latest_pixel()
+                'composite' Composite from best pixels in timerange. -> composite()
+    Returns
+    -------
+        dates : list
+            List of string containing the dates.
+        results : list
+            List of arrays containing the images.
+        meta_data : dict
+            Dictionary containing the item's meta data.
+    """
+    if mode not in PIXELS_MODES:
+        raise ValueError(
+            "Pixel mode not avaiable. Avaible modes: s2_stack, latest, composite."
+        )
+    if mode == PIXELS_S2_STACK_MODE:
+        result = latest_pixel_s2_stack(**config)
+    elif mode == PIXELS_LATEST_PIXEL_MODE:
+        result = latest_pixel(**config)
+    elif mode == PIXELS_COMPOSITE_MODE:
+        result = composite(**config)
+
+    dates = result[1]
+    results = result[2]
+    meta_data = result[0]
+    return dates, results, meta_data
+
+
+def get_and_write_raster_from_item(item, **kwargs):
+    """
+    Based on a pystac item get the images in timerange from item's bbox.
+    Write them as a raster afterwards.
+
+    Parameters
+    ----------
+        item : pystac item type
+            Item representing one raster.
+        kwargs : dict
+            Possible parameters for config json.
+    Returns
+    -------
+        out_path : str
+            Path were the files were writen to.
+    """
+    # Build a configuration json for pixels.
+    config = set_pixels_config(item, **kwargs)
+    # Run pixels and get the dates, the images (as numpy) and the raster meta.
+    dates, results, meta = run_pixels(config)
+    # For a lack of out_path argument build one based on item name.
+    # The directory for the raster will be one folder paralel to the stac one
+    # called pixels.
+    if "out_path" not in kwargs:
+        work_path = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
+        out_path = work_path + "/pixels/" + item.id
+    else:
+        out_path = kwargs["out_path"]
+    # Iterate over every timestep.
+    for date, np_img in zip(dates, results):
+        # If the given image is empty continue to next.
+        if not np_img.shape:
+            continue
+        # Save raster to machine or s3
+        out_path_date = out_path + "/" + date.replace("-", "_") + ".tif"
+        if not os.path.exists(os.path.dirname(out_path_date)):
+            os.makedirs(os.path.dirname(out_path_date))
+        write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
+    return out_path
+
+
+def build_collection_from_pixels(path_to_pixels):
+    """
+    From a path to multiple rasters build a pystact collection of catalogs.
+    Each catalog being a location with multiple timesteps.
+    Each catalog corresponds to a Y-input.
+    TODO: the all function
+
+    Parameters
+    ----------
+        path_to_pixels : str
+    Returns
+    -------
+        collection : pystact collection
+    """
+    return
