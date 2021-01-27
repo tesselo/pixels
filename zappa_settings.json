@@ -10,7 +10,17 @@
         "certificate_arn": "arn:aws:acm:us-east-1:595064993071:certificate/3cac1dfe-5915-4325-91fa-a53952cbd2e1",
         "log_level": "INFO",
         "timeout_seconds": 30,
-        "memory_size": 512
+        "memory_size": 512,
+        "authorizer": {
+            "type": "COGNITO_USER_POOLS",
+            "provider_arns": [
+                "arn:aws:cognito-idp:eu-central-1:595064993071:userpool/eu-central-1_HQxLXqeo1"
+            ]
+        },
+        "context_header_mappings": {
+          "CognitoIdentityId": "identity.cognitoIdentityId",
+          "APIStage": "stage"
+        }
     },
     "production": {
       "log_level": "WARNING",

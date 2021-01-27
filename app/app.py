@@ -68,9 +68,13 @@ def handle_pixels_error(exc):
 
 
 @app.route("/", methods=["GET"])
-@token_required
 def index():
-    return render_template("index.html")
+    print(request.headers)
+    return jsonify({
+        'CognitoIdentityId': request.headers.get('CognitoIdentityId', 'Unknown'),
+        'APIStage': request.headers.get('APIStage', 'Unknown')
+    })
+    # return render_template("index.html")
 
 
 @app.route("/docs", methods=["GET"])
