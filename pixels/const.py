@@ -83,10 +83,10 @@ S2_DATES = ""
 L7_DATES = ""
 L8_DATES = ""
 
-# Raster reference in tags
+# Raster reference in tags.
 TESSELO_TAG_NAMESPACE = "tesselo"
 
-# Modes to call pixels
+# Modes to call pixels.
 PIXELS_S2_STACK_MODE = "s2_stack"
 PIXELS_LATEST_PIXEL_MODE = "latest_pixel"
 PIXELS_COMPOSITE_MODE = "composite"

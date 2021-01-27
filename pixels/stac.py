@@ -138,7 +138,7 @@ def parse_training_data(
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
-    # Save files if bool is set,
+    # Save files if bool is set.
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
