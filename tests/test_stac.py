@@ -55,21 +55,27 @@ class TestUtils(unittest.TestCase):
                 zipF.write(file, compress_type=zipfile.ZIP_DEFLATED)
         # Build example catalog based on temporary file names.
         href_1 = (
-            "."
-            + self.raster[0].replace(".tif", "")
-            + self.raster[0].replace(".tif", "")
+            "./"
+            + os.path.join(
+                os.path.split(self.raster[0])[-1].replace(".tif", ""),
+                os.path.split(self.raster[0])[-1].replace(".tif", ""),
+            )
             + ".json"
         )
         href_2 = (
-            "."
-            + self.raster[1].replace(".tif", "")
-            + self.raster[1].replace(".tif", "")
+            "./"
+            + os.path.join(
+                os.path.split(self.raster[1])[-1].replace(".tif", ""),
+                os.path.split(self.raster[1])[-1].replace(".tif", ""),
+            )
             + ".json"
         )
         href_3 = (
-            "."
-            + self.raster[2].replace(".tif", "")
-            + self.raster[2].replace(".tif", "")
+            "./"
+            + os.path.join(
+                os.path.split(self.raster[2])[-1].replace(".tif", ""),
+                os.path.split(self.raster[2])[-1].replace(".tif", ""),
+            )
             + ".json"
         )
 
