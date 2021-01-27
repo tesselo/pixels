@@ -1,8 +1,6 @@
 name: Lint and test pixels
 
 on:
-  push:
-    branches-ignore: []
   pull_request:
     branches: [master]
 
