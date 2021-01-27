@@ -97,17 +97,20 @@ def parse_training_data(
         for af in archive.filelist:
             raster_list.append(af.filename)
     else:
-        id_name = zip_path.replace(os.path.dirname(zip_path), "")
+        id_name = os.path.split(zip_path)[-1]
         raster_list = glob.glob(zip_path + "*/*.tif", recursive=True)
 
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
     for raster in raster_list:
+        id_raster = os.path.split(raster)[-1].replace(".tif", "")
         if zip_path.endswith(".zip"):
             img_data = archive.read(raster)
             bytes_io = io.BytesIO(img_data)
+            path_item = zip_path + "!/" + raster
         else:
             bytes_io = raster
+            path_item = raster
         bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(bytes_io)
         # Ensure datetime var is set properly.
         if datetime_var is None:
@@ -117,7 +120,6 @@ def parse_training_data(
                 datetime_var = reference_date
         # Ensure datetime is object not string.
         datetime_var = parser.parse(datetime_var)
-        id_raster = raster.replace(".tif", "")
         out_meta["crs"] = out_meta["crs"].to_epsg()
         item = pystac.Item(
             id=id_raster,
@@ -129,15 +131,17 @@ def parse_training_data(
         item.add_asset(
             key=id_raster,
             asset=pystac.Asset(
-                href=zip_path + "/" + raster,
+                href=path_item,
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
         crs = out_meta["crs"]
         pystac.extensions.projection.ProjectionItemExt(item).apply(crs)
+        # item.validate()
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
+    # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
@@ -294,7 +298,7 @@ def get_and_write_raster_from_item(item, **kwargs):
     # called pixels.
     if "out_path" not in kwargs:
         work_path = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
-        out_path = work_path + "/pixels/" + item.id
+        out_path = os.path.join(work_path, "pixels", item.id)
     else:
         out_path = kwargs["out_path"]
     # Iterate over every timestep.
@@ -303,25 +307,75 @@ def get_and_write_raster_from_item(item, **kwargs):
         if not np_img.shape:
             continue
         # Save raster to machine or s3
-        out_path_date = out_path + "/" + date.replace("-", "_") + ".tif"
+        out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
     return out_path
 
 
-def build_collection_from_pixels(path_to_pixels):
+def build_collection_from_pixels(
+    catalogs,
+    path_to_pixels="",
+    collection_id="",
+    collection_title="",
+    collection_description="",
+    save_files=False,
+):
     """
-    From a path to multiple rasters build a pystact collection of catalogs.
-    Each catalog being a location with multiple timesteps.
-    Each catalog corresponds to a Y-input.
-    TODO: the all function
+    From a list of catalogs build a pystact collection.
 
     Parameters
     ----------
-        path_to_pixels : str
+        catalogs : list of pystac catalogs
+            List of catalogs to include in the collection.
+        path_to_pixels : str, optional
+            Output path for the collection json file.
+        collection_id : str, optional
+        collection_title : str, optional
+        collection_description : str, optional
+        save_files : bool, optional
+            Set True to save files from catalog and items.
+
     Returns
     -------
-        collection : pystact collection
+        collection : pystac collection
+    """
+    if not path_to_pixels:
+        path_to_pixels = os.path.split(os.path.dirname(catalogs[0].get_self_href()))[0]
+
+    spatial_extent = pystac.SpatialExtent([[]])
+    temporal_extent = pystac.TemporalExtent([[None, None]])
+    collection_extent = pystac.Extent(spatial_extent, temporal_extent)
+
+    collection = pystac.Collection(
+        id=collection_id,
+        title=collection_title,
+        description=collection_description,
+        extent=collection_extent,
+    )
+    collection.add_children(catalogs)
+    collection.update_extent_from_items()
+    collection.normalize_hrefs(path_to_pixels)
+    # collection.validate_all()
+    if save_files:
+        collection.save(pystac.CatalogType.SELF_CONTAINED)
+    return collection
+
+
+def create_and_collect(zip_path, config_file):
+    """
+    From a zip file containing the Y training data and a pixels configuration
+    file collect pixels and build stac item.
+    TODO: the all function.
+
+    Parameters
+    ----------
+        zip_path : str
+            Path to zip file containing rasters.
+        config_file : dict or path to json file
+            File or dictonary containing the pixels configuration.
+    Returns
+    -------
     """
     return
