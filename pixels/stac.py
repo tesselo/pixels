@@ -138,7 +138,8 @@ def parse_training_data(
 
 
 def build_bbox_geojson(item):
-    """Build GeoJson from item bounding box.
+    """
+    Build GeoJson from item bounding box.
 
     Parameters
     ----------
@@ -178,7 +179,8 @@ def set_pixels_config(
     maxcloud=20,
     pool_size=0,
 ):
-    """Based on a item build a config file to use on pixels.
+    """
+    Based on a item build a config file to use on pixels.
 
     Parameters
     ----------
@@ -222,7 +224,8 @@ def set_pixels_config(
 
 
 def run_pixels(config, mode="s2_stack"):
-    """Run pixels, based on a config file and a chosen mode.
+    """
+    Run pixels, based on a config file and a chosen mode.
 
     Parameters
     ----------
@@ -260,8 +263,10 @@ def run_pixels(config, mode="s2_stack"):
 
 
 def get_and_write_raster_from_item(item, **kwargs):
-    """Based on a pystac item get the images in timerange from item's bbox.
-        Write them as a raster afterwards.
+    """
+    Based on a pystac item get the images in timerange from item's bbox.
+    Write them as a raster afterwards.
+
     Parameters
     ----------
         item : pystac item type
@@ -273,14 +278,21 @@ def get_and_write_raster_from_item(item, **kwargs):
         out_path : str
             Path were the files were writen to.
     """
+    # Build a configuration json for pixels.
     config = set_pixels_config(item, **kwargs)
+    # Run pixels and get the dates, the images (as numpy) and the raster meta.
     dates, results, meta = run_pixels(config)
+    # For a lack of out_path argument build one based on item name.
+    # The directory for the raster will be one folder paralel to the stac one
+    # called pixels.
     if "out_path" not in kwargs:
         work_path = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
         out_path = work_path + "/pixels/" + item.id
     else:
         out_path = kwargs["out_path"]
+    # Iterate over every timestep.
     for date, np_img in zip(dates, results):
+        # If the given image is empty continue to next.
         if not np_img.shape:
             continue
         # Save raster to machine or s3
@@ -293,10 +305,12 @@ def get_and_write_raster_from_item(item, **kwargs):
 
 
 def build_collection_from_pixels(path_to_pixels):
-    """From a path to multiple rasters build a pystact collection of catalogs.
-        Each catalog being a location with multiple timesteps.
-        Each catalog corresponds to a Y-input.
-        TODO: the all function
+    """
+    From a path to multiple rasters build a pystact collection of catalogs.
+    Each catalog being a location with multiple timesteps.
+    Each catalog corresponds to a Y-input.
+    TODO: the all function
+
     Parameters
     ----------
         path_to_pixels : str
