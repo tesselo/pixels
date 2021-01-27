@@ -84,7 +84,7 @@ L7_DATES = ""
 L8_DATES = ""
 
 # Raster reference in tags
-TESSELO_TAG_NAMESPACE = 'tesselo'
+TESSELO_TAG_NAMESPACE = "tesselo"
 
 # Modes to call pixels
 PIXELS_S2_STACK_MODE = "s2_stack"
