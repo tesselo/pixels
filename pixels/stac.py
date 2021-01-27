@@ -7,6 +7,13 @@ import pystac
 import rasterio
 from dateutil import parser
 
+from pixels.const import (
+    PIXELS_COMPOSITE_MODE,
+    PIXELS_LATEST_PIXEL_MODE,
+    PIXELS_MODES,
+    PIXELS_S2_STACK_MODE,
+    TESSELO_TAG_NAMESPACE,
+)
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
@@ -51,7 +58,7 @@ def get_bbox_and_footprint(raster_uri):
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
-        datetime_var = ds.tags(ns="tesselo").get("datetime")
+        datetime_var = ds.tags(ns=TESSELO_TAG_NAMESPACE).get("datetime")
         return bbox, footprint, datetime_var, ds.meta
 
 
@@ -137,7 +144,7 @@ def parse_training_data(
     return catalog
 
 
-def build_bbox_geojson(item):
+def build_geometry_geojson(item):
     """
     Build GeoJson from item bounding box.
 
@@ -204,7 +211,7 @@ def set_pixels_config(
     """
     if item is str:
         item = pystac.read_file(item)
-    geojson = build_bbox_geojson(item)
+    geojson = build_geometry_geojson(item)
     # If no end data is specify, fetch from item. Datetime to format 'YYYY-MM-DD'
     if not end:
         end = item.datetime.isoformat()[:10]
@@ -245,15 +252,15 @@ def run_pixels(config, mode="s2_stack"):
         meta_data : dict
             Dictionary containing the item's meta data.
     """
-    if mode not in ("s2_stack", "latest", "composite"):
+    if mode not in PIXELS_MODES:
         raise ValueError(
             "Pixel mode not avaiable. Avaible modes: s2_stack, latest, composite."
         )
-    if mode == "s2_stack":
+    if mode == PIXELS_S2_STACK_MODE:
         result = latest_pixel_s2_stack(**config)
-    elif mode == "latest":
+    elif mode == PIXELS_LATEST_PIXEL_MODE:
         result = latest_pixel(**config)
-    elif mode == "composite":
+    elif mode == PIXELS_COMPOSITE_MODE:
         result = composite(**config)
 
     dates = result[1]
@@ -300,7 +307,6 @@ def get_and_write_raster_from_item(item, **kwargs):
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
-        # build item to new catalog
     return out_path
 
 
