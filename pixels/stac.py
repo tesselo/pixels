@@ -324,7 +324,7 @@ def build_collection_from_pixels(
 ):
     """
     From a list of catalogs build a pystact collection.
-    
+
     Parameters
     ----------
         catalogs : list of pystac catalogs
