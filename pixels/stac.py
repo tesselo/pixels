@@ -374,7 +374,7 @@ def create_and_collect(zip_path, config_file):
     """
     From a zip file containing the Y training data and a pixels configuration
     file collect pixels and build stac item.
-    TODO: the all function.
+    TODO: Add better descriptions to catalogs and collections.
 
     Parameters
     ----------
@@ -384,16 +384,21 @@ def create_and_collect(zip_path, config_file):
             File or dictonary containing the pixels configuration.
     Returns
     -------
+        final_collection : pystac collection
+            Pystac collection with all the metadata.
     """
+    # Open config file and load as dict.
     f = open(config_file)
     input_config = json.load(f)
+    # Build stac catalog from input data.
     y_catalog = parse_training_data(
         zip_path, save_files=True, reference_date="2020-12-31"
     )
-
+    # Remove geojson atribute from configuration.
     if "geojson" in input_config:
         input_config.pop("geojson")
-
+    # Iterate over every item in the input data, run pixels and save results to
+    # rasters.
     paths_list = []
     for item in y_catalog.get_all_items():
         try:
@@ -401,7 +406,10 @@ def create_and_collect(zip_path, config_file):
         except Exception as E:
             print(E)
             continue
+    # Drop all empty paths (Paths to downloaded data, each folder corresponds to
+    # an item from input).
     paths_list = [pth for pth in paths_list if pth]
+    # For each folder build a stac catalog.
     x_catalogs = []
     for folder in paths_list:
         try:
@@ -410,7 +418,7 @@ def create_and_collect(zip_path, config_file):
             print(E)
             continue
         x_catalogs.append(x_cat)
-
+    # Build a stac collection from all downloaded data.
     downloads_folder = os.path.dirname(paths_list[0])
     x_collection = build_collection_from_pixels(
         x_catalogs,
@@ -418,6 +426,7 @@ def create_and_collect(zip_path, config_file):
         collection_id="x_collection",
         path_to_pixels=downloads_folder,
     )
+    # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
         save_files=True,
