@@ -9,8 +9,11 @@ pip install -r requirements.txt
 pip install -r requirements_dev.txt
 ```
 
-## Run tests
-Pip install pytests, then run
+## Testing
+All new code contributions should be covered by unit tests. We will
+progressively improve the test suite.
+
+To run the test suite, install the dev dependencies and run pytest like so:
 ```shell
 pytest tests
 ```
