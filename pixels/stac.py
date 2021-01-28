@@ -2,6 +2,7 @@ import glob
 import io
 import os
 import zipfile
+import json
 
 import pystac
 import rasterio
@@ -367,7 +368,6 @@ def create_and_collect(zip_path, config_file):
     """
     From a zip file containing the Y training data and a pixels configuration
     file collect pixels and build stac item.
-    TODO: the all function.
 
     Parameters
     ----------
@@ -377,5 +377,35 @@ def create_and_collect(zip_path, config_file):
             File or dictonary containing the pixels configuration.
     Returns
     -------
+        final_collection : pystac collection
+            Collection containing all the information from the input and collect
+            data.
     """
-    return
+    f = open(config_file)
+    input_config = json.load(f)
+    y_catalog = parse_training_data(zip_path, save_files=True, reference_date='2020-12-31')
+
+    if 'geojson' in input_config:
+        input_config.pop('geojson')
+
+    paths_list = []
+    for item in y_catalog.get_all_items():
+        print(item)
+        try:
+            paths_list.append(get_and_write_raster_from_item(item, **input_config))
+        except Exception as E:
+            print(E)
+            continue
+
+    x_catalogs = []
+    for folder in paths_list:
+        try:
+            x_cat = parse_training_data(folder, save_files=True)
+        except Exception as E:
+            print(E)
+            continue
+        x_catalogs.append(x_cat)
+
+    x_collection = build_collection_from_pixels(x_catalogs, save_files=True, collection_id='x_collection')
+    final_collection = build_collection_from_pixels([x_collection, y_catalog], save_files=False, collection_id='final', path_to_pixels='/home/tesselo/stac_tutorial')
+    return final_collection
