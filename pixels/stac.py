@@ -93,14 +93,15 @@ def parse_training_data(
         # Open zip file.
         archive = zipfile.ZipFile(zip_path, "r")
         # Create stac catalog.
-        id_name = zip_path.replace(os.path.dirname(zip_path), "").replace(".zip", "")
+        id_name = os.path.split(zip_path)[-1].replace(".zip", "")
         raster_list = []
         for af in archive.filelist:
             raster_list.append(af.filename)
+        out_path = os.path.dirname(zip_path)
     else:
         id_name = os.path.split(zip_path)[-1]
-        raster_list = glob.glob(zip_path + "*/*.tif", recursive=True)
-
+        raster_list = glob.glob(zip_path + "/*.tif", recursive=True)
+        out_path = zip_path
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
     for raster in raster_list:
@@ -141,7 +142,7 @@ def parse_training_data(
         # item.validate()
         catalog.add_item(item)
     # Normalize paths inside catalog.
-    catalog.normalize_hrefs(os.path.join(os.path.dirname(zip_path), "stac"))
+    catalog.normalize_hrefs(os.path.join(out_path, "stac"))
     # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
@@ -294,6 +295,9 @@ def get_and_write_raster_from_item(item, **kwargs):
     config = set_pixels_config(item, **kwargs)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     dates, results, meta = run_pixels(config)
+    if not meta:
+        print("No images for ", item.id)
+        return
     # For a lack of out_path argument build one based on item name.
     # The directory for the raster will be one folder paralel to the stac one
     # called pixels.
@@ -357,7 +361,9 @@ def build_collection_from_pixels(
     )
     collection.add_children(catalogs)
     collection.update_extent_from_items()
-    collection.normalize_hrefs(path_to_pixels)
+    collection.set_self_href(path_to_pixels + "/collection.json")
+    collection.make_all_asset_hrefs_relative()
+    # collection.normalize_hrefs(path_to_pixels)
     # collection.validate_all()
     if save_files:
         collection.save(pystac.CatalogType.SELF_CONTAINED)
@@ -368,6 +374,7 @@ def create_and_collect(zip_path, config_file):
     """
     From a zip file containing the Y training data and a pixels configuration
     file collect pixels and build stac item.
+    TODO: the all function.
 
     Parameters
     ----------
@@ -377,9 +384,6 @@ def create_and_collect(zip_path, config_file):
             File or dictonary containing the pixels configuration.
     Returns
     -------
-        final_collection : pystac collection
-            Collection containing all the information from the input and collect
-            data.
     """
     f = open(config_file)
     input_config = json.load(f)
@@ -392,13 +396,12 @@ def create_and_collect(zip_path, config_file):
 
     paths_list = []
     for item in y_catalog.get_all_items():
-        print(item)
         try:
             paths_list.append(get_and_write_raster_from_item(item, **input_config))
         except Exception as E:
             print(E)
             continue
-
+    paths_list = [pth for pth in paths_list if pth]
     x_catalogs = []
     for folder in paths_list:
         try:
@@ -408,13 +411,17 @@ def create_and_collect(zip_path, config_file):
             continue
         x_catalogs.append(x_cat)
 
+    downloads_folder = os.path.dirname(paths_list[0])
     x_collection = build_collection_from_pixels(
-        x_catalogs, save_files=True, collection_id="x_collection"
+        x_catalogs,
+        save_files=True,
+        collection_id="x_collection",
+        path_to_pixels=downloads_folder,
     )
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
-        save_files=False,
+        save_files=True,
         collection_id="final",
-        path_to_pixels="/home/tesselo/stac_tutorial",
+        path_to_pixels=os.path.dirname(zip_path),
     )
     return final_collection
