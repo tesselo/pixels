@@ -49,11 +49,13 @@ class TestUtils(unittest.TestCase):
             origin_y=origin_y + size, tags={"datetime": "2021-01-01"}
         )
         self.raster.append(raster)
+
         # Zip them.
         with zipfile.ZipFile(self.zip_file.name, "w") as zipF:
             for file in self.raster:
                 zipF.write(file, compress_type=zipfile.ZIP_DEFLATED)
         # Build example catalog based on temporary file names.
+        id_name = os.path.split(self.zip_file.name)[-1].replace(".zip", "")
         href_1 = (
             "./"
             + os.path.join(
@@ -80,9 +82,7 @@ class TestUtils(unittest.TestCase):
         )
 
         self.catalog_example = {
-            "id": self.zip_file.name.replace(
-                os.path.dirname(self.zip_file.name), ""
-            ).replace(".zip", ""),
+            "id": id_name,
             "stac_version": pystac.version.get_stac_version(),
             "description": "",
             "links": [
