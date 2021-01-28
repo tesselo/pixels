@@ -1,8 +1,8 @@
 import glob
 import io
+import json
 import os
 import zipfile
-import json
 
 import pystac
 import rasterio
@@ -383,10 +383,12 @@ def create_and_collect(zip_path, config_file):
     """
     f = open(config_file)
     input_config = json.load(f)
-    y_catalog = parse_training_data(zip_path, save_files=True, reference_date='2020-12-31')
+    y_catalog = parse_training_data(
+        zip_path, save_files=True, reference_date="2020-12-31"
+    )
 
-    if 'geojson' in input_config:
-        input_config.pop('geojson')
+    if "geojson" in input_config:
+        input_config.pop("geojson")
 
     paths_list = []
     for item in y_catalog.get_all_items():
@@ -406,6 +408,13 @@ def create_and_collect(zip_path, config_file):
             continue
         x_catalogs.append(x_cat)
 
-    x_collection = build_collection_from_pixels(x_catalogs, save_files=True, collection_id='x_collection')
-    final_collection = build_collection_from_pixels([x_collection, y_catalog], save_files=False, collection_id='final', path_to_pixels='/home/tesselo/stac_tutorial')
+    x_collection = build_collection_from_pixels(
+        x_catalogs, save_files=True, collection_id="x_collection"
+    )
+    final_collection = build_collection_from_pixels(
+        [x_collection, y_catalog],
+        save_files=False,
+        collection_id="final",
+        path_to_pixels="/home/tesselo/stac_tutorial",
+    )
     return final_collection
