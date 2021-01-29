@@ -369,6 +369,7 @@ def build_collection_from_pixels(
         collection.save(pystac.CatalogType.SELF_CONTAINED)
     return collection
 
+
 def collect_from_catalog(y_catalog, config_file):
     """
     From a catalog containing the Y training data and a pixels configuration
