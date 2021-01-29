@@ -446,7 +446,7 @@ def create_and_collect(zip_path, config_file):
     y_catalog = parse_training_data(
         zip_path, save_files=True, reference_date="2020-12-31"
     )
-    # Build the X catalogs
+    # Build the X catalogs.
     x_collection = collect_from_catalog(y_catalog, config_file)
     # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
