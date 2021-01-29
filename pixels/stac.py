@@ -258,21 +258,20 @@ def run_pixels(config, mode="s2_stack"):
         meta_data : dict
             Dictionary containing the item's meta data.
     """
-    if mode not in PIXELS_MODES:
-        raise ValueError(
-            "Pixel mode not avaiable. Avaible modes: s2_stack, latest, composite."
-        )
     if mode == PIXELS_S2_STACK_MODE:
         result = latest_pixel_s2_stack(**config)
     elif mode == PIXELS_LATEST_PIXEL_MODE:
         result = latest_pixel(**config)
     elif mode == PIXELS_COMPOSITE_MODE:
         result = composite(**config)
+    else:
+        raise ValueError(
+            "Found invalid pixel mode {}. Avaible modes: {}.".format(
+                mode, ", ".join(PIXELS_MODES)
+            )
+        )
 
-    dates = result[1]
-    results = result[2]
-    meta_data = result[0]
-    return dates, results, meta_data
+    return result
 
 
 def get_and_write_raster_from_item(item, **kwargs):
@@ -294,7 +293,7 @@ def get_and_write_raster_from_item(item, **kwargs):
     # Build a configuration json for pixels.
     config = validate_pixels_config(item, **kwargs)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
-    dates, results, meta = run_pixels(config)
+    meta, dates, results = run_pixels(config)
     if not meta:
         print("No images for ", item.id)
         return
