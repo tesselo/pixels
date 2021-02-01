@@ -1,5 +1,4 @@
 import glob
-import io
 import json
 import os
 import zipfile
@@ -104,16 +103,13 @@ def parse_training_data(
         out_path = zip_path
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
-    for raster in raster_list:
-        id_raster = os.path.split(raster)[-1].replace(".tif", "")
+    for path_item in raster_list:
+        id_raster = os.path.split(path_item)[-1].replace(".tif", "")
+        # For zip files, wrap the path with a zip prefix.
         if zip_path.endswith(".zip"):
-            img_data = archive.read(raster)
-            bytes_io = io.BytesIO(img_data)
-            path_item = zip_path + "!/" + raster
-        else:
-            bytes_io = raster
-            path_item = raster
-        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(bytes_io)
+            path_item = "zip://{}!/{}".format(zip_path, path_item)
+        # Extract metadata from raster.
+        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(path_item)
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
