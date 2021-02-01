@@ -14,6 +14,7 @@ from pixels.const import (
     PIXELS_S2_STACK_MODE,
     TESSELO_TAG_NAMESPACE,
 )
+from pixels.exceptions import TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
@@ -113,7 +114,9 @@ def parse_training_data(
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
-                raise ValueError("Datetime could not be determined for stac.")
+                raise TrainingDataParseError(
+                    "Datetime could not be determined for stac."
+                )
             else:
                 datetime_var = reference_date
         # Ensure datetime is object not string.
