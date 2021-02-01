@@ -425,7 +425,7 @@ def collect_from_catalog(y_catalog, config_file):
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,
-        collection_id="x_collection_" + os.path.split(downloads_folder)[-1],
+        collection_id="x_collection_" + os.path.split(os.path.dirname(downloads_folder))[-1],
         path_to_pixels=downloads_folder,
     )
 
