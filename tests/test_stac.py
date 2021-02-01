@@ -104,4 +104,3 @@ class TestUtils(unittest.TestCase):
             obj = json.loads(data)
 
         self.assertEqual(obj, self.catalog_example)
-        import ipdb; ipdb.set_trace()

@@ -181,7 +181,7 @@ def build_geometry_geojson(item):
     return geojson
 
 
-def set_pixels_config(
+def validate_pixels_config(
     item,
     start="2020-01-01",
     end=None,
@@ -291,7 +291,7 @@ def get_and_write_raster_from_item(item, **kwargs):
             Path were the files were writen to.
     """
     # Build a configuration json for pixels.
-    config = set_pixels_config(item, **kwargs)
+    config = validate_pixels_config(item, **kwargs)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
     if not meta:
@@ -369,32 +369,28 @@ def build_collection_from_pixels(
     return collection
 
 
-def create_and_collect(zip_path, config_file):
+def collect_from_catalog(y_catalog, config_file):
     """
-    From a zip file containing the Y training data and a pixels configuration
-    file collect pixels and build stac item.
-    TODO: Add better descriptions to catalogs and collections.
+    From a catalog containing the Y training data and a pixels configuration
+    file collect pixels and build X collection stac.
 
     Parameters
     ----------
-        zip_path : str
-            Path to zip file containing rasters.
+        y_catalog : pystac catalog
+            Catalog with the information where to download data.
         config_file : dict or path to json file
             File or dictonary containing the pixels configuration.
     Returns
     -------
-        final_collection : pystac collection
+        x_collection : pystac collection
             Pystac collection with all the metadata.
     """
     # Open config file and load as dict.
-    with open(config_file) as f:
-        input_config = json.load(f)
+    f = open(config_file)
+    input_config = json.load(f)
     # Remove geojson atribute from configuration.
-    input_config.pop("geojson", None)
-    # Build stac catalog from input data.
-    y_catalog = parse_training_data(
-        zip_path, save_files=True, reference_date="2020-12-31"
-    )
+    if "geojson" in input_config:
+        input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     paths_list = []
@@ -424,6 +420,33 @@ def create_and_collect(zip_path, config_file):
         collection_id="x_collection",
         path_to_pixels=downloads_folder,
     )
+
+    return x_collection
+
+
+def create_and_collect(zip_path, config_file):
+    """
+    From a zip file containing the Y training data and a pixels configuration
+    file collect pixels and build stac item.
+    TODO: Add better descriptions to catalogs and collections.
+
+    Parameters
+    ----------
+        zip_path : str
+            Path to zip file containing rasters.
+        config_file : dict or path to json file
+            File or dictonary containing the pixels configuration.
+    Returns
+    -------
+        final_collection : pystac collection
+            Pystac collection with all the metadata.
+    """
+    # Build stac catalog from input data.
+    y_catalog = parse_training_data(
+        zip_path, save_files=True, reference_date="2020-12-31"
+    )
+    # Build the X catalogs.
+    x_collection = collect_from_catalog(y_catalog, config_file)
     # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
