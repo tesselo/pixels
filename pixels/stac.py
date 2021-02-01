@@ -1,5 +1,4 @@
 import glob
-import io
 import json
 import os
 import zipfile
@@ -15,6 +14,7 @@ from pixels.const import (
     PIXELS_S2_STACK_MODE,
     TESSELO_TAG_NAMESPACE,
 )
+from pixels.exceptions import TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
@@ -47,15 +47,15 @@ def get_bbox_and_footprint(raster_uri):
         # Create bbox as polygon feature.
         footprint = {
             "type": "Polygon",
-            "coordinates": (
-                (
-                    (bounds.left, bounds.bottom),
-                    (bounds.left, bounds.top),
-                    (bounds.right, bounds.top),
-                    (bounds.right, bounds.bottom),
-                    (bounds.left, bounds.bottom),
-                )
-            ),
+            "coordinates": [
+                [
+                    [bounds.left, bounds.bottom],
+                    [bounds.left, bounds.top],
+                    [bounds.right, bounds.top],
+                    [bounds.right, bounds.bottom],
+                    [bounds.left, bounds.bottom],
+                ]
+            ],
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
@@ -64,7 +64,7 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def parse_training_data(
-    zip_path, save_files=False, description="", reference_date=None
+    source_path, save_files=False, description="", reference_date=None
 ):
     """
     From a zip files of rasters or a folder build a stac catalog.
@@ -74,7 +74,7 @@ def parse_training_data(
 
     Parameters
     ----------
-        zip_path : str
+        source_path : str
             Path to the zip file or folder containing the rasters.
         save_files : bool, optional
             Set True to save files from catalog and items.
@@ -89,40 +89,46 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-    if zip_path.endswith(".zip"):
+    if source_path.endswith(".zip"):
         # Open zip file.
-        archive = zipfile.ZipFile(zip_path, "r")
+        archive = zipfile.ZipFile(source_path, "r")
         # Create stac catalog.
-        id_name = os.path.split(os.path.dirname(zip_path))[-1]
+        id_name = os.path.split(os.path.dirname(source_path))[-1]
         raster_list = []
         for af in archive.filelist:
             raster_list.append(af.filename)
-        out_path = os.path.dirname(zip_path)
+        out_path = os.path.dirname(source_path)
     else:
-        id_name = os.path.split(zip_path)[-1]
-        raster_list = glob.glob(zip_path + "/*.tif", recursive=True)
-        out_path = zip_path
+        id_name = os.path.split(source_path)[-1]
+        raster_list = glob.glob(source_path + "/*.tif", recursive=True)
+        out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
-    for raster in raster_list:
-        id_raster = os.path.split(raster)[-1].replace(".tif", "")
-        if zip_path.endswith(".zip"):
-            img_data = archive.read(raster)
-            bytes_io = io.BytesIO(img_data)
-            path_item = zip_path + "!/" + raster
-        else:
-            bytes_io = raster
-            path_item = raster
-        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(bytes_io)
+    for path_item in raster_list:
+        id_raster = os.path.split(path_item)[-1].replace(".tif", "")
+        # For zip files, wrap the path with a zip prefix.
+        if source_path.endswith(".zip"):
+            path_item = "zip://{}!/{}".format(source_path, path_item)
+        # Extract metadata from raster.
+        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(path_item)
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
-                raise ValueError("Datetime could not be determined for stac.")
+                raise TrainingDataParseError(
+                    "Datetime could not be determined for stac."
+                )
             else:
                 datetime_var = reference_date
         # Ensure datetime is object not string.
         datetime_var = parser.parse(datetime_var)
-        out_meta["crs"] = out_meta["crs"].to_epsg()
+        # Add projection stac extension, assuming input crs has a EPSG id.
+        out_meta["proj:epsg"] = out_meta["crs"].to_epsg()
+        out_meta["stac_extensions"] = ["projection"]
+        # Make transform and crs json serializable.
+        out_meta["transform"] = tuple(out_meta["transform"])
+        out_meta["crs"] = out_meta["crs"].to_dict()
+        # out_meta["crs"] = out_meta["crs"].to_epsg()
+        # Create stac item.
         item = pystac.Item(
             id=id_raster,
             geometry=footprint,
@@ -130,6 +136,7 @@ def parse_training_data(
             datetime=datetime_var,
             properties=out_meta,
         )
+        # Register raster as asset of item.
         item.add_asset(
             key=id_raster,
             asset=pystac.Asset(
@@ -137,9 +144,9 @@ def parse_training_data(
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
-        crs = out_meta["crs"]
-        pystac.extensions.projection.ProjectionItemExt(item).apply(crs)
-        # item.validate()
+        # Validate item.
+        item.validate()
+        # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
@@ -171,9 +178,8 @@ def build_geometry_geojson(item):
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
-                    "coordinates": [
-                        [list(coords) for coords in item.geometry["coordinates"]]
-                    ],
+                    "coordinates": item.geometry["coordinates"]
+                    ,
                 },
             },
         ],
@@ -433,7 +439,7 @@ def collect_from_catalog(y_catalog, config_file):
     return x_collection
 
 
-def create_and_collect(zip_path, config_file):
+def create_and_collect(source_path, config_file):
     """
     From a zip file containing the Y training data and a pixels configuration
     file collect pixels and build stac item.
@@ -441,8 +447,8 @@ def create_and_collect(zip_path, config_file):
 
     Parameters
     ----------
-        zip_path : str
-            Path to zip file containing rasters.
+        source_path : str
+            Path to zip file or folder containing rasters.
         config_file : dict or path to json file
             File or dictonary containing the pixels configuration.
     Returns
@@ -453,21 +459,21 @@ def create_and_collect(zip_path, config_file):
     # Build stac catalog from input data.
     print("Building stac files for input data.")
     y_catalog = parse_training_data(
-        zip_path, save_files=True, reference_date="2020-12-31"
+        source_path, save_files=True, reference_date="2020-12-31"
     )
     print("Collecting data using pixels.")
     # Build the X catalogs.
     x_collection = collect_from_catalog(y_catalog, config_file)
     # Collection paths
     existing_collection_path = os.path.join(
-        os.path.dirname(zip_path), "collection.json"
+        os.path.dirname(source_path), "collection.json"
     )
     # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
         save_files=False,
         collection_id="final",
-        path_to_pixels=os.path.dirname(zip_path),
+        path_to_pixels=os.path.dirname(source_path),
     )
     if os.path.exists(existing_collection_path):
         # Read old colection, merge them together

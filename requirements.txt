@@ -5,3 +5,4 @@ Flask-SQLAlchemy==2.4.4
 pg8000==1.16.5
 mercantile==1.1.6
 pystac==0.5.4
+jsonschema==3.2.0

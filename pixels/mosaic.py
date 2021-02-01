@@ -97,12 +97,14 @@ def latest_pixel(
         if stack is None:
             # Set first return as stack.
             stack = [dat[1] for dat in data]
-            # Extract creation arguments.
-            creation_args = data[0][0]
         else:
             # Update nodata values in stack with new pixels.
             for i in range(len(bands)):
                 stack[i][mask] = data[i][1][mask]
+
+        # Extract creation arguments.
+        if not creation_args:
+            creation_args = data[0][0]
 
         # Update nodata mask.
         mask = stack[0] == NODATA_VALUE
