@@ -63,7 +63,7 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def parse_training_data(
-    zip_path, save_files=False, description="", reference_date=None
+    source_path, save_files=False, description="", reference_date=None
 ):
     """
     From a zip files of rasters or a folder build a stac catalog.
@@ -73,7 +73,7 @@ def parse_training_data(
 
     Parameters
     ----------
-        zip_path : str
+        source_path : str
             Path to the zip file or folder containing the rasters.
         save_files : bool, optional
             Set True to save files from catalog and items.
@@ -88,26 +88,26 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-    if zip_path.endswith(".zip"):
+    if source_path.endswith(".zip"):
         # Open zip file.
-        archive = zipfile.ZipFile(zip_path, "r")
+        archive = zipfile.ZipFile(source_path, "r")
         # Create stac catalog.
-        id_name = os.path.split(zip_path)[-1].replace(".zip", "")
+        id_name = os.path.split(source_path)[-1].replace(".zip", "")
         raster_list = []
         for af in archive.filelist:
             raster_list.append(af.filename)
-        out_path = os.path.dirname(zip_path)
+        out_path = os.path.dirname(source_path)
     else:
-        id_name = os.path.split(zip_path)[-1]
-        raster_list = glob.glob(zip_path + "/*.tif", recursive=True)
-        out_path = zip_path
+        id_name = os.path.split(source_path)[-1]
+        raster_list = glob.glob(source_path + "/*.tif", recursive=True)
+        out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
         # For zip files, wrap the path with a zip prefix.
-        if zip_path.endswith(".zip"):
-            path_item = "zip://{}!/{}".format(zip_path, path_item)
+        if source_path.endswith(".zip"):
+            path_item = "zip://{}!/{}".format(source_path, path_item)
         # Extract metadata from raster.
         bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(path_item)
         # Ensure datetime var is set properly.
@@ -420,7 +420,7 @@ def collect_from_catalog(y_catalog, config_file):
     return x_collection
 
 
-def create_and_collect(zip_path, config_file):
+def create_and_collect(source_path, config_file):
     """
     From a zip file containing the Y training data and a pixels configuration
     file collect pixels and build stac item.
@@ -428,8 +428,8 @@ def create_and_collect(zip_path, config_file):
 
     Parameters
     ----------
-        zip_path : str
-            Path to zip file containing rasters.
+        source_path : str
+            Path to zip file or folder containing rasters.
         config_file : dict or path to json file
             File or dictonary containing the pixels configuration.
     Returns
@@ -439,7 +439,7 @@ def create_and_collect(zip_path, config_file):
     """
     # Build stac catalog from input data.
     y_catalog = parse_training_data(
-        zip_path, save_files=True, reference_date="2020-12-31"
+        source_path, save_files=True, reference_date="2020-12-31"
     )
     # Build the X catalogs.
     x_collection = collect_from_catalog(y_catalog, config_file)
@@ -448,6 +448,6 @@ def create_and_collect(zip_path, config_file):
         [x_collection, y_catalog],
         save_files=True,
         collection_id="final",
-        path_to_pixels=os.path.dirname(zip_path),
+        path_to_pixels=os.path.dirname(source_path),
     )
     return final_collection
