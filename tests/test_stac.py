@@ -55,7 +55,7 @@ class TestUtils(unittest.TestCase):
             for file in self.raster:
                 zipF.write(file, compress_type=zipfile.ZIP_DEFLATED)
         # Build example catalog based on temporary file names.
-        id_name = os.path.split(self.zip_file.name)[-1].replace(".zip", "")
+        id_name = "tmp"
         href_1 = (
             "./"
             + os.path.join(
