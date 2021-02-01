@@ -226,3 +226,50 @@ Within Tesselo Pixel, the platform type is "Sentinel-1" and the product type eit
 
 #### GRD
 Level-1 Ground Range Detected (GRD) products consist of focused SAR data that has been detected, multi-looked and projected to ground range using an Earth ellipsoid model. Phase information is lost. The resulting product has approximately square spatial resolution pixels and square pixel spacing with reduced speckle at the cost of worse spatial resolution.
+
+## Stac Integration
+
+### Example for pipeline run_pixel
+
+### Stac Browser - setting up and usage
+Clone the following package:
+
+  https://github.com/radiantearth/stac-browser
+
+Install the package:
+```
+npm install
+```
+
+Create an app python file (app.py):
+
+```python
+from flask import Flask, send_from_directory
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route("/<path:path_file>")
+
+def stac(path_file):
+    return send_from_directory("/path/to/folder/with_the/catalog_or_collection", path_file)
+
+if __name__ == "__main__":
+    app.run()
+```
+
+Run on one terminal:
+
+```
+python app.py
+```
+
+Open another terminal in the stac-browser folder. Run:
+```
+CATALOG_URL=http://127.0.0.1:5000/collection.json npm start -- --open
+```
+
+In your browser open
+
+http://localhost:1234/
