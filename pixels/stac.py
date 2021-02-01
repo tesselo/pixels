@@ -178,8 +178,7 @@ def build_geometry_geojson(item):
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
-                    "coordinates": item.geometry["coordinates"]
-                    ,
+                    "coordinates": item.geometry["coordinates"],
                 },
             },
         ],
