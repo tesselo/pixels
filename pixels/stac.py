@@ -301,9 +301,9 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
     # The directory for the raster will be one folder paralel to the stac one
     # called pixels.
     if "out_path" not in kwargs:
-        #y_folder = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
-        #work_path = os.path.dirname(os.path.dirname(y_folder))
-        out_path = os.path.join(x_folder, "data", ('pixels_'+str(item.id)))
+        # y_folder = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
+        # work_path = os.path.dirname(os.path.dirname(y_folder))
+        out_path = os.path.join(x_folder, "data", ("pixels_" + str(item.id)))
     else:
         out_path = kwargs["out_path"]
     # Iterate over every timestep.
@@ -398,11 +398,13 @@ def collect_from_catalog(y_catalog, config_file):
     paths_list = []
     count = 0
     for item in y_catalog.get_all_items():
-        print('Collecting item: ', item.id, ' and writing rasters.')
-        print(round(count/(len(y_catalog.links)-2)*100, 2), '%')
+        print("Collecting item: ", item.id, " and writing rasters.")
+        print(round(count / (len(y_catalog.links) - 2) * 100, 2), "%")
         count = count + 1
         try:
-            paths_list.append(get_and_write_raster_from_item(item, x_folder, **input_config))
+            paths_list.append(
+                get_and_write_raster_from_item(item, x_folder, **input_config)
+            )
         except Exception as E:
             print(E)
             continue
@@ -448,15 +450,17 @@ def create_and_collect(zip_path, config_file):
             Pystac collection with all the metadata.
     """
     # Build stac catalog from input data.
-    print('Building stac files for input data.')
+    print("Building stac files for input data.")
     y_catalog = parse_training_data(
         zip_path, save_files=True, reference_date="2020-12-31"
     )
-    print('Collecting data using pixels.')
+    print("Collecting data using pixels.")
     # Build the X catalogs.
     x_collection = collect_from_catalog(y_catalog, config_file)
     # Collection paths
-    existing_collection_path = os.path.join(os.path.dirname(zip_path), 'collection.json')
+    existing_collection_path = os.path.join(
+        os.path.dirname(zip_path), "collection.json"
+    )
     # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
