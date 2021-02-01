@@ -47,15 +47,15 @@ def get_bbox_and_footprint(raster_uri):
         # Create bbox as polygon feature.
         footprint = {
             "type": "Polygon",
-            "coordinates": (
-                (
-                    (bounds.left, bounds.bottom),
-                    (bounds.left, bounds.top),
-                    (bounds.right, bounds.top),
-                    (bounds.right, bounds.bottom),
-                    (bounds.left, bounds.bottom),
-                )
-            ),
+            "coordinates": [
+                [
+                    [bounds.left, bounds.bottom],
+                    [bounds.left, bounds.top],
+                    [bounds.right, bounds.top],
+                    [bounds.right, bounds.bottom],
+                    [bounds.left, bounds.bottom],
+                ]
+            ],
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
@@ -121,7 +121,14 @@ def parse_training_data(
                 datetime_var = reference_date
         # Ensure datetime is object not string.
         datetime_var = parser.parse(datetime_var)
-        out_meta["crs"] = out_meta["crs"].to_epsg()
+        # Add projection stac extension, assuming input crs has a EPSG id.
+        out_meta["proj:epsg"] = out_meta["crs"].to_epsg()
+        out_meta["stac_extensions"] = ["projection"]
+        # Make transform and crs json serializable.
+        out_meta["transform"] = tuple(out_meta["transform"])
+        out_meta["crs"] = out_meta["crs"].to_dict()
+        # out_meta["crs"] = out_meta["crs"].to_epsg()
+        # Create stac item.
         item = pystac.Item(
             id=id_raster,
             geometry=footprint,
@@ -129,6 +136,7 @@ def parse_training_data(
             datetime=datetime_var,
             properties=out_meta,
         )
+        # Register raster as asset of item.
         item.add_asset(
             key=id_raster,
             asset=pystac.Asset(
@@ -136,9 +144,9 @@ def parse_training_data(
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
-        crs = out_meta["crs"]
-        pystac.extensions.projection.ProjectionItemExt(item).apply(crs)
-        # item.validate()
+        # Validate item.
+        item.validate()
+        # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
