@@ -93,7 +93,7 @@ def parse_training_data(
         # Open zip file.
         archive = zipfile.ZipFile(zip_path, "r")
         # Create stac catalog.
-        id_name = os.path.split(zip_path)[-1].replace(".zip", "")
+        id_name = os.path.split(os.path.dirname(zip_path))[-1]
         raster_list = []
         for af in archive.filelist:
             raster_list.append(af.filename)
@@ -274,7 +274,7 @@ def run_pixels(config, mode="s2_stack"):
     return result
 
 
-def get_and_write_raster_from_item(item, **kwargs):
+def get_and_write_raster_from_item(item, x_folder, **kwargs):
     """
     Based on a pystac item get the images in timerange from item's bbox.
     Write them as a raster afterwards.
@@ -301,8 +301,9 @@ def get_and_write_raster_from_item(item, **kwargs):
     # The directory for the raster will be one folder paralel to the stac one
     # called pixels.
     if "out_path" not in kwargs:
-        work_path = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
-        out_path = os.path.join(work_path, "pixels", item.id)
+        #y_folder = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
+        #work_path = os.path.dirname(os.path.dirname(y_folder))
+        out_path = os.path.join(x_folder, "data", ('pixels_'+str(item.id)))
     else:
         out_path = kwargs["out_path"]
     # Iterate over every timestep.
@@ -388,15 +389,20 @@ def collect_from_catalog(y_catalog, config_file):
     # Open config file and load as dict.
     f = open(config_file)
     input_config = json.load(f)
+    x_folder = os.path.dirname(config_file)
     # Remove geojson atribute from configuration.
     if "geojson" in input_config:
         input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     paths_list = []
+    count = 0
     for item in y_catalog.get_all_items():
+        print('Collecting item: ', item.id, ' and writing rasters.')
+        print(round(count/(len(y_catalog.links)-2)*100, 2), '%')
+        count = count + 1
         try:
-            paths_list.append(get_and_write_raster_from_item(item, **input_config))
+            paths_list.append(get_and_write_raster_from_item(item, x_folder, **input_config))
         except Exception as E:
             print(E)
             continue
@@ -417,7 +423,7 @@ def collect_from_catalog(y_catalog, config_file):
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,
-        collection_id="x_collection",
+        collection_id="x_collection_" + os.path.split(downloads_folder)[-1],
         path_to_pixels=downloads_folder,
     )
 
@@ -442,16 +448,27 @@ def create_and_collect(zip_path, config_file):
             Pystac collection with all the metadata.
     """
     # Build stac catalog from input data.
+    print('Building stac files for input data.')
     y_catalog = parse_training_data(
         zip_path, save_files=True, reference_date="2020-12-31"
     )
+    print('Collecting data using pixels.')
     # Build the X catalogs.
     x_collection = collect_from_catalog(y_catalog, config_file)
+    # Collection paths
+    existing_collection_path = os.path.join(os.path.dirname(zip_path), 'collection.json')
     # Build the final collection containing the X and the Y.
     final_collection = build_collection_from_pixels(
         [x_collection, y_catalog],
-        save_files=True,
+        save_files=False,
         collection_id="final",
         path_to_pixels=os.path.dirname(zip_path),
     )
+    if os.path.exists(existing_collection_path):
+        # Read old colection, merge them together
+        existing_collection = pystac.Catalog.from_file(existing_collection_path)
+        for child in existing_collection.get_children():
+            if child not in final_collection.get_children():
+                final_collection.add_child(child)
+    final_collection.save(pystac.CatalogType.SELF_CONTAINED)
     return final_collection
