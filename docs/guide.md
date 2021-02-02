@@ -229,7 +229,39 @@ Level-1 Ground Range Detected (GRD) products consist of focused SAR data that ha
 
 ## Stac Integration
 
-### Example for pipeline run_pixel
+### Example for pipeline run pixel and build stac file
+
+#### Parse training data and create stac items
+Using ipython (prior set you aws credentials):
+```python
+from pixels.stac import *
+
+source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
+
+ycatalog = parse_training_data(source_s3_path, save_files=True, reference_date="2020-12-31")
+```
+
+#### Collecting and writing the pixels result
+In the same ipython:
+```python
+
+config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
+
+x_collection = collect_from_catalog(ycatalog, config_file)
+```
+
+You have both X and Y stac collections you can save them as intendend.
+
+#### Full pipeline in one function
+In ipython:
+```python
+from pixels.stac import *
+
+source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
+config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
+
+final_collection = create_and_collect(source_path, config_file)
+```
 
 ### Stac Browser - setting up and usage
 Clone the following package:

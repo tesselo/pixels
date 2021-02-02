@@ -147,7 +147,7 @@ def upload_files_s3_from_catalog(catalog, file_type="json"):
         key_path = link.target.get_self_href()
         data = link.target.to_dict()
         key_path = key_path.replace("s3://" + bucket + "/", "")
-        s3.put_object(Key=key_path, Bucket=bucket, Body=data)
+        s3.put_object(Key=key_path, Bucket=bucket, Body=str(data))
 
 
 def parse_training_data(
@@ -251,10 +251,11 @@ def parse_training_data(
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
     catalog.make_all_links_absolute()
+    catalog.make_all_asset_hrefs_absolute()
     # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
-        catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+        catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
         if source_path.startswith("s3"):
             upload_files_s3_from_catalog(catalog)
     return catalog
