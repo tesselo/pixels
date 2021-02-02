@@ -114,15 +114,20 @@ def upload_files_s3(path, file_type="json"):
 
     """
     file_list = glob.glob(
-        os.path.dirname(path) + "**/**/*." + file_type, recursive=True
+        path + "**/**/*." + file_type, recursive=True
     )
+    print(file_list)
     s3 = boto3.client("s3")
+    sta = 's3:/'
+    if not path.startswith('s3'):
+        sta = path.split('/')[0]
+        path = path.replace(sta, 's3:/')
     s3_path = path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
     for file in file_list:
-        key_path = file.replace("s3://" + bucket + "/", "")
+        key_path = file.replace(sta+'/'+ bucket + "/", "")
         s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
-    shutil.rmtree("s3:/")
+    shutil.rmtree(sta)
 
 
 def upload_files_s3_from_catalog(catalog, file_type="json"):
@@ -399,6 +404,8 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
         out_path : str
             Path were the files were writen to.
     """
+    print(os.path.join(x_folder, "data", ("pixels_" + str(item.id))))
+
     # Build a configuration json for pixels.
     config = validate_pixels_config(item, **kwargs)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
@@ -415,6 +422,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
         out_path = os.path.join(x_folder, "data", ("pixels_" + str(item.id)))
     else:
         out_path = kwargs["out_path"]
+    out_paths_tmp = []
     # Iterate over every timestep.
     for date, np_img in zip(dates, results):
         # If the given image is empty continue to next.
@@ -422,9 +430,14 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
+        if out_path_date.startswith('s3'):
+            out_path_date = out_path_date.replace('s3://','tmp/')
+            out_paths_tmp.append(out_path_date)
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
+    if out_path.startswith('s3'):
+        upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     return out_path
 
 
@@ -496,8 +509,13 @@ def collect_from_catalog(y_catalog, config_file):
             Pystac collection with all the metadata.
     """
     # Open config file and load as dict.
-    f = open(config_file)
-    input_config = json.load(f)
+    if config_file.startswith('s3'):
+        my_str = open_file_from_s3(config_file)['Body'].read()
+        new_str = my_str.decode('utf-8')
+        input_config = json.loads(new_str)
+    else:
+        f = open(config_file)
+        input_config = json.load(f)
     x_folder = os.path.dirname(config_file)
     # Remove geojson atribute from configuration.
     if "geojson" in input_config:
