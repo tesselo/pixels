@@ -143,9 +143,9 @@ def upload_files_s3_from_catalog(catalog, file_type="json"):
     path = catalog.get_self_href()
     s3_path = path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
-    for link in catalog.links:
-        key_path = link.target.get_self_href()
-        data = link.target.to_dict()
+    for link in catalog.get_all_items():
+        key_path = link.get_self_href()
+        data = link.to_dict()
         key_path = key_path.replace("s3://" + bucket + "/", "")
         s3.put_object(Key=key_path, Bucket=bucket, Body=str(data))
 
