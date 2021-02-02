@@ -1,8 +1,11 @@
 import glob
+import io
 import json
 import os
+import shutil
 import zipfile
 
+import boto3
 import pystac
 import rasterio
 from dateutil import parser
@@ -63,6 +66,90 @@ def get_bbox_and_footprint(raster_uri):
         return bbox, footprint, datetime_var, ds.meta
 
 
+def open_file_from_s3(source_path):
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)
+    return data
+
+
+def open_zip_from_s3(source_path):
+    """
+    Read a zip file in s3.
+
+    Parameters
+    ----------
+        source_path : str
+            Path to the zip file on s3 containing the rasters.
+
+    Returns
+    -------
+        data : BytesIO
+            Obejct from the zip file.
+    """
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
+    data = io.BytesIO(data)
+    return data
+
+
+def upload_files_s3(path, file_type="json"):
+    """
+    Upload files inside a folder to s3.
+    The s3 paths most be the same as the folder.
+
+    Parameters
+    ----------
+        path : str
+            Path to folder containing the files you wan to upload.
+        file_type : str, optional
+            Filetype to upload, set to json.
+    Returns
+    -------
+
+    """
+    file_list = glob.glob(
+        os.path.dirname(path) + "**/**/*." + file_type, recursive=True
+    )
+    s3 = boto3.client("s3")
+    s3_path = path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    for file in file_list:
+        key_path = file.replace("s3://" + bucket + "/", "")
+        s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
+    shutil.rmtree("s3:/")
+
+
+def upload_files_s3_from_catalog(catalog, file_type="json"):
+    """
+    Upload files from catalog.
+
+    Parameters
+    ----------
+        path : str
+            Path to folder containing the files you wan to upload.
+        file_type : str, optional
+            Filetype to upload, set to json.
+    Returns
+    -------
+
+    """
+    s3 = boto3.client("s3")
+    path = catalog.get_self_href()
+    s3_path = path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    for link in catalog.links:
+        key_path = link.target.get_self_href()
+        data = link.target.to_dict()
+        key_path = key_path.replace("s3://" + bucket + "/", "")
+        s3.put_object(Key=key_path, Bucket=bucket, Body=data)
+
+
 def parse_training_data(
     source_path, save_files=False, description="", reference_date=None
 ):
@@ -90,13 +177,18 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     if source_path.endswith(".zip"):
+        if source_path.startswith("s3"):
+            data = open_zip_from_s3(source_path)
+        else:
+            data = source_path
         # Open zip file.
-        archive = zipfile.ZipFile(source_path, "r")
+        archive = zipfile.ZipFile(data, "r")
         # Create stac catalog.
         id_name = os.path.split(os.path.dirname(source_path))[-1]
         raster_list = []
         for af in archive.filelist:
-            raster_list.append(af.filename)
+            if af.filename.endswith(".tif"):
+                raster_list.append(af.filename)
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
@@ -106,11 +198,19 @@ def parse_training_data(
     # For every raster in the zip file create an item, add it to catalog.
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
+        raster_file = path_item
         # For zip files, wrap the path with a zip prefix.
-        if source_path.endswith(".zip"):
+        if source_path.endswith(".zip") and source_path.startswith("s3"):
+            file_in_zip = zipfile.ZipFile(data, "r")
+            raster_file = file_in_zip.read(path_item)
+            raster_file = io.BytesIO(raster_file)
             path_item = "zip://{}!/{}".format(source_path, path_item)
+        elif source_path.endswith(".zip"):
+            path_item = "zip://{}!/{}".format(source_path, path_item)
+            raster_file = path_item
         # Extract metadata from raster.
-        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(path_item)
+        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(raster_file)
+
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
@@ -150,10 +250,13 @@ def parse_training_data(
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
+    catalog.make_all_links_absolute()
     # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+        if source_path.startswith("s3"):
+            upload_files_s3_from_catalog(catalog)
     return catalog
 
 
@@ -404,7 +507,7 @@ def collect_from_catalog(y_catalog, config_file):
     count = 0
     for item in y_catalog.get_all_items():
         print("Collecting item: ", item.id, " and writing rasters.")
-        print(round(count / (len(y_catalog.links) - 2) * 100, 2), "%")
+        print(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
         count = count + 1
         try:
             paths_list.append(
