@@ -113,19 +113,17 @@ def upload_files_s3(path, file_type="json"):
     -------
 
     """
-    file_list = glob.glob(
-        path + "**/**/*." + file_type, recursive=True
-    )
+    file_list = glob.glob(path + "**/**/*." + file_type, recursive=True)
     print(file_list)
     s3 = boto3.client("s3")
-    sta = 's3:/'
-    if not path.startswith('s3'):
-        sta = path.split('/')[0]
-        path = path.replace(sta, 's3:/')
+    sta = "s3:/"
+    if not path.startswith("s3"):
+        sta = path.split("/")[0]
+        path = path.replace(sta, "s3:/")
     s3_path = path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
     for file in file_list:
-        key_path = file.replace(sta+'/'+ bucket + "/", "")
+        key_path = file.replace(sta + "/" + bucket + "/", "")
         s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
     shutil.rmtree(sta)
 
@@ -430,13 +428,13 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
-        if out_path_date.startswith('s3'):
-            out_path_date = out_path_date.replace('s3://','tmp/')
+        if out_path_date.startswith("s3"):
+            out_path_date = out_path_date.replace("s3://", "tmp/")
             out_paths_tmp.append(out_path_date)
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
-    if out_path.startswith('s3'):
+    if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     return out_path
 
@@ -509,9 +507,9 @@ def collect_from_catalog(y_catalog, config_file):
             Pystac collection with all the metadata.
     """
     # Open config file and load as dict.
-    if config_file.startswith('s3'):
-        my_str = open_file_from_s3(config_file)['Body'].read()
-        new_str = my_str.decode('utf-8')
+    if config_file.startswith("s3"):
+        my_str = open_file_from_s3(config_file)["Body"].read()
+        new_str = my_str.decode("utf-8")
         input_config = json.loads(new_str)
     else:
         f = open(config_file)
