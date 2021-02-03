@@ -1,11 +1,16 @@
 import glob
+import io
 import json
 import os
+import shutil
 import zipfile
+from urllib.parse import urlparse
 
+import boto3
 import pystac
 import rasterio
 from dateutil import parser
+from pystac import STAC_IO
 
 from pixels.const import (
     PIXELS_COMPOSITE_MODE,
@@ -63,8 +68,97 @@ def get_bbox_and_footprint(raster_uri):
         return bbox, footprint, datetime_var, ds.meta
 
 
+def open_file_from_s3(source_path):
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)
+    return data
+
+
+def open_zip_from_s3(source_path):
+    """
+    Read a zip file in s3.
+
+    Parameters
+    ----------
+        source_path : str
+            Path to the zip file on s3 containing the rasters.
+
+    Returns
+    -------
+        data : BytesIO
+            Obejct from the zip file.
+    """
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
+    data = io.BytesIO(data)
+    return data
+
+
+def upload_files_s3(path, file_type="json"):
+    """
+    Upload files inside a folder to s3.
+    The s3 paths most be the same as the folder.
+
+    Parameters
+    ----------
+        path : str
+            Path to folder containing the files you wan to upload.
+        file_type : str, optional
+            Filetype to upload, set to json.
+    Returns
+    -------
+
+    """
+    file_list = glob.glob(path + "**/**/*." + file_type, recursive=True)
+    print(file_list)
+    s3 = boto3.client("s3")
+    sta = "s3:/"
+    if not path.startswith("s3"):
+        sta = path.split("/")[0]
+        path = path.replace(sta, "s3:/")
+    s3_path = path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    for file in file_list:
+        key_path = file.replace(sta + "/" + bucket + "/", "")
+        s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
+    shutil.rmtree(sta)
+
+
+def stac_s3_read_method(uri):
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+        s3 = boto3.resource("s3")
+        obj = s3.Object(bucket, key)
+        return obj.get()["Body"].read().decode("utf-8")
+    else:
+        return STAC_IO.default_read_text_method(uri)
+
+
+def stac_s3_write_method(uri, txt):
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+        s3 = boto3.resource("s3")
+        s3.Object(bucket, key).put(Body=txt)
+    else:
+        STAC_IO.default_write_text_method(uri, txt)
+
+
 def parse_training_data(
-    source_path, save_files=False, description="", reference_date=None
+    source_path,
+    save_files=False,
+    description="",
+    reference_date=None,
+    aditional_link=None,
 ):
     """
     From a zip files of rasters or a folder build a stac catalog.
@@ -83,6 +177,8 @@ def parse_training_data(
         reference_date : str, optional
             Date or datetime string. Used as the date on catalog items if not
             found in the input files.
+        aditional_link : str, href
+            Aditionl links to other catalogs.
 
     Returns
     -------
@@ -90,13 +186,20 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     if source_path.endswith(".zip"):
+        if source_path.startswith("s3"):
+            data = open_zip_from_s3(source_path)
+            STAC_IO.read_text_method = stac_s3_read_method
+            STAC_IO.write_text_method = stac_s3_write_method
+        else:
+            data = source_path
         # Open zip file.
-        archive = zipfile.ZipFile(source_path, "r")
+        archive = zipfile.ZipFile(data, "r")
         # Create stac catalog.
         id_name = os.path.split(os.path.dirname(source_path))[-1]
         raster_list = []
         for af in archive.filelist:
-            raster_list.append(af.filename)
+            if af.filename.endswith(".tif"):
+                raster_list.append(af.filename)
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
@@ -106,11 +209,19 @@ def parse_training_data(
     # For every raster in the zip file create an item, add it to catalog.
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
+        raster_file = path_item
         # For zip files, wrap the path with a zip prefix.
-        if source_path.endswith(".zip"):
+        if source_path.endswith(".zip") and source_path.startswith("s3"):
+            file_in_zip = zipfile.ZipFile(data, "r")
+            raster_file = file_in_zip.read(path_item)
+            raster_file = io.BytesIO(raster_file)
             path_item = "zip://{}!/{}".format(source_path, path_item)
+        elif source_path.endswith(".zip"):
+            path_item = "zip://{}!/{}".format(source_path, path_item)
+            raster_file = path_item
         # Extract metadata from raster.
-        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(path_item)
+        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(raster_file)
+
         # Ensure datetime var is set properly.
         if datetime_var is None:
             if reference_date is None:
@@ -144,16 +255,20 @@ def parse_training_data(
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
+        if aditional_link:
+            item.add_link(aditional_link)
         # Validate item.
         item.validate()
         # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
+    catalog.make_all_links_absolute()
+    catalog.make_all_asset_hrefs_absolute()
     # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
-        catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+        catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return catalog
 
 
@@ -311,6 +426,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
         out_path = os.path.join(x_folder, "data", ("pixels_" + str(item.id)))
     else:
         out_path = kwargs["out_path"]
+    out_paths_tmp = []
     # Iterate over every timestep.
     for date, np_img in zip(dates, results):
         # If the given image is empty continue to next.
@@ -318,9 +434,14 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
+        if out_path_date.startswith("s3"):
+            out_path_date = out_path_date.replace("s3://", "tmp/")
+            out_paths_tmp.append(out_path_date)
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
+    if out_path.startswith("s3"):
+        upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     return out_path
 
 
@@ -370,6 +491,9 @@ def build_collection_from_pixels(
     collection.make_all_asset_hrefs_relative()
     # collection.normalize_hrefs(path_to_pixels)
     # collection.validate_all()
+    if path_to_pixels.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
     if save_files:
         collection.save(pystac.CatalogType.SELF_CONTAINED)
     return collection
@@ -392,8 +516,13 @@ def collect_from_catalog(y_catalog, config_file):
             Pystac collection with all the metadata.
     """
     # Open config file and load as dict.
-    f = open(config_file)
-    input_config = json.load(f)
+    if config_file.startswith("s3"):
+        my_str = open_file_from_s3(config_file)["Body"].read()
+        new_str = my_str.decode("utf-8")
+        input_config = json.loads(new_str)
+    else:
+        f = open(config_file)
+        input_config = json.load(f)
     x_folder = os.path.dirname(config_file)
     # Remove geojson atribute from configuration.
     if "geojson" in input_config:
@@ -401,15 +530,17 @@ def collect_from_catalog(y_catalog, config_file):
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     paths_list = []
+    item_list = []
     count = 0
     for item in y_catalog.get_all_items():
         print("Collecting item: ", item.id, " and writing rasters.")
-        print(round(count / (len(y_catalog.links) - 2) * 100, 2), "%")
+        print(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
         count = count + 1
         try:
             paths_list.append(
                 get_and_write_raster_from_item(item, x_folder, **input_config)
             )
+            item_list.append(item)
         except Exception as E:
             print(E)
             continue
@@ -418,9 +549,11 @@ def collect_from_catalog(y_catalog, config_file):
     paths_list = [pth for pth in paths_list if pth]
     # For each folder build a stac catalog.
     x_catalogs = []
-    for folder in paths_list:
+    for folder, item in zip(paths_list, item_list):
         try:
-            x_cat = parse_training_data(folder, save_files=True)
+            x_cat = parse_training_data(
+                folder, save_files=True, aditional_links=item.get_self_href()
+            )
         except Exception as E:
             print(E)
             continue
@@ -480,5 +613,8 @@ def create_and_collect(source_path, config_file):
         for child in existing_collection.get_children():
             if child not in final_collection.get_children():
                 final_collection.add_child(child)
+    if source_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
     final_collection.save(pystac.CatalogType.SELF_CONTAINED)
     return final_collection
