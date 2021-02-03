@@ -67,6 +67,15 @@ def get_bbox_and_footprint(raster_uri):
         datetime_var = ds.tags(ns=TESSELO_TAG_NAMESPACE).get("datetime")
         return bbox, footprint, datetime_var, ds.meta
 
+def check_file_in_s3(uri):
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+        s3 = boto3.client("s3")
+        theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
+        list_obj = [ob['Key'] for ob in theObjs['Contents']]
+    return key in list_obj
 
 def open_file_from_s3(source_path):
     s3_path = source_path.split("s3://")[1]
@@ -158,7 +167,7 @@ def parse_training_data(
     save_files=False,
     description="",
     reference_date=None,
-    aditional_link=None,
+    aditional_links=None,
 ):
     """
     From a zip files of rasters or a folder build a stac catalog.
@@ -177,7 +186,7 @@ def parse_training_data(
         reference_date : str, optional
             Date or datetime string. Used as the date on catalog items if not
             found in the input files.
-        aditional_link : str, href
+        aditional_links : str, href
             Aditionl links to other catalogs.
 
     Returns
@@ -255,13 +264,15 @@ def parse_training_data(
                 media_type=pystac.MediaType.GEOTIFF,
             ),
         )
-        if aditional_link:
-            item.add_link(aditional_link)
+        if aditional_links:
+            item.add_link(pystac.Link('corresponding_y', aditional_links))
         # Validate item.
         item.validate()
         # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
+    if aditional_links:
+        catalog.add_link(pystac.Link('corresponding_y', aditional_links))
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
@@ -607,7 +618,12 @@ def create_and_collect(source_path, config_file):
         collection_id="final",
         path_to_pixels=os.path.dirname(source_path),
     )
-    if os.path.exists(existing_collection_path):
+    file_check = False
+    if existing_collection_path.startswith('s3'):
+        file_check = check_file_in_s3(existing_collection_path)
+    else:
+        file_check = os.path.exists(existing_collection_path)
+    if file_check:
         # Read old colection, merge them together
         existing_collection = pystac.Catalog.from_file(existing_collection_path)
         for child in existing_collection.get_children():
