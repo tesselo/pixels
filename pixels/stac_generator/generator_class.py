@@ -1,49 +1,43 @@
-import glob
-import io
-import math
+from urllib.parse import urlparse
 
-import rasterio
 import boto3
 import numpy as np
-import pystac
-from tensorflow import keras
-
 import pixels.stac as pxstc
-from pixels.clouds import pixels_mask
+import pystac
+import rasterio
+from tensorflow import keras
 
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
 
+
 class DataGenerator_stac(keras.utils.Sequence):
     """
     Defining class for generator.
     """
+
     def __init__(
         self,
         path_collection,
         split=1,
         train=True,
-
     ):
         self.path_collection = path_collection
         self._set_s3_variables(path_collection)
-
 
     def _set_s3_variables(self, path_collection):
         parsed = urlparse(path_collection)
         if parsed.scheme == "s3":
             if not pxstc.check_file_in_s3(path_collection):
                 # Raise Error
-                print('file not found')
+                print("file not found")
                 return
             self.bucket = parsed.netloc
             self.collection_key = parsed.path[1:]
 
-
     def _set_collection(self, path_collection):
         self.collection = pystac.Collection.from_file(path_collection)
-
 
     def __len__(self):
         """
@@ -66,7 +60,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         x_paths = []
         for item in x_catalog.get_items():
             x_paths.append(item.get_self_href())
-        y_path = x_catalog.get_links('corresponding_y')[0].target
+        y_path = x_catalog.get_links("corresponding_y")[0].target
         return x_paths, y_path
 
     def get_data(x_paths, y_path):
