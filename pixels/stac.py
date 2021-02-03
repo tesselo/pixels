@@ -10,6 +10,7 @@ import boto3
 import pystac
 import rasterio
 from dateutil import parser
+from pystac import STAC_IO
 
 from pixels.const import (
     PIXELS_COMPOSITE_MODE,
@@ -21,7 +22,6 @@ from pixels.const import (
 from pixels.exceptions import TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
-from pystac import STAC_IO
 
 
 def get_bbox_and_footprint(raster_uri):
