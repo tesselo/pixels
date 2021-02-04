@@ -67,6 +67,7 @@ def get_bbox_and_footprint(raster_uri):
         datetime_var = ds.tags(ns=TESSELO_TAG_NAMESPACE).get("datetime")
         return bbox, footprint, datetime_var, ds.meta
 
+
 def check_file_in_s3(uri):
     parsed = urlparse(uri)
     if parsed.scheme == "s3":
@@ -74,8 +75,9 @@ def check_file_in_s3(uri):
         key = parsed.path[1:]
         s3 = boto3.client("s3")
         theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
-        list_obj = [ob['Key'] for ob in theObjs['Contents']]
+        list_obj = [ob["Key"] for ob in theObjs["Contents"]]
     return key in list_obj
+
 
 def open_file_from_s3(source_path):
     s3_path = source_path.split("s3://")[1]
@@ -151,6 +153,21 @@ def stac_s3_read_method(uri):
         return STAC_IO.default_read_text_method(uri)
 
 
+def list_files_in_s3(uri, filetype="tif"):
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+        s3 = boto3.client("s3")
+        theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=key)
+        list_obj = [
+            "s3://" + bucket + "/" + ob["Key"]
+            for ob in theObjs["Contents"]
+            if ob["Key"].endswith(filetype)
+        ]
+    return list_obj
+
+
 def stac_s3_write_method(uri, txt):
     parsed = urlparse(uri)
     if parsed.scheme == "s3":
@@ -212,7 +229,12 @@ def parse_training_data(
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
-        raster_list = glob.glob(source_path + "/*.tif", recursive=True)
+        if source_path.startswith("s3"):
+            STAC_IO.read_text_method = stac_s3_read_method
+            STAC_IO.write_text_method = stac_s3_write_method
+            raster_list = list_files_in_s3(source_path, filetype="tif")
+        else:
+            raster_list = glob.glob(source_path + "/*.tif", recursive=True)
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every raster in the zip file create an item, add it to catalog.
@@ -265,14 +287,14 @@ def parse_training_data(
             ),
         )
         if aditional_links:
-            item.add_link(pystac.Link('corresponding_y', aditional_links))
+            item.add_link(pystac.Link("corresponding_y", aditional_links))
         # Validate item.
         item.validate()
         # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
     if aditional_links:
-        catalog.add_link(pystac.Link('corresponding_y', aditional_links))
+        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
     catalog.normalize_hrefs(os.path.join(out_path, "stac"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
@@ -619,7 +641,7 @@ def create_and_collect(source_path, config_file):
         path_to_pixels=os.path.dirname(source_path),
     )
     file_check = False
-    if existing_collection_path.startswith('s3'):
+    if existing_collection_path.startswith("s3"):
         file_check = check_file_in_s3(existing_collection_path)
     else:
         file_check = os.path.exists(existing_collection_path)
