@@ -232,7 +232,7 @@ def parse_training_data(
         if source_path.startswith("s3"):
             STAC_IO.read_text_method = stac_s3_read_method
             STAC_IO.write_text_method = stac_s3_write_method
-            raster_list = list_files_in_s3(source_path, filetype="tif")
+            raster_list = list_files_in_s3(source_path + "/", filetype="tif")
         else:
             raster_list = glob.glob(source_path + "/*.tif", recursive=True)
         out_path = source_path
@@ -485,6 +485,7 @@ def build_collection_from_pixels(
     collection_title="",
     collection_description="",
     save_files=False,
+    aditional_links=None,
 ):
     """
     From a list of catalogs build a pystact collection.
@@ -521,18 +522,21 @@ def build_collection_from_pixels(
     collection.add_children(catalogs)
     collection.update_extent_from_items()
     collection.set_self_href(path_to_pixels + "/collection.json")
-    collection.make_all_asset_hrefs_relative()
+    collection.make_all_asset_hrefs_absolute()
+    if aditional_links:
+        collection.add_link(pystac.Link("origin_files", aditional_links))
+    collection.make_all_links_absolute()
     # collection.normalize_hrefs(path_to_pixels)
     # collection.validate_all()
     if path_to_pixels.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
     if save_files:
-        collection.save(pystac.CatalogType.SELF_CONTAINED)
+        collection.save(pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return collection
 
 
-def collect_from_catalog(y_catalog, config_file):
+def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     """
     From a catalog containing the Y training data and a pixels configuration
     file collect pixels and build X collection stac.
@@ -599,6 +603,7 @@ def collect_from_catalog(y_catalog, config_file):
         collection_id="x_collection_"
         + os.path.split(os.path.dirname(downloads_folder))[-1],
         path_to_pixels=downloads_folder,
+        aditional_links=aditional_links,
     )
 
     return x_collection
@@ -628,7 +633,9 @@ def create_and_collect(source_path, config_file):
     )
     print("Collecting data using pixels.")
     # Build the X catalogs.
-    x_collection = collect_from_catalog(y_catalog, config_file)
+    x_collection = collect_from_catalog(
+        y_catalog, config_file, aditional_links=source_path
+    )
     # Collection paths
     existing_collection_path = os.path.join(
         os.path.dirname(source_path), "collection.json"
@@ -654,5 +661,8 @@ def create_and_collect(source_path, config_file):
     if source_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
-    final_collection.save(pystac.CatalogType.SELF_CONTAINED)
+    final_collection.update_extent_from_items()
+    final_collection.make_all_asset_hrefs_absolute()
+    final_collection.make_all_links_absolute()
+    final_collection.save_object(pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return final_collection
