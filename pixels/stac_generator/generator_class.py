@@ -4,8 +4,8 @@ import boto3
 import numpy as np
 import pystac
 import rasterio
-from tensorflow import keras
 from pystac import STAC_IO
+from tensorflow import keras
 
 import pixels.stac as pxstc
 
@@ -30,6 +30,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         self.path_collection = path_collection
         self._set_s3_variables(path_collection)
+        self._set_collection(path_collection)
 
     def _set_s3_variables(self, path_collection):
         """
@@ -96,7 +97,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         y_path = x_catalog.get_links("corresponding_y")[0].target
         return x_paths, y_path
 
-    def get_data(x_paths, y_path):
+    def get_data(self, x_paths, y_path):
         """
         From the paths list get the raster info.
 
