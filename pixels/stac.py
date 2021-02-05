@@ -587,7 +587,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
             print(E)
             continue
     # Build a stac collection from all downloaded data.
-    downloads_folder = os.path.join(x_folder, "data"))
+    downloads_folder = os.path.join(x_folder, "data")
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,

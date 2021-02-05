@@ -9,9 +9,9 @@ import rasterio
 from pystac import STAC_IO
 from tensorflow import keras
 
-import pixels.stac as pxstc
-import pixels.generator.visualizer as vis
 import pixels.generator.generator_augmentation_2D as aug
+import pixels.generator.visualizer as vis
+import pixels.stac as pxstc
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -36,7 +36,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
-
 
     def _set_s3_variables(self, path_collection):
         """
@@ -181,4 +180,4 @@ class DataGenerator_stac(keras.utils.Sequence):
         X, Y = self.__getitem__(index)
         if not X.shape[-2:] == Y[0].shape[-2:]:
             X = aug.upscale_multiple_images(X)
-        vis.visualize_in_item(X,  Y[0], RGB=RGB, scaling=scaling)
+        vis.visualize_in_item(X, Y[0], RGB=RGB, scaling=scaling)

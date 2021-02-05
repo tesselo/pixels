@@ -33,6 +33,7 @@ def set_standard_shape(tensor, sizex=360, sizey=360):
         tensor = set_standard_shape(tensor, sizex, sizey)
     return tensor
 
+
 def upscale_multiple_images(images_array, upscale_factor=10):
     """
     Upscale multiple images.
@@ -58,6 +59,7 @@ def upscale_multiple_images(images_array, upscale_factor=10):
             new_time.append(np.array(new_img))
         new_array.append(np.array(new_time))
     return np.array(new_array)
+
 
 def img_flip(X, axis=None):
     X_f = np.flip(X, axis)
