@@ -9,6 +9,8 @@ import rasterio
 from pystac import STAC_IO
 from tensorflow import keras
 
+import pixels.generator.generator_augmentation_2D as aug
+import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 
 # S3 class instanciation.
@@ -20,7 +22,7 @@ class DataGenerator_stac(keras.utils.Sequence):
     Defining class for generator.
     """
 
-    def __init__(self, path_collection, split=1, train=True):
+    def __init__(self, path_collection, split=1, train=True, upsampling=False):
         """
         Initial setup for the class.
 
@@ -33,6 +35,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.path_collection = path_collection
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
+        self.upsampling = upsampling
 
     def _set_s3_variables(self, path_collection):
         """
@@ -44,7 +47,6 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Path to the collection containing the training set.
 
         """
-        print(path_collection)
         parsed = urlparse(path_collection)
         if parsed.scheme == "s3":
             if not pxstc.check_file_in_s3(path_collection):
@@ -129,9 +131,9 @@ class DataGenerator_stac(keras.utils.Sequence):
         Returns
         -------
             x_tensor : numpy array
-                List with all the images in the catalog.
+                List with all the images in the catalog (Timesteps, bands, img).
             y_img : numpy array
-                Numpy array with the y raster.
+                Numpy array with the y raster (Timesteps, band, img).
         """
         y_raster_file = y_path
         try:
@@ -159,4 +161,23 @@ class DataGenerator_stac(keras.utils.Sequence):
         catalog = self.collection.get_child(catalog_id)
         x_paths, y_path = self.get_items_paths(catalog)
         X, Y = self.get_data(x_paths, y_path)
+        if self.upsampling:
+            X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         return X, Y
+
+    def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
+        """
+        Visualize data.
+
+        TODO: Get it to work with multiple Y.
+
+        Parameters
+        ----------
+            images_array : numpy array
+                List of images (Timestep, bands, img).
+            upscale_factor : int
+        """
+        X, Y = self.__getitem__(index)
+        if not X.shape[-2:] == Y[0].shape[-2:]:
+            X = aug.upscale_multiple_images(X)
+        vis.visualize_in_item(X, Y[0], RGB=RGB, scaling=scaling)

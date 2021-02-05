@@ -430,7 +430,7 @@ def run_pixels(config, mode="s2_stack"):
 def get_and_write_raster_from_item(item, x_folder, **kwargs):
     """
     Based on a pystac item get the images in timerange from item's bbox.
-    Write them as a raster afterwards.
+    Write them as a raster afterwards. Builds catalog from collected data.
 
     Parameters
     ----------
@@ -440,8 +440,8 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             Possible parameters for config json.
     Returns
     -------
-        out_path : str
-            Path were the files were writen to.
+        x_cat : str
+            Catalog containg the collected info.
     """
     # Build a configuration json for pixels.
     config = validate_pixels_config(item, **kwargs)
@@ -475,7 +475,13 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
         write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
-    return out_path
+    try:
+        x_cat = parse_training_data(
+            out_path, save_files=True, aditional_links=item.get_self_href()
+        )
+    except Exception as E:
+        print(E)
+    return x_cat
 
 
 def build_collection_from_pixels(
@@ -566,37 +572,22 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
-    paths_list = []
-    item_list = []
     count = 0
+    # For each folder build a stac catalog.
+    x_catalogs = []
     for item in y_catalog.get_all_items():
         print("Collecting item: ", item.id, " and writing rasters.")
         print(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
         count = count + 1
         try:
-            paths_list.append(
+            x_catalogs.append(
                 get_and_write_raster_from_item(item, x_folder, **input_config)
             )
-            item_list.append(item)
         except Exception as E:
             print(E)
             continue
-    # Drop all empty paths (Paths to downloaded data, each folder corresponds to
-    # an item from input).
-    paths_list = [pth for pth in paths_list if pth]
-    # For each folder build a stac catalog.
-    x_catalogs = []
-    for folder, item in zip(paths_list, item_list):
-        try:
-            x_cat = parse_training_data(
-                folder, save_files=True, aditional_links=item.get_self_href()
-            )
-        except Exception as E:
-            print(E)
-            continue
-        x_catalogs.append(x_cat)
     # Build a stac collection from all downloaded data.
-    downloads_folder = os.path.dirname(paths_list[0])
+    downloads_folder = os.path.join(x_folder, "data")
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,
