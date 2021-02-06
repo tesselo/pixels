@@ -37,3 +37,7 @@ def main():
     logger.debug("Function args {}.".format(sys.argv[1:]))
     # Run function with rest of arguments.
     funk(*sys.argv[1:])
+
+
+if __name__ == "__main__":
+    main()
