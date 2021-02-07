@@ -20,7 +20,6 @@ ALLOWED_FUNCTIONS = ["parse_training_data"]
 
 
 def main():
-    print(sys.argv)
     # Get input function name.
     funk_path = sys.argv[1]
     # Get module for function.
