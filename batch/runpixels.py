@@ -9,9 +9,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s %(message)s",
     level=logging.DEBUG,
-    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logging.getLogger("botocore").setLevel(logging.ERROR)
 logging.getLogger("rasterio").setLevel(logging.ERROR)
@@ -31,7 +29,9 @@ def main():
     # Verify the requested module is in shortlist.
     if module_name not in ALLOWED_MODULES:
         raise ValueError(
-            'Invalid input module. "{}" should be one of {}.'.format(module_name, ALLOWED_MODULES)
+            'Invalid input module. "{}" should be one of {}.'.format(
+                module_name, ALLOWED_MODULES
+            )
         )
     module = importlib.import_module(module_name)
     # Get function to execute.
