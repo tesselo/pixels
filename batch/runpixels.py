@@ -17,26 +17,36 @@ logging.getLogger("botocore").setLevel(logging.ERROR)
 logging.getLogger("rasterio").setLevel(logging.ERROR)
 logging.getLogger("fiona").setLevel(logging.ERROR)
 
+ALLOWED_MODULES = ["pixels.stac"]
+ALLOWED_FUNCTIONS = ["parse_training_data"]
+
 
 def main():
+    print(sys.argv)
     # Get input function name.
-    funk_path = sys.argv[0]
-    # Ensure input is from pixels.
-    if not funk_path.split(".")[0] == "pixels":
-        raise ValueError(
-            "Expected pixels module, got {}".format(funk_path.split(".")[0])
-        )
+    funk_path = sys.argv[1]
     # Get module for function.
     module_name = ".".join(funk_path.split(".")[:-1])
     logger.debug("Module name {}.".format(module_name))
+    # Verify the requested module is in shortlist.
+    if module_name not in ALLOWED_MODULES:
+        raise ValueError(
+            'Invalid input module. "{}" should be one of {}.'.format(module_name, ALLOWED_MODULES)
+        )
     module = importlib.import_module(module_name)
     # Get function to execute.
-    funk_name = ".".join(funk_path.split(".")[-1])
+    funk_name = funk_path.split(".")[-1]
     logger.debug("Function name {}.".format(funk_name))
+    if funk_name not in ALLOWED_FUNCTIONS:
+        raise ValueError(
+            'Invalid input function. "{}" should be one of {}.'.format(
+                funk_name, ALLOWED_FUNCTIONS
+            )
+        )
     funk = getattr(module, funk_name)
-    logger.debug("Function args {}.".format(sys.argv[1:]))
+    logger.debug("Function args {}.".format(sys.argv[2:]))
     # Run function with rest of arguments.
-    funk(*sys.argv[1:])
+    funk(*sys.argv[2:])
 
 
 if __name__ == "__main__":
