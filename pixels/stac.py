@@ -1,6 +1,7 @@
 import glob
 import io
 import json
+import logging
 import os
 import shutil
 import zipfile
@@ -22,6 +23,8 @@ from pixels.const import (
 from pixels.exceptions import TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
+
+logger = logging.getLogger(__name__)
 
 
 def get_bbox_and_footprint(raster_uri):
@@ -211,6 +214,7 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
+    logger.debug("Building stac catalog for {}.".format(source_path))
     if source_path.endswith(".zip"):
         if source_path.startswith("s3"):
             data = open_zip_from_s3(source_path)
@@ -237,6 +241,7 @@ def parse_training_data(
             raster_list = glob.glob(source_path + "/*.tif", recursive=True)
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
+    logger.debug("Found {} source rasters.".format(len(raster_list)))
     # For every raster in the zip file create an item, add it to catalog.
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
