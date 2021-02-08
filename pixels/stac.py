@@ -130,7 +130,6 @@ def upload_files_s3(path, file_type="json"):
 
     """
     file_list = glob.glob(path + "**/**/*." + file_type, recursive=True)
-    print(file_list)
     s3 = boto3.client("s3")
     sta = "s3:/"
     if not path.startswith("s3"):
@@ -162,12 +161,17 @@ def list_files_in_s3(uri, filetype="tif"):
         bucket = parsed.netloc
         key = parsed.path[1:]
         s3 = boto3.client("s3")
-        theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=key)
-        list_obj = [
-            "s3://" + bucket + "/" + ob["Key"]
-            for ob in theObjs["Contents"]
-            if ob["Key"].endswith(filetype)
-        ]
+        paginator = s3.get_paginator("list_objects_v2")
+        theObjs = paginator.paginate(Bucket=bucket, Prefix=key)
+        mult_obj = [ob["Contents"] for ob in theObjs]
+        list_obj = []
+        for obj in mult_obj:
+            ob = [
+                "s3://" + bucket + "/" + f["Key"]
+                for f in obj
+                if f["Key"].endswith(filetype)
+            ]
+            list_obj = list_obj + ob
     return list_obj
 
 
@@ -545,6 +549,82 @@ def build_collection_from_pixels(
     if save_files:
         collection.save(pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return collection
+
+
+def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
+    """
+    From a catalog containing the Y training data and a pixels configuration
+    file collect pixels and build X collection stac.
+
+    Parameters
+    ----------
+        y_catalog_path : pystac catalog path
+            Catalog with the information where to download data.
+        config_file : path to json file
+            File or dictonary containing the pixels configuration.
+        items_per_job : int
+            Number of items per jobs.
+    """
+    # Open config file and load as dict.
+    if config_file.startswith("s3"):
+        my_str = open_file_from_s3(config_file)["Body"].read()
+        new_str = my_str.decode("utf-8")
+        input_config = json.loads(new_str)
+    else:
+        f = open(config_file)
+        input_config = json.load(f)
+    x_folder = os.path.dirname(config_file)
+    # Remove geojson atribute from configuration.
+    if "geojson" in input_config:
+        input_config.pop("geojson")
+    # Batch enviroment variables.
+    array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 0))
+    # Read the catalog.
+    if y_catalog_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+    y_catalog = pystac.Catalog.from_file(y_catalog_path)
+    # Get the list of index for this batch.
+    item_list = [*range(array_index * items_per_job, (array_index + 1) * items_per_job)]
+    count = 0
+    for item in y_catalog.get_all_items():
+        if count in item_list:
+            try:
+                get_and_write_raster_from_item(item, x_folder, **input_config)
+            except Exception as E:
+                print(E)
+        count = count + 1
+
+
+def create_x_catalog(x_folder, source_path=None):
+    """
+    From a folder containg the X catalogs build the collection.
+
+    Parameters
+    ----------
+        x_folder : str
+            Config root path, path to build collection.
+        source_path : str
+            Path to source zip file or folder (Y input).
+    """
+    # Build a stac collection from all downloaded data.
+    downloads_folder = os.path.join(x_folder, "data")
+    x_catalogs = []
+    if x_folder.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+    catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
+    for cat_path in catalogs_path_list:
+        x_cat = pystac.Catalog.from_file(cat_path)
+        x_catalogs.append(x_cat)
+    build_collection_from_pixels(
+        x_catalogs,
+        save_files=True,
+        collection_id="x_collection_"
+        + os.path.split(os.path.dirname(downloads_folder))[-1],
+        path_to_pixels=downloads_folder,
+        aditional_links=source_path,
+    )
 
 
 def collect_from_catalog(y_catalog, config_file, aditional_links=None):
