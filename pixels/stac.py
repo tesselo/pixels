@@ -186,6 +186,15 @@ def stac_s3_write_method(uri, txt):
         STAC_IO.default_write_text_method(uri, txt)
 
 
+def get_catalog_length(catalog_path):
+    if catalog_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+    catalog = pystac.Catalog.from_file(catalog_path)
+    size = len(catalog.get_item_links())
+    return size
+
+
 def parse_training_data(
     source_path,
     save_files=False,
