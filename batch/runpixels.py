@@ -16,7 +16,11 @@ logging.getLogger("rasterio").setLevel(logging.ERROR)
 logging.getLogger("fiona").setLevel(logging.ERROR)
 
 ALLOWED_MODULES = ["pixels.stac"]
-ALLOWED_FUNCTIONS = ["parse_training_data"]
+ALLOWED_FUNCTIONS = [
+    "parse_training_data",
+    "collect_from_catalog_subsection",
+    "create_x_catalog",
+]
 
 
 def main():
