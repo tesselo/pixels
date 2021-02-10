@@ -34,4 +34,6 @@ RUN pip install\
   Fiona\
   SQLAlchemy\
   pg8000==1.16.5\
-  mercantile
+  mercantile\
+  pystac\
+  jsonschema
