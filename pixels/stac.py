@@ -8,6 +8,7 @@ import zipfile
 from urllib.parse import urlparse
 
 import boto3
+import geopandas as gp
 import pystac
 import rasterio
 from dateutil import parser
@@ -23,6 +24,8 @@ from pixels.const import (
 from pixels.exceptions import TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
+
+# Get logger
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +187,121 @@ def stac_s3_write_method(uri, txt):
         s3.Object(bucket, key).put(Body=txt)
     else:
         STAC_IO.default_write_text_method(uri, txt)
+
+
+def get_catalog_length(catalog_path):
+    if catalog_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+    catalog = pystac.Catalog.from_file(catalog_path)
+    size = len(catalog.get_item_links())
+    return size
+
+
+def parse_prediction_area(
+    source_path,
+    save_files=False,
+    description="",
+    reference_date=None,
+    aditional_links=None,
+):
+    """
+    From a geojson build a stac catalog.
+
+    If a "datetime" tag is found in the metadata of the rastes, that value is
+    extracted and passed as date to the catalog items.
+
+    Parameters
+    ----------
+        source_path : str
+            Path to the zip file or folder containing the rasters.
+        save_files : bool, optional
+            Set True to save files from catalog and items.
+        description : str, optional
+            Description to be used in the catalog.
+        reference_date : str, optional
+            Date or datetime string. Used as the date on catalog items if not
+            found in the input files.
+        aditional_links : str, href
+            Aditionl links to other catalogs.
+
+    Returns
+    -------
+        catalog : dict
+            Stac catalog dictionary containing all the raster items.
+    """
+    try:
+        tiles = gp.read_file(source_path)
+    except Exception as E:
+        if source_path.startswith("s3"):
+            STAC_IO.read_text_method = stac_s3_read_method
+            STAC_IO.write_text_method = stac_s3_write_method
+            data = open_file_from_s3(source_path)
+            tiles = gp.read_file(data["Body"])
+        else:
+            logger.info(E)
+
+    id_name = os.path.split(source_path)[-1].replace(".geojson", "")
+    catalog = pystac.Catalog(id=id_name, description=description)
+    # For every tile geojson file create an item, add it to catalog.
+    size = len(tiles)
+    for count in range(size):
+        tile = tiles.iloc[count : count + 1]
+        id_raster = str(tile["id"].item())
+        string_data = tile.geometry.to_json()
+        dict_data = json.loads(string_data)
+        bbox = dict_data["bbox"]
+        footprint = dict_data["features"][0]["geometry"]
+        datetime_var = None
+        # Ensure datetime var is set properly.
+        if datetime_var is None:
+            if reference_date is None:
+                raise TrainingDataParseError(
+                    "Datetime could not be determined for stac."
+                )
+            else:
+                datetime_var = reference_date
+        # Ensure datetime is object not string.
+        datetime_var = parser.parse(datetime_var)
+        out_meta = {}
+        # Add projection stac extension, assuming input crs has a EPSG id.
+        out_meta["proj:epsg"] = tile.crs.to_epsg()
+        out_meta["stac_extensions"] = ["projection"]
+        # Make transform and crs json serializable.
+        out_meta["crs"] = {"init": "epsg:" + str(tile.crs.to_epsg())}
+        # Create stac item.
+        item = pystac.Item(
+            id=id_raster,
+            geometry=footprint,
+            bbox=bbox,
+            datetime=datetime_var,
+            properties=out_meta,
+        )
+        # Register raster as asset of item.
+        item.add_asset(
+            key=id_raster,
+            asset=pystac.Asset(
+                href=source_path,
+                media_type=pystac.MediaType.GEOJSON,
+            ),
+        )
+        if aditional_links:
+            item.add_link(pystac.Link("corresponding_y", aditional_links))
+        # Validate item.
+        item.validate()
+        # Add item to catalog.
+        catalog.add_item(item)
+    # Normalize paths inside catalog.
+    if aditional_links:
+        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
+    catalog.normalize_hrefs(os.path.join(os.path.dirname(source_path), "stac"))
+    catalog.make_all_links_absolute()
+    catalog.make_all_asset_hrefs_absolute()
+    # catalog.validate_all()
+    # Save files if bool is set.
+    if save_files:
+        catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
+    return catalog
 
 
 def parse_training_data(
@@ -457,7 +575,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
     if not meta:
-        print("No images for ", item.id)
+        logger.info(f"No images for {item.id}")
         return
     # For a lack of out_path argument build one based on item name.
     # The directory for the raster will be one folder paralel to the stac one
@@ -489,7 +607,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             out_path, save_files=True, aditional_links=item.get_self_href()
         )
     except Exception as E:
-        print(E)
+        logger.info(E)
     return x_cat
 
 
@@ -592,7 +710,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
             try:
                 get_and_write_raster_from_item(item, x_folder, **input_config)
             except Exception as E:
-                print(E)
+                logger.info(E)
         count = count + 1
 
 
@@ -661,15 +779,15 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     # For each folder build a stac catalog.
     x_catalogs = []
     for item in y_catalog.get_all_items():
-        print("Collecting item: ", item.id, " and writing rasters.")
-        print(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
+        logger.info("Collecting item: ", item.id, " and writing rasters.")
+        logger.info(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
         count = count + 1
         try:
             x_catalogs.append(
                 get_and_write_raster_from_item(item, x_folder, **input_config)
             )
         except Exception as E:
-            print(E)
+            logger.info(E)
             continue
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")
@@ -703,11 +821,11 @@ def create_and_collect(source_path, config_file):
             Pystac collection with all the metadata.
     """
     # Build stac catalog from input data.
-    print("Building stac files for input data.")
+    logger.info("Building stac files for input data.")
     y_catalog = parse_training_data(
         source_path, save_files=True, reference_date="2020-12-31"
     )
-    print("Collecting data using pixels.")
+    logger.info("Collecting data using pixels.")
     # Build the X catalogs.
     x_collection = collect_from_catalog(
         y_catalog, config_file, aditional_links=source_path
