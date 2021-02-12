@@ -705,7 +705,9 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         STAC_IO.write_text_method = stac_s3_write_method
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
     # Get the list of index for this batch.
-    item_list = [*range(array_index * items_per_job, (array_index + 1) * items_per_job)]
+    item_list = [
+        *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
+    ]
     count = 0
     for item in y_catalog.get_all_items():
         if count in item_list:
