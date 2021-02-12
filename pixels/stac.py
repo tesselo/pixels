@@ -338,6 +338,14 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     logger.debug("Building stac catalog for {}.".format(source_path))
+    if source_path.endswith("geojson"):
+        return parse_prediction_area(
+            source_path,
+            save_files=save_files,
+            description=description,
+            reference_date=reference_date,
+            aditional_links=aditional_links,
+        )
     if source_path.endswith(".zip"):
         if source_path.startswith("s3"):
             data = open_zip_from_s3(source_path)
