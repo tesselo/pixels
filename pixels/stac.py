@@ -8,7 +8,6 @@ import zipfile
 from urllib.parse import urlparse
 
 import boto3
-import geopandas as gp
 import pystac
 import rasterio
 from dateutil import parser
@@ -230,6 +229,8 @@ def parse_prediction_area(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
+    import geopandas as gp
+
     try:
         tiles = gp.read_file(source_path)
     except Exception as E:
@@ -685,9 +686,10 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     """
     # Open config file and load as dict.
     if config_file.startswith("s3"):
-        my_str = open_file_from_s3(config_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
+        json_data = open_file_from_s3(config_file)["Body"].read()
+        if isinstance(json_data, bytes):
+            json_data = json_data.decode("utf-8")
+        input_config = json.loads(json_data)
     else:
         f = open(config_file)
         input_config = json.load(f)
@@ -763,9 +765,10 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     """
     # Open config file and load as dict.
     if config_file.startswith("s3"):
-        my_str = open_file_from_s3(config_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
+        json_data = open_file_from_s3(config_file)["Body"].read()
+        if isinstance(json_data, bytes):
+            json_data = json_data.decode("utf-8")
+        input_config = json.loads(json_data)
     else:
         f = open(config_file)
         input_config = json.load(f)
