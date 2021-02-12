@@ -26,6 +26,7 @@ from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
 # Get logger
+
 logger = logging.getLogger(__name__)
 
 
@@ -335,6 +336,7 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
+    logger.debug("Building stac catalog for {}.".format(source_path))
     if source_path.endswith("geojson"):
         return parse_prediction_area(
             source_path,
@@ -369,6 +371,7 @@ def parse_training_data(
             raster_list = glob.glob(source_path + "/*.tif", recursive=True)
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
+    logger.debug("Found {} source rasters.".format(len(raster_list)))
     # For every raster in the zip file create an item, add it to catalog.
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
