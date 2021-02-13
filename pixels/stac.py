@@ -20,7 +20,7 @@ from pixels.const import (
     PIXELS_S2_STACK_MODE,
     TESSELO_TAG_NAMESPACE,
 )
-from pixels.exceptions import TrainingDataParseError
+from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
@@ -74,13 +74,28 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def check_file_in_s3(uri):
+    """
+    Check if file exists at an S3 uri.
+
+    Parameters
+    ----------
+    uri: str
+        The S3 uri to check if file exists. Example: s3://my-bucket/config.json
+    """
+    # Split the S3 uri into compoments.
     parsed = urlparse(uri)
-    if parsed.scheme == "s3":
-        bucket = parsed.netloc
-        key = parsed.path[1:]
-        s3 = boto3.client("s3")
-        theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
-        list_obj = [ob["Key"] for ob in theObjs["Contents"]]
+    # Ensure input is a s3 uri.
+    if parsed.scheme != "s3":
+        raise PixelsException("Invalid S3 uri found: {}.".format(uri))
+    # Get bucket name.
+    bucket = parsed.netloc
+    # Get key in bucket.
+    key = parsed.path[1:]
+    # List objects with that key.
+    s3 = boto3.client("s3")
+    theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
+    list_obj = [ob["Key"] for ob in theObjs["Contents"]]
+    # Ensure key is in list.
     return key in list_obj
 
 
