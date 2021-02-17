@@ -40,15 +40,59 @@ def search_data(
     sort="sensing_time",
 ):
     """
-    Query data from the eo_catalog DB
+    Search for satellite images in an area of interest, for a given time interval,
+    according to specificities such as the percentage of cloud cover, satellite or
+    level of image processing. Returns links to download bands for each scene
+    resulting in the search.
+
+    Parameters
+    ----------
+        geojson : dict
+            The area over which the data will be selected. The geometry extent will be used
+            as bounding box to select images that intersect it.
+        start : str, optional
+            The date to start search on pixels.
+        end : str, optional
+            The date to end search on pixels.
+        platforms : str or list, optional
+            The selection of satellites to search for images on pixels. The satellites
+            can be from Landsat collection or Sentinel 2. The str or list must contain
+            the following values: 'SENTINEL_2', 'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3',
+            'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or'LANDSAT_8'. If ignored, it returns
+            values from different platforms according to the combination of the other
+            parameters.
+        maxcloud : int, optional
+            Maximun accepted cloud coverage in images. If not provided returns records with
+            up to 100% cloud coverage.
+        scene : str, optional
+            The product id to search for a specific scene. Ignored if not provided.
+        level : str, optional
+            The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
+            or 'L2A'(Level-2A) that provides Bottom Of Atmosphere (BOA) reflectance images
+            derived from associated Level-1C products. Ignored if platforms is not Sentinel 2.
+        limit : int, optional
+            Specifies the number of records to be returned in the search result.
+        sort : str, optional
+            Defines the ordering of the results. By default, sensing time is used, ordering
+            the images from the most recent date to the oldest.Another option to order the
+            results is the cloud cover that must follow the "cloud_cover" pattern.
+    Returns
+    -------
+        result : list
+            List of dictionaries with characteristics of each scene present in the search
+            result and the respective links to download each band.
     """
-    # Getting bounds
+    # Convert str in list.
+    if not isinstance(platforms, (list, tuple)):
+        platforms = [platforms]
+
+    # Getting bounds.
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
-    # SQL query template
+    # SQL query template.
     query = "SELECT product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
-    # Check inputs
+    # Check inputs.
     if start is not None:
         query += " AND sensing_time >= timestamp '{}' ".format(start)
     if end is not None:
@@ -61,17 +105,18 @@ def search_data(
         query += " AND cloud_cover <= {} ".format(maxcloud)
     if scene is not None:
         query += " AND product_id = '{}' ".format(scene)
-    if level is not None:
+    if is_level_valid(level, platforms):
         query += " AND granule_id LIKE '{}%'".format(level)
     if sort is not None:
         query += " ORDER BY {} DESC".format(sort)
     if limit is not None:
         query += " LIMIT {};".format(limit)
 
-    # Execute and format querry
+    # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+    print(formatted_query)
     result = engine.execute(formatted_query)
-    # Transform ResultProxy into json
+    # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result])
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
@@ -83,6 +128,18 @@ def search_data(
 
 
 def get_bands(response):
+    """
+    Decides which method use to format bands and generate links to download it.
+
+    Parameters
+    ----------
+        response : list
+            List of dictionaries with scenes presents in the search result.
+    Returns
+    -------
+        result : list
+            List of dictionaries with scenes and bands with respectives links.
+    """
     result = []
     for value in response:
         if "sentinel-2" in value["base_url"]:
@@ -96,7 +153,19 @@ def get_bands(response):
 
 
 def format_sentinel_band(value):
+    """
+    Format base url and generate links to download sentinel bands.
 
+    Parameters
+    ----------
+        value : dict
+            Dictionary with characteristics of a scene (product id, sensing time, etc).
+
+    Returns
+    -------
+        data : dict
+            Dictionary of each bands url.
+    """
     mgr = value["mgrs_tile"]
     utm_zone = mgr[:2]
     latitude_code = mgr[2:3]
@@ -144,7 +213,19 @@ def format_sentinel_band(value):
 
 
 def format_ls_band(value):
+    """
+    Format base url and generate links to download landsat bands.
 
+    Parameters
+    ----------
+        value : dict
+            Dictionary with characteristics of a scene (product id, sensing time, etc).
+
+    Returns
+    -------
+        data : dict
+            Dictionary of each bands url.
+    """
     product_id = value["product_id"]
     data = {}
     for band in LS_BANDS:
@@ -157,3 +238,21 @@ def format_ls_band(value):
         )
 
     return data
+
+
+def is_level_valid(level, platforms):
+    """
+    Checks whether the use of the Level parameter is valid.
+
+    Parameters
+    ----------
+        level : str
+            Image processing level for Sentinel 2.
+        platforms : list or tuple
+            The selection of satellites to search for images on pixels.
+    Returns
+    -------
+        True if the level is not empty, the platform is a unique value list and contains
+        Sentinel 2.
+    """
+    return level is not None and len(platforms) == 1 and platforms[0] == "SENTINEL_2"
