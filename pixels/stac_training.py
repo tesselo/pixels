@@ -5,6 +5,7 @@ import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
 import tensorflow as tf
 
+
 def _load_dictionary(path_file):
     # Open config file and load as dict.
     if path_file.startswith("s3"):
@@ -12,10 +13,11 @@ def _load_dictionary(path_file):
         new_str = my_str.decode("utf-8")
         input_config = json.loads(new_str)
     else:
-        with open(path_file, 'r') as json_file:
-            input_config= json_file.read()
+        with open(path_file, "r") as json_file:
+            input_config = json_file.read()
         dict = ast.literal_eval(input_config)
     return dict
+
 
 def load_model_from_file(model_configuration_file):
     # Open config file and load as dict.
@@ -25,15 +27,19 @@ def load_model_from_file(model_configuration_file):
         input_config = json.loads(new_str)
         input_config = json.dumps(input_config)
     else:
-        #Reading the model from JSON file
-        with open(model_configuration_file, 'r') as json_file:
-            input_config= json_file.read()
+        # Reading the model from JSON file
+        with open(model_configuration_file, "r") as json_file:
+            input_config = json_file.read()
     model_j = tf.keras.models.model_from_json(input_config)
     return model_j
 
 
 def train_model_function(
-    catalog_uri, model_config_uri, model_compile_arguments_uri, model_fit_arguments_uri, generator_arguments_uri
+    catalog_uri,
+    model_config_uri,
+    model_compile_arguments_uri,
+    model_fit_arguments_uri,
+    generator_arguments_uri,
 ):
     """
     From a catalog and the cnfigurations files build a model and train on the
@@ -62,7 +68,7 @@ def train_model_function(
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
     model.fit(dtgen, **fit_args)
-    model.save(model_config_uri.replace('.json', '.tf'))
-    #if model_config_uri.startswith('s3'):
+    model.save(model_config_uri.replace(".json", ".tf"))
+    # if model_config_uri.startswith('s3'):
     #    stc.upload_files_s3()
     return model

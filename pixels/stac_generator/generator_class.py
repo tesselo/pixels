@@ -22,7 +22,15 @@ class DataGenerator_stac(keras.utils.Sequence):
     Defining class for generator.
     """
 
-    def __init__(self, path_collection, split=1, train=True, upsampling=False, timesteps=12, mode='3D_Model'):
+    def __init__(
+        self,
+        path_collection,
+        split=1,
+        train=True,
+        upsampling=False,
+        timesteps=12,
+        mode="3D_Model",
+    ):
         """
         Initial setup for the class.
 
@@ -37,7 +45,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._set_collection(path_collection)
         self.upsampling = upsampling
         self.timesteps = timesteps
-        self.mode=mode
+        self.mode = mode
 
     def _set_s3_variables(self, path_collection):
         """
@@ -153,12 +161,32 @@ class DataGenerator_stac(keras.utils.Sequence):
             with rasterio.open(x_p) as src:
                 x_tensor.append(np.array(src.read()))
             y_tensor.append(np.array(y_img))
-        if self.mode == '3D_Model':
+        if self.mode == "3D_Model":
             if len(x_tensor) < self.timesteps:
-                x_tensor = np.vstack((x_tensor, np.zeros((self.timesteps - np.array(x_tensor).shape[0], *np.array(x_tensor).shape[1:]))))
-                y_tensor = np.vstack((y_tensor, np.zeros((self.timesteps - np.array(y_tensor).shape[0], *np.array(y_tensor).shape[1:]))))
-            x_tensor = np.array(x_tensor)[:self.timesteps]
-            x_tensor = np.array(x_tensor)[:self.timesteps]
+                x_tensor = np.vstack(
+                    (
+                        x_tensor,
+                        np.zeros(
+                            (
+                                self.timesteps - np.array(x_tensor).shape[0],
+                                *np.array(x_tensor).shape[1:],
+                            )
+                        ),
+                    )
+                )
+                y_tensor = np.vstack(
+                    (
+                        y_tensor,
+                        np.zeros(
+                            (
+                                self.timesteps - np.array(y_tensor).shape[0],
+                                *np.array(y_tensor).shape[1:],
+                            )
+                        ),
+                    )
+                )
+            x_tensor = np.array(x_tensor)[: self.timesteps]
+            x_tensor = np.array(x_tensor)[: self.timesteps]
         return np.array(x_tensor), np.array(y_tensor)
 
     def __getitem__(self, index):
@@ -179,12 +207,12 @@ class DataGenerator_stac(keras.utils.Sequence):
         Y = np.swapaxes(Y, 1, 2)
         Y = np.swapaxes(Y, 2, 3)
 
-        if self.mode == '3D_Model':
+        if self.mode == "3D_Model":
             X = np.array([X])
             Y = np.array([Y])
             # Hacky way to ensure data, must change.
-            if len(X.shape)<4:
-                self.__getitem__(index+1)
+            if len(X.shape) < 4:
+                self.__getitem__(index + 1)
         return X, Y
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
@@ -202,8 +230,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         X, Y = self.__getitem__(index)
         if not X.shape[-2:] == Y[0].shape[-2:]:
             X = aug.upscale_multiple_images(X)
-        if self.mode == '3D_Model':
+        if self.mode == "3D_Model":
             X = X[0]
             X = Y[0]
         x = np.swapaxes(X, 0, 1)
-        vis.visualize_in_item(x, Y[:,0], RGB=RGB, scaling=scaling)
+        vis.visualize_in_item(x, Y[:, 0], RGB=RGB, scaling=scaling)
