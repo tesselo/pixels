@@ -1,9 +1,10 @@
 import ast
 import json
 
+import tensorflow as tf
+
 import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
-import tensorflow as tf
 
 
 def _load_dictionary(path_file):
