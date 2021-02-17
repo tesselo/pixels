@@ -173,11 +173,18 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.upsampling:
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # (Timesteps, bands, img) -> (Bands, timesteps, img)
-        X = np.swapaxes(X, 0, 1)
-        Y = np.swapaxes(Y, 0, 1)
+        X = np.swapaxes(X, 1, 2)
+        X = np.swapaxes(X, 2, 3)
+
+        Y = np.swapaxes(Y, 1, 2)
+        Y = np.swapaxes(Y, 2, 3)
+
         if self.mode == '3D_Model':
             X = np.array([X])
             Y = np.array([Y])
+            # Hacky way to ensure data, must change.
+            if len(X.shape)<4:
+                self.__getitem__(index+1)
         return X, Y
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
