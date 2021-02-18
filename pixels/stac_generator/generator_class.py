@@ -256,7 +256,5 @@ class DataGenerator_stac(keras.utils.Sequence):
         if not X.shape[-2:] == Y[0].shape[-2:]:
             X = aug.upscale_multiple_images(X)
         if self.mode == "3D_Model":
-            X = X[0]
-            Y = Y[0]
-        x = np.swapaxes(X, 0, 1)
-        vis.visualize_in_item(x, Y[:, 0], RGB=RGB, scaling=scaling)
+            y = Y[0, 0]
+        vis.visualize_in_item(X, y, RGB=RGB, scaling=scaling)

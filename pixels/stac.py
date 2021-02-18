@@ -131,6 +131,15 @@ def open_zip_from_s3(source_path):
     return data
 
 
+def upload_obj_s3(uri, obj):
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+        s3 = boto3.resource("s3")
+        s3.put_object(Key=key, Bucket=bucket, Body=obj)
+
+
 def upload_files_s3(path, file_type=".json"):
     """
     Upload files inside a folder to s3.
@@ -728,15 +737,21 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         STAC_IO.write_text_method = stac_s3_write_method
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
     # Get the list of index for this batch.
-    job_index_list = range(
-        array_index * int(items_per_job), (array_index + 1) * int(items_per_job)
-    )
-    for index, item in enumerate(y_catalog.get_all_items()):
-        if index in job_index_list:
+    item_list = [
+        *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
+    ]
+    count = 0
+    check = False
+    for item in y_catalog.get_all_items():
+        if count in item_list:
+            check = True
             try:
                 get_and_write_raster_from_item(item, x_folder, input_config)
             except Exception as E:
                 logger.info(E)
+        elif check is True:
+            break
+        count = count + 1
 
 
 def create_x_catalog(x_folder, source_path=None):
@@ -802,10 +817,11 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     x_catalogs = []
-    for count, item in enumerate(y_catalog.get_all_items()):
+    for item in y_catalog.get_all_items():
         logger.info(
             f"Collecting item: {item.id} and writing rasters. Currently at {round(count / (len(y_catalog.get_item_links())) * 100, 2)}%"
         )
+        count = count + 1
         try:
             x_catalogs.append(
                 get_and_write_raster_from_item(item, x_folder, input_config)

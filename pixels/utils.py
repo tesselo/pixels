@@ -283,7 +283,7 @@ def write_raster(
             for key, val in tags.items():
                 dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
             dst.write(data)
-            dst.build_overviews(factors, resampling)
+            # dst.build_overviews(factors, resampling)
     else:
         # Returns a memory file.
         output = io.BytesIO()
@@ -292,7 +292,7 @@ def write_raster(
                 # Set the given metadata tags.
                 dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
                 dst.write(data)
-                dst.build_overviews(factors, resampling)
+                # dst.build_overviews(factors, resampling)
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
