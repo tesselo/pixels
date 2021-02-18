@@ -801,13 +801,11 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
-    count = 0
-    # For each folder build a stac catalog.
     x_catalogs = []
-    for item in y_catalog.get_all_items():
-        logger.info("Collecting item: ", item.id, " and writing rasters.")
-        logger.info(round(count / (len(y_catalog.get_item_links())) * 100, 2), "%")
-        count = count + 1
+    for count, item in enumerate(y_catalog.get_all_items()):
+        logger.info(
+            f"Collecting item: {item.id} and writing rasters. Currently at {round(count / (len(y_catalog.get_item_links())) * 100, 2)}%"
+        )
         try:
             x_catalogs.append(
                 get_and_write_raster_from_item(item, x_folder, **input_config)
@@ -820,8 +818,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,
-        collection_id="x_collection_"
-        + os.path.split(os.path.dirname(downloads_folder))[-1],
+        collection_id=f"x_collection_{os.path.split(os.path.dirname(downloads_folder))[-1]}",
         path_to_pixels=downloads_folder,
         aditional_links=aditional_links,
     )
