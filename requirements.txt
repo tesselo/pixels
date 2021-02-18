@@ -1,4 +1,4 @@
-rasterio==1.1.8
+rasterio==1.2.0
 Flask==1.1.2
 zappa==0.52.0
 Flask-SQLAlchemy==2.4.4
