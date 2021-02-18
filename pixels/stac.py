@@ -131,7 +131,7 @@ def open_zip_from_s3(source_path):
     return data
 
 
-def upload_files_s3(path, file_type="json"):
+def upload_files_s3(path, file_type=".json"):
     """
     Upload files inside a folder to s3.
     The s3 paths most be the same as the folder.
@@ -146,7 +146,7 @@ def upload_files_s3(path, file_type="json"):
     -------
 
     """
-    file_list = glob.glob(path + "**/**/*." + file_type, recursive=True)
+    file_list = glob.glob(path + "**/**/*" + file_type, recursive=True)
     s3 = boto3.client("s3")
     sta = "s3:/"
     if not path.startswith("s3"):
