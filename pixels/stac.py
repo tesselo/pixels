@@ -587,7 +587,7 @@ def run_pixels(config, mode="s2_stack"):
     return result
 
 
-def get_and_write_raster_from_item(item, x_folder, **kwargs):
+def get_and_write_raster_from_item(item, x_folder, input_config):
     """
     Based on a pystac item get the images in timerange from item's bbox.
     Write them as a raster afterwards. Builds catalog from collected data.
@@ -596,7 +596,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
     ----------
         item : pystac item type
             Item representing one raster.
-        kwargs : dict
+        input_config : dict
             Possible parameters for config json.
     Returns
     -------
@@ -604,7 +604,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             Catalog containg the collected info.
     """
     # Build a configuration json for pixels.
-    config = validate_pixels_config(item, **kwargs)
+    config = validate_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
     if not meta:
@@ -746,7 +746,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         if count in item_list:
             check = True
             try:
-                get_and_write_raster_from_item(item, x_folder, **input_config)
+                get_and_write_raster_from_item(item, x_folder, input_config)
             except Exception as E:
                 logger.info(E)
         elif check is True:
@@ -816,16 +816,15 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
-    count = 0
-    # For each folder build a stac catalog.
     x_catalogs = []
     for item in y_catalog.get_all_items():
-        logger.info(f"Collecting item: {item.id} and writing rasters.")
-        logger.info(f"{round(count / (len(y_catalog.get_item_links())) * 100, 2)} %")
+        logger.info(
+            f"Collecting item: {item.id} and writing rasters. Currently at {round(count / (len(y_catalog.get_item_links())) * 100, 2)}%"
+        )
         count = count + 1
         try:
             x_catalogs.append(
-                get_and_write_raster_from_item(item, x_folder, **input_config)
+                get_and_write_raster_from_item(item, x_folder, input_config)
             )
         except Exception as E:
             logger.info(E)
@@ -835,8 +834,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     x_collection = build_collection_from_pixels(
         x_catalogs,
         save_files=True,
-        collection_id="x_collection_"
-        + os.path.split(os.path.dirname(downloads_folder))[-1],
+        collection_id=f"x_collection_{os.path.split(os.path.dirname(downloads_folder))[-1]}",
         path_to_pixels=downloads_folder,
         aditional_links=aditional_links,
     )
