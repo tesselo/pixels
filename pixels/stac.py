@@ -578,7 +578,7 @@ def run_pixels(config, mode="s2_stack"):
     return result
 
 
-def get_and_write_raster_from_item(item, x_folder, **kwargs):
+def get_and_write_raster_from_item(item, x_folder, input_config):
     """
     Based on a pystac item get the images in timerange from item's bbox.
     Write them as a raster afterwards. Builds catalog from collected data.
@@ -587,7 +587,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
     ----------
         item : pystac item type
             Item representing one raster.
-        kwargs : dict
+        input_config : dict
             Possible parameters for config json.
     Returns
     -------
@@ -595,7 +595,7 @@ def get_and_write_raster_from_item(item, x_folder, **kwargs):
             Catalog containg the collected info.
     """
     # Build a configuration json for pixels.
-    config = validate_pixels_config(item, **kwargs)
+    config = validate_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
     if not meta:
@@ -734,7 +734,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     for index, item in enumerate(y_catalog.get_all_items()):
         if index in job_index_list:
             try:
-                get_and_write_raster_from_item(item, x_folder, **input_config)
+                get_and_write_raster_from_item(item, x_folder, input_config)
             except Exception as E:
                 logger.info(E)
 
@@ -808,7 +808,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         )
         try:
             x_catalogs.append(
-                get_and_write_raster_from_item(item, x_folder, **input_config)
+                get_and_write_raster_from_item(item, x_folder, input_config)
             )
         except Exception as E:
             logger.info(E)
