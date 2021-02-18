@@ -8,7 +8,6 @@ import zipfile
 from urllib.parse import urlparse
 
 import boto3
-import geopandas as gp
 import pystac
 import rasterio
 from dateutil import parser
@@ -21,7 +20,7 @@ from pixels.const import (
     PIXELS_S2_STACK_MODE,
     TESSELO_TAG_NAMESPACE,
 )
-from pixels.exceptions import TrainingDataParseError
+from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
 from pixels.utils import write_raster
 
@@ -75,13 +74,28 @@ def get_bbox_and_footprint(raster_uri):
 
 
 def check_file_in_s3(uri):
+    """
+    Check if file exists at an S3 uri.
+
+    Parameters
+    ----------
+    uri: str
+        The S3 uri to check if file exists. Example: s3://my-bucket/config.json
+    """
+    # Split the S3 uri into compoments.
     parsed = urlparse(uri)
-    if parsed.scheme == "s3":
-        bucket = parsed.netloc
-        key = parsed.path[1:]
-        s3 = boto3.client("s3")
-        theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
-        list_obj = [ob["Key"] for ob in theObjs["Contents"]]
+    # Ensure input is a s3 uri.
+    if parsed.scheme != "s3":
+        raise PixelsException("Invalid S3 uri found: {}.".format(uri))
+    # Get bucket name.
+    bucket = parsed.netloc
+    # Get key in bucket.
+    key = parsed.path[1:]
+    # List objects with that key.
+    s3 = boto3.client("s3")
+    theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
+    list_obj = [ob["Key"] for ob in theObjs["Contents"]]
+    # Ensure key is in list.
     return key in list_obj
 
 
@@ -230,6 +244,8 @@ def parse_prediction_area(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
+    import geopandas as gp
+
     try:
         tiles = gp.read_file(source_path)
     except Exception as E:
@@ -693,9 +709,10 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     """
     # Open config file and load as dict.
     if config_file.startswith("s3"):
-        my_str = open_file_from_s3(config_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
+        json_data = open_file_from_s3(config_file)["Body"].read()
+        if isinstance(json_data, bytes):
+            json_data = json_data.decode("utf-8")
+        input_config = json.loads(json_data)
     else:
         f = open(config_file)
         input_config = json.load(f)
@@ -711,7 +728,9 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         STAC_IO.write_text_method = stac_s3_write_method
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
     # Get the list of index for this batch.
-    item_list = [*range(array_index * items_per_job, (array_index + 1) * items_per_job)]
+    item_list = [
+        *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
+    ]
     count = 0
     for item in y_catalog.get_all_items():
         if count in item_list:
@@ -771,9 +790,10 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     """
     # Open config file and load as dict.
     if config_file.startswith("s3"):
-        my_str = open_file_from_s3(config_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
+        json_data = open_file_from_s3(config_file)["Body"].read()
+        if isinstance(json_data, bytes):
+            json_data = json_data.decode("utf-8")
+        input_config = json.loads(json_data)
     else:
         f = open(config_file)
         input_config = json.load(f)

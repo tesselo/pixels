@@ -34,7 +34,7 @@ def latest_pixel(
 
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
     if isinstance(end_date, (list, tuple)):
-        logger.info("Latest pixels for {} items.".format(len(end_date)))
+        logger.info(f"Latest pixels for {len(end_date)} items.")
         items = end_date
     else:
         items = search_data(
@@ -286,7 +286,7 @@ def composite(
         layer_clouds = pixels_mask(
             *(layer[idx] for idx in required_band_indices),
             light_clouds=light_clouds,
-            shadow_threshold=shadow_threshold
+            shadow_threshold=shadow_threshold,
         )
         # Shadow mask only uses RGB, so limit to first three bands.
         logger.debug(
