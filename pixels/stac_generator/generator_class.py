@@ -29,6 +29,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         train=True,
         upsampling=False,
         timesteps=12,
+        width=32,
+        heigt=32,
         mode="3D_Model",
     ):
         """
@@ -46,6 +48,14 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.upsampling = upsampling
         self.timesteps = timesteps
         self.mode = mode
+        self.width = width
+        self.heigt = heigt
+        self._set_definition()
+
+    def _set_definition(self):
+        if self.upsampling:
+            self.width = self.width * self.upsampling
+            self.heigt = self.heigt * self.upsampling
 
     def _set_s3_variables(self, path_collection):
         """
@@ -189,9 +199,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             x_tensor = np.array(x_tensor)[: self.timesteps]
         return np.array(x_tensor), np.array(y_tensor)
 
-    def __getitem__(self, index):
+    def get_data_from_index(self, index):
         """
-        Generate one batch of data
+        Generate data from index.
         """
         catalog_id = self.id_list[index]
         catalog = self.collection.get_child(catalog_id)
@@ -200,7 +210,19 @@ class DataGenerator_stac(keras.utils.Sequence):
         X, Y = self.get_data(x_paths, y_path)
         if self.upsampling:
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
-        # (Timesteps, bands, img) -> (Bands, timesteps, img)
+        # Remove extra pixels.
+        X = X[:, :, : self.width, : self.heigt]
+        Y = Y[:, :, : self.width, : self.heigt]
+        return X, Y
+
+    def __getitem__(self, index):
+        """
+        Generate one batch of data
+        """
+        X, Y = self.get_data_from_index(index)
+        # (Timesteps, bands, img) -> (Timesteps, img, Bands)
+        # For channel last models: otherwise uncoment.
+        # TODO: add the data_format mode based on model using.
         X = np.swapaxes(X, 1, 2)
         X = np.swapaxes(X, 2, 3)
 
@@ -223,15 +245,18 @@ class DataGenerator_stac(keras.utils.Sequence):
 
         Parameters
         ----------
-            images_array : numpy array
-                List of images (Timestep, bands, img).
-            upscale_factor : int
+            index : int
+                Catalog index to use.
+            RGB : list
+                List of RGB bands index.
+            scaling : int
+                Image scaling value.
         """
-        X, Y = self.__getitem__(index)
+        X, Y = self.get_data_from_index(index)
         if not X.shape[-2:] == Y[0].shape[-2:]:
             X = aug.upscale_multiple_images(X)
         if self.mode == "3D_Model":
             X = X[0]
-            X = Y[0]
+            Y = Y[0]
         x = np.swapaxes(X, 0, 1)
         vis.visualize_in_item(x, Y[:, 0], RGB=RGB, scaling=scaling)

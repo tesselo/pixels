@@ -1,5 +1,6 @@
 import ast
 import json
+import os
 
 import tensorflow as tf
 
@@ -63,13 +64,15 @@ def train_model_function(
         model : tensorflow trained model
             Model trained with catalog data.
     """
+    # TODO: Think of a way to make img size an input.
     gen_args = _load_dictionary(generator_arguments_uri)
     dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     model = load_model_from_file(model_config_uri)
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
     model.fit(dtgen, **fit_args)
-    model.save(model_config_uri.replace(".json", ".tf"))
-    # if model_config_uri.startswith('s3'):
-    #    stc.upload_files_s3()
+    path_model = os.path.join(os.path.dirname(catalog_uri), "model")
+    model.save(path_model)
+    if path_model.startswith("s3"):
+        stc.upload_files_s3(path_model, file_type=".*")
     return model
