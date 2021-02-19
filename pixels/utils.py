@@ -275,7 +275,7 @@ def write_raster(
     else:
         resampling = Resampling.average
     # Determine overview factors.
-    factors = [(2 ** a) for a in range(1, 7) if (2 ** a) < out_meta["height"]]
+    factors = [(2 ** a) for a in range(1, 7) if (2 ** a) < data.shape[-1]]
     # factors = [2, 4, 8, 16, 32, 64]
     # If a path is given write a image file on that path
     if out_path:
