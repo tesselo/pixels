@@ -613,12 +613,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     # For a lack of out_path argument build one based on item name.
     # The directory for the raster will be one folder paralel to the stac one
     # called pixels.
-    if "out_path" not in kwargs:
-        # y_folder = os.path.dirname(os.path.dirname(item.get_root().get_self_href()))
-        # work_path = os.path.dirname(os.path.dirname(y_folder))
-        out_path = os.path.join(x_folder, "data", ("pixels_" + str(item.id)))
-    else:
-        out_path = kwargs["out_path"]
+    out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     out_paths_tmp = []
     # Iterate over every timestep.
     for date, np_img in zip(dates, results):
@@ -817,6 +812,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     x_catalogs = []
+    count = 0
     for item in y_catalog.get_all_items():
         logger.info(
             f"Collecting item: {item.id} and writing rasters. Currently at {round(count / (len(y_catalog.get_item_links())) * 100, 2)}%"

@@ -275,7 +275,8 @@ def write_raster(
     else:
         resampling = Resampling.average
     # Determine overview factors.
-    factors = [2, 4, 8, 16, 32, 64]
+    factors = [(2 ** a) for a in range(1, 7) if (2 ** a) < out_meta["height"]]
+    # factors = [2, 4, 8, 16, 32, 64]
     # If a path is given write a image file on that path
     if out_path:
         with rasterio.open(out_path, "w", **out_meta) as dst:
@@ -283,7 +284,7 @@ def write_raster(
             for key, val in tags.items():
                 dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
             dst.write(data)
-            # dst.build_overviews(factors, resampling)
+            dst.build_overviews(factors, resampling)
     else:
         # Returns a memory file.
         output = io.BytesIO()
@@ -292,7 +293,9 @@ def write_raster(
                 # Set the given metadata tags.
                 dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
                 dst.write(data)
-                # dst.build_overviews(factors, resampling)
+                # To be able to build the overviews we need to have a size
+                # bigger than the factors.
+                dst.build_overviews(factors, resampling)
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
