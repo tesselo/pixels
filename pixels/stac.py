@@ -812,6 +812,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
     # Iterate over every item in the input data, run pixels and save results to
     # rasters.
     x_catalogs = []
+    count = 0
     for item in y_catalog.get_all_items():
         logger.info(
             f"Collecting item: {item.id} and writing rasters. Currently at {round(count / (len(y_catalog.get_item_links())) * 100, 2)}%"
