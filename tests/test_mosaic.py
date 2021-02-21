@@ -65,6 +65,7 @@ class TestMosaic(unittest.TestCase):
         }
 
     def test_latest_pixel(self):
+        # Test regular latest pixel.
         creation_args, first_end_date, stack = latest_pixel(
             self.geojson,
             end_date="2020-02-01",
@@ -75,7 +76,7 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
-
+        # Test with clip.
         creation_args, first_end_date, stack = latest_pixel(
             self.geojson,
             end_date="2020-02-01",
@@ -84,4 +85,16 @@ class TestMosaic(unittest.TestCase):
             clip=True,
         )
         expected = [[[2956, 0], [0, 0]], [[2956, 0], [0, 0]]]
+        numpy.testing.assert_array_equal(stack, expected)
+        # Test with pool.
+        creation_args, first_end_date, stack = latest_pixel(
+            self.geojson,
+            end_date="2020-02-01",
+            scale=500,
+            bands=["B01", "B02"],
+            clip=False,
+            pool=True,
+        )
+        self.assertEqual(first_end_date, "2020-01-20")
+        expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)

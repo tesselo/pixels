@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Pool
 
 import numpy
@@ -70,11 +71,18 @@ def latest_pixel(
         data = []
         failed_retrieve = False
         if pool:
-            with Pool(len(bands)) as p:
-                try:
-                    data = p.starmap(retrieve, band_list)
-                except RasterioIOError:
-                    failed_retrieve = True
+            try:
+                with ThreadPoolExecutor(max_workers=len(bands)) as executor:
+                    # Submit band retrieval tasks to pool.
+                    all_tasks = []
+                    for band in band_list:
+                        all_tasks.append(executor.submit(retrieve, *band))
+                    # Process completed tasks.
+                    for future in as_completed(all_tasks):
+                        result = future.result()
+                        data.append(result)
+            except RasterioIOError:
+                failed_retrieve = True
         else:
             for band in band_list:
                 try:
