@@ -13,11 +13,11 @@ def _load_dictionary(path_file):
     if path_file.startswith("s3"):
         my_str = stc.open_file_from_s3(path_file)["Body"].read()
         new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
+        dict = json.loads(new_str)
     else:
         with open(path_file, "r") as json_file:
             input_config = json_file.read()
-        dict = ast.literal_eval(input_config)
+            dict = ast.literal_eval(input_config)
     return dict
 
 
