@@ -36,4 +36,5 @@ RUN pip install\
   pg8000==1.16.5\
   mercantile\
   pystac\
-  jsonschema
+  jsonschema\
+  geopandas
