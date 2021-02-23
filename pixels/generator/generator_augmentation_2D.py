@@ -1,4 +1,3 @@
-import math
 import numpy as np
 
 AUGMENTATION_FACTOR = 4
@@ -14,6 +13,7 @@ def upscaling_sample(tile, factor):
     sizey = tile.shape[1] * factor
     if not isinstance(factor, int):
         import scipy
+
         return scipy.ndimage.zoom(tile, zoom=(factor), order=1)
     # Get data block for this offset. The numpy indexing order is (y, x).
     data = tile[0 : int(sizex), 0 : int(sizey)]

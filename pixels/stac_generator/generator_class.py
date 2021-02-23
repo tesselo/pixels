@@ -1,9 +1,9 @@
 import io
+import math
 import zipfile
 from urllib.parse import urlparse
 
 import boto3
-import math
 import numpy as np
 import pystac
 import rasterio
@@ -212,7 +212,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         # (Timesteps, bands, img)
         X, Y = self.get_data(x_paths, y_path)
         if self.upsampling:
-            X = X[:,:, :self._orignal_width, :self._orignal_heigt]
+            X = X[:, :, : self._orignal_width, : self._orignal_heigt]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.heigt]

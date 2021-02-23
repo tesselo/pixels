@@ -5,6 +5,7 @@ from unittest import mock
 
 import numpy
 
+from pixels.algebra import parser
 from pixels.mosaic import latest_pixel
 
 
@@ -98,3 +99,17 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
+
+    def test_algebra(self):
+        # Test regular latest pixel.
+        bands = ["B01", "B02"]
+        creation_args, first_end_date, stack = latest_pixel(
+            self.geojson,
+            end_date="2020-02-01",
+            scale=500,
+            bands=bands,
+            clip=False,
+        )
+        ndvi = parser.evaluate("(B01 + 2 * B02) / (B01 + B02)", bands, stack)
+        expected = [[1.5, 1.5], [1.5, 1.5]]
+        numpy.testing.assert_array_equal(ndvi, expected)
