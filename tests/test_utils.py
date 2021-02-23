@@ -115,19 +115,17 @@ class TestUtils(unittest.TestCase):
     def test_compute_wgs84_bbox(self):
         # Geojson feature case.
         bbox = compute_wgs83_bbox(self.geojson)
-        expected = {
-            "type": "Polygon",
-            "coordinates": [
-                [
-                    [-9.165115585146461, 38.70848390053471],
-                    [-9.165115585146461, 38.70957743561777],
-                    [-9.162815898019115, 38.70957743561777],
-                    [-9.162815898019115, 38.70848390053471],
-                    [-9.165115585146461, 38.70848390053471],
-                ]
-            ],
-        }
-        self.assertEqual(bbox, expected)
+        expected = [
+            [
+                [-9.165115585146461, 38.70848390053471],
+                [-9.165115585146461, 38.70957743561777],
+                [-9.162815898019115, 38.70957743561777],
+                [-9.162815898019115, 38.70848390053471],
+                [-9.165115585146461, 38.70848390053471],
+            ]
+        ]
+        self.assertEqual(bbox["type"], "Polygon")
+        numpy.testing.assert_almost_equal(bbox["coordinates"], expected)
         # BBox case.
         bbox = compute_wgs83_bbox(self.geojson, return_bbox=True)
         expected = (
@@ -136,4 +134,4 @@ class TestUtils(unittest.TestCase):
             -9.162815898019115,
             38.70957743561777,
         )
-        self.assertEqual(bbox, expected)
+        numpy.testing.assert_almost_equal(bbox, expected)
