@@ -272,7 +272,7 @@ def parse_prediction_area(
     size = len(tiles)
     for count in range(size):
         tile = tiles.iloc[count : count + 1]
-        id_raster = str(tile["id"].item())
+        id_raster = str(tile.index.to_list()[0])
         string_data = tile.geometry.to_json()
         dict_data = json.loads(string_data)
         bbox = dict_data["bbox"]
