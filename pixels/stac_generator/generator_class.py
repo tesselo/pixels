@@ -224,7 +224,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         Generate one batch of data
         """
         X, Y = self.get_data_from_index(index)
-        if X.shape[:-2] != (self.width, self.heigt) or Y.shape[:-2] != (self.width, self.heigt):
+        if X.shape[:-2] != (self.width, self.heigt) or Y.shape[:-2] != (
+            self.width,
+            self.heigt,
+        ):
             X, Y = self.__getitem__(index + 1)
         # (Timesteps, bands, img) -> (Timesteps, img, Bands)
         # For channel last models: otherwise uncoment.
