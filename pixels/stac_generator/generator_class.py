@@ -3,6 +3,7 @@ import zipfile
 from urllib.parse import urlparse
 
 import boto3
+import math
 import numpy as np
 import pystac
 import rasterio
@@ -54,8 +55,10 @@ class DataGenerator_stac(keras.utils.Sequence):
 
     def _set_definition(self):
         if self.upsampling:
-            self.width = self.width * self.upsampling
-            self.heigt = self.heigt * self.upsampling
+            self._orignal_width = self.width
+            self._orignal_heigt = self.heigt
+            self.width = int(math.ceil(self.width * self.upsampling))
+            self.heigt = int(math.ceil(self.heigt * self.upsampling))
 
     def _set_s3_variables(self, path_collection):
         """
@@ -209,6 +212,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         # (Timesteps, bands, img)
         X, Y = self.get_data(x_paths, y_path)
         if self.upsampling:
+            X = X[:,:, :self._orignal_width, :self._orignal_heigt]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.heigt]
