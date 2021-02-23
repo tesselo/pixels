@@ -224,6 +224,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         Generate one batch of data
         """
         X, Y = self.get_data_from_index(index)
+        if X.shape[:-2] != (self.width, self.heigt) or Y.shape[:-2] != (
+            self.width,
+            self.heigt,
+        ):
+            X, Y = self.__getitem__(index + 1)
         # (Timesteps, bands, img) -> (Timesteps, img, Bands)
         # For channel last models: otherwise uncoment.
         # TODO: add the data_format mode based on model using.
@@ -238,7 +243,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             Y = np.array([Y])
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
-                self.__getitem__(index + 1)
+                X, Y = self.__getitem__(index + 1)
         return X, Y
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
