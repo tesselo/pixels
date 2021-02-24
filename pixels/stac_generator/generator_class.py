@@ -224,7 +224,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         Generate one batch of data
         """
         X, Y = self.get_data_from_index(index)
-        if X.shape[:-2] != (self.width, self.heigt) or Y.shape[:-2] != (
+        if X.shape[-2:] != (self.width, self.heigt) or Y.shape[-2:] != (
             self.width,
             self.heigt,
         ):
