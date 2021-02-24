@@ -15,7 +15,7 @@ logging.getLogger("botocore").setLevel(logging.ERROR)
 logging.getLogger("rasterio").setLevel(logging.ERROR)
 logging.getLogger("fiona").setLevel(logging.ERROR)
 
-ALLOWED_MODULES = ["pixels.stac"]
+ALLOWED_MODULES = ["pixels.stac", "pixels.stac_training"]
 ALLOWED_FUNCTIONS = [
     "parse_training_data",
     "collect_from_catalog_subsection",
