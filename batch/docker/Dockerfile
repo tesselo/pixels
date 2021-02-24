@@ -27,13 +27,19 @@ RUN apt-get -y update\
 RUN pip install rasterio==1.2.0 --no-binary rasterio
 
 # Pip dependencies.
+# NOTE: newer versions of pg8000 are not compatible with the latest SQLAlchemy.
+#       so keep using 1.16.5 until updates are made.
+# Refs:
+# https://stackoverflow.com/questions/64519570/sqlalchemy-orm-call-fails-with-typeerror-expected-bytes-str-found
+# https://github.com/tlocke/pg8000/commit/3a2e7439ae3613367ec231218d7e0f541466d1e5#commitcomment-43174891
+# https://github.com/tlocke/pg8000/issues/53
 RUN pip install\
   awscli==1.19.13\
   boto3==1.17.13\
   matplotlib==3.3.4\
   Fiona==1.8.18\
   SQLAlchemy==1.3.23\
-  pg8000==1.17.0\
+  pg8000==1.16.5\
   mercantile==1.1.6\
   pystac==0.5.4\
   jsonschema==3.2.0\
