@@ -20,6 +20,7 @@ ALLOWED_FUNCTIONS = [
     "parse_training_data",
     "collect_from_catalog_subsection",
     "create_x_catalog",
+    "train_model_function",
 ]
 
 
