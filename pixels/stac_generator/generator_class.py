@@ -72,10 +72,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         parsed = urlparse(path_collection)
         if parsed.scheme == "s3":
-            if not pxstc.check_file_in_s3(path_collection):
-                # Raise Error
-                print("file not found")
-                return
+            # if not pxstc.check_file_in_s3(path_collection):
+            # Raise Error
+            #    print("file not found")
+            #    return
             self.bucket = parsed.netloc
             self.collection_key = parsed.path[1:]
             STAC_IO.read_text_method = pxstc.stac_s3_read_method
