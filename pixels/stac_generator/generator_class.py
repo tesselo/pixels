@@ -53,6 +53,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.width = width
         self.heigt = heigt
         self._set_definition()
+        self.catalogs_dict = {}
 
     def _set_definition(self):
         if self.upsampling:
@@ -213,9 +214,16 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         catalog_id = self.id_list[index]
         catalog = self.collection.get_child(catalog_id)
-        x_paths, y_path = self.get_items_paths(catalog)
+        if catalog_id not in self.catalogs_dict:
+            x_paths, y_path = self.get_items_paths(catalog)
+            self.catalogs_dict[catalog_id] = {}
+            self.catalogs_dict[catalog_id]["x_paths"] = x_paths
+            self.catalogs_dict[catalog_id]["y_path"] = y_path
         # (Timesteps, bands, img)
-        X, Y = self.get_data(x_paths, y_path)
+        X, Y = self.get_data(
+            self.catalogs_dict[catalog_id]["x_paths"],
+            self.catalogs_dict[catalog_id]["y_path"],
+        )
         if self.upsampling:
             X = X[:, :, : self._orignal_width, : self._orignal_heigt]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
