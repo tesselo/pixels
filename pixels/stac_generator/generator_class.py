@@ -228,7 +228,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.width,
             self.heigt,
         ):
-            X, Y = self.__getitem__(index + 1)
+            self.__getitem__(index + 1)
         # (Timesteps, bands, img) -> (Timesteps, img, Bands)
         # For channel last models: otherwise uncoment.
         # TODO: add the data_format mode based on model using.
@@ -243,7 +243,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             Y = np.array([Y])
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
-                X, Y = self.__getitem__(index + 1)
+                self.__getitem__(index + 1)
         return X, Y
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
