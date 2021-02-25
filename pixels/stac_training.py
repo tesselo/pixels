@@ -72,7 +72,11 @@ def train_model_function(
     fit_args = _load_dictionary(model_fit_arguments_uri)
     model.fit(dtgen, **fit_args)
     path_model = os.path.join(os.path.dirname(catalog_uri), "model")
-    model.save(path_model)
     if path_model.startswith("s3"):
-        stc.upload_files_s3(path_model, file_type=".*")
+        path_model_tmp = path_model.replace("s3:/", "tmp")
+        model.save(path_model_tmp)
+        stc.upload_files_s3(path_model_tmp, file_type=".*")
+    else:
+        model.save(path_model)
+
     return model
