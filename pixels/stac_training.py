@@ -71,7 +71,7 @@ def train_model_function(
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
     model.fit(dtgen, **fit_args)
-    path_model = os.path.join(os.path.dirname(catalog_uri), "model")
+    path_model = os.path.join(os.path.dirname(catalog_uri), "model/")
     if path_model.startswith("s3"):
         path_model_tmp = path_model.replace("s3:/", "tmp")
         model.save(path_model_tmp)
