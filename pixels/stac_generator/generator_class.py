@@ -44,6 +44,7 @@ class DataGenerator_stac(keras.utils.Sequence):
 
         """
         self.path_collection = path_collection
+        self.split = split
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -84,8 +85,12 @@ class DataGenerator_stac(keras.utils.Sequence):
     def _set_collection(self, path_collection):
         self.collection = pystac.Collection.from_file(path_collection)
         self.id_list = []
+        count = 0
         for catalog in self.collection.get_children():
+            if count >= len(self):
+                break
             self.id_list.append(catalog.id)
+            count = count + 1
         self.source_y_path = self.collection.get_links("origin_files")[0].target
         if self.source_y_path.endswith("zip"):
             source_y_data = pxstc.open_zip_from_s3(self.source_y_path)
@@ -101,7 +106,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         for now just the 3D mode.
         """
         # For 3D mode:
-        self.length = len(self.collection.get_child_links())
+        self.length = int(len(self.collection.get_child_links()) * self.split)
         # For 2D:
         # self.length = 0
         # for child in self.collection.get_children():
