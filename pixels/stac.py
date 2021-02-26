@@ -480,8 +480,8 @@ def build_geometry_geojson(item):
             Dictionary containing the bounding box from input raster.
     """
     coords = item.geometry["coordinates"]
-    if len(np.array(coords).shape) > 3:
-        coords = coords[0]
+    if len(np.array(coords).shape) != 3:
+        coords = coords[0][:1]
     geojson = {
         "type": "FeatureCollection",
         "crs": {"init": "EPSG:" + str(item.properties["proj:epsg"])},
