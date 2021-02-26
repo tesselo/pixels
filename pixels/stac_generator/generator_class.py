@@ -45,6 +45,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         self.path_collection = path_collection
         self.split = split
+        self.catalogs_dict = {}
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -53,7 +54,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.width = width
         self.heigt = heigt
         self._set_definition()
-        self.catalogs_dict = {}
 
     def _set_definition(self):
         if self.upsampling:
@@ -171,6 +171,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_raster_file = io.BytesIO(y_raster_file)
             with rasterio.open(y_raster_file) as src:
                 y_img = src.read()
+                src.close()
         except Exception as E:
             print(E)
             y_img = None
@@ -179,6 +180,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_tensor.append(np.array(src.read()))
+                src.close()
             y_tensor.append(np.array(y_img))
         if self.mode == "3D_Model":
             if len(x_tensor) < self.timesteps:

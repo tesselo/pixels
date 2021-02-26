@@ -8,6 +8,7 @@ import zipfile
 from urllib.parse import urlparse
 
 import boto3
+import numpy as np
 import pystac
 import rasterio
 from dateutil import parser
@@ -478,6 +479,9 @@ def build_geometry_geojson(item):
         geojson: dict
             Dictionary containing the bounding box from input raster.
     """
+    coords = item.geometry["coordinates"]
+    if len(np.array(coords).shape) > 3:
+        coords = coords[0]
     geojson = {
         "type": "FeatureCollection",
         "crs": {"init": "EPSG:" + str(item.properties["proj:epsg"])},
@@ -486,7 +490,7 @@ def build_geometry_geojson(item):
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
-                    "coordinates": item.geometry["coordinates"],
+                    "coordinates": coords,
                 },
             },
         ],
