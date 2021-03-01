@@ -44,4 +44,5 @@ RUN pip install\
   pystac==0.5.4\
   jsonschema==3.2.0\
   numpy==1.20.1\
-  geopandas==0.8.2
+  geopandas==0.8.2\
+  h5py==2.10.0

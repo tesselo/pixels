@@ -1,7 +1,9 @@
 import ast
+import io
 import json
 import os
 
+import h5py
 import tensorflow as tf
 
 import pixels.stac as stc
@@ -71,12 +73,17 @@ def train_model_function(
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
     model.fit(dtgen, **fit_args)
-    path_model = os.path.join(os.path.dirname(model_config_uri), "model/")
+    path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+    # Store the model in bucket.
     if path_model.startswith("s3"):
-        path_model_tmp = path_model.replace("s3:/", "tmp")
-        model.save(path_model_tmp)
-        stc.upload_files_s3(path_model_tmp, file_type=".*")
+        with io.BytesIO() as fl:
+            with h5py.File(fl) as h5fl:
+                model.save(h5fl)
+                h5fl.flush()
+                h5fl.close()
+            stc.upload_obj_s3(path_model, fl.getvalue())
     else:
-        model.save(path_model)
+        with h5py.File(path_model) as h5fl:
+            model.save(h5fl)
 
     return model
