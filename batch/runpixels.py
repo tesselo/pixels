@@ -9,7 +9,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.ERROR,
 )
 logging.getLogger("botocore").setLevel(logging.ERROR)
 logging.getLogger("rasterio").setLevel(logging.ERROR)
