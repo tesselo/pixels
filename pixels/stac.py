@@ -137,7 +137,7 @@ def upload_obj_s3(uri, obj):
     if parsed.scheme == "s3":
         bucket = parsed.netloc
         key = parsed.path[1:]
-        s3 = boto3.resource("s3")
+        s3 = boto3.client("s3")
         s3.put_object(Key=key, Bucket=bucket, Body=obj)
 
 
