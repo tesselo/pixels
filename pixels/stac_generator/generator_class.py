@@ -1,4 +1,5 @@
 import io
+import logging
 import math
 import zipfile
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ import pixels.stac as pxstc
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
+logger = logging.getLogger(__name__)
 
 
 class DataGenerator_stac(keras.utils.Sequence):
@@ -114,6 +116,36 @@ class DataGenerator_stac(keras.utils.Sequence):
         #     self.length = self.length + len(child.get_item_links())
         return self.length
 
+    def _fill_missing_dimensions(self, tensor, expected_shape, value=0):
+        """
+        Fill a tensor with any shape (smaller dimensions than expected), with
+        value to fill up until has the expected_shape dimensions.
+
+        Parameters
+        ----------
+            tensor : numpy array
+                Numpy array, X or Y object.
+            expected_shape : tuple
+                Shape to be expected to output on given dataset.
+            value : int (float), optional
+                Value to fill the gaps, defaults to zero.
+
+        Returns
+        -------
+            tensor : numpy array
+                Modified numpy array.
+
+        """
+        missing_shape = tuple(x1 - x2 for (x1, x2) in zip(expected_shape, tensor.shape))
+        for dim in range(len(tensor.shape)):
+            current_shape = tensor.shape
+            final_shape = np.array(current_shape)
+            final_shape[dim] = missing_shape[dim]
+            tensor = np.concatenate(
+                (tensor, np.full(tuple(final_shape), value)), axis=dim
+            )
+        return tensor
+
     def get_items_paths(self, x_catalog):
         """
         From a catalog get the paths for each item and the corresponding y.
@@ -140,7 +172,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             y_item = pystac.Item.from_file(y_item_path)
             y_path = y_item.assets[y_item.id].href
         except Exception as E:
-            print(E)
+            logger.warning(f"Generator error in get_items_paths: {E}")
             y_path = None
         return x_paths, y_path
 
@@ -173,7 +205,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_img = src.read()
                 src.close()
         except Exception as E:
-            print(E)
+            logger.warning(f"Generator error in get_data: {E}")
             y_img = None
         x_tensor = []
         y_tensor = []
@@ -239,11 +271,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         Generate one batch of data
         """
         X, Y = self.get_data_from_index(index)
-        if X.shape[-2:] != (self.width, self.heigt) or Y.shape[-2:] != (
-            self.width,
-            self.heigt,
-        ):
-            self.__getitem__(index + 1)
         # (Timesteps, bands, img) -> (Timesteps, img, Bands)
         # For channel last models: otherwise uncoment.
         # TODO: add the data_format mode based on model using.
@@ -256,9 +283,17 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.mode == "3D_Model":
             X = np.array([X])
             Y = np.array([Y])
+            expected_x_shape = (1, self.timesteps, self.width, self.heigt, 10)
+            expected_y_shape = (1, self.timesteps, self.width, self.heigt, 1)
+            if X.shape != expected_x_shape:
+                X = self._fill_missing_dimensions(X, expected_x_shape)
+            if Y.shape != expected_y_shape:
+                Y = self._fill_missing_dimensions(Y, expected_y_shape)
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
                 self.__getitem__(index + 1)
+            if Y is None:
+                return X
         return X, Y
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
