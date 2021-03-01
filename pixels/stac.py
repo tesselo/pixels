@@ -265,7 +265,7 @@ def parse_prediction_area(
             data = open_file_from_s3(source_path)
             tiles = gp.read_file(data["Body"])
         else:
-            logger.info(E)
+            logger.warning(f"Error in parse_prediction_area: {E}")
 
     id_name = os.path.split(source_path)[-1].replace(".geojson", "")
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -639,7 +639,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
             out_path, save_files=True, aditional_links=item.get_self_href()
         )
     except Exception as E:
-        logger.info(E)
+        logger.warning(f"Error in get_and_write_raster_from_item: {E}")
     return x_cat
 
 
@@ -747,7 +747,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
             try:
                 get_and_write_raster_from_item(item, x_folder, input_config)
             except Exception as E:
-                logger.info(E)
+                logger.warning(f"Error in collect_from_catalog_subsection: {E}")
         elif check is True:
             break
         count = count + 1
@@ -827,7 +827,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
                 get_and_write_raster_from_item(item, x_folder, input_config)
             )
         except Exception as E:
-            logger.info(E)
+            logger.warning(f"Error in get_and_write_raster_from_item: {E}")
             continue
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")
