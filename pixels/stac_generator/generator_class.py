@@ -55,6 +55,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.mode = mode
         self.width = width
         self.heigt = heigt
+        self.train = train
         self._set_definition()
 
     def _set_definition(self):
@@ -63,6 +64,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             self._orignal_heigt = self.heigt
             self.width = int(math.ceil(self.width * self.upsampling))
             self.heigt = int(math.ceil(self.heigt * self.upsampling))
+        if self.mode == "3D_Model":
+            self.expected_x_shape = (1, self.timesteps, self.width, self.heigt, 10)
+            self.expected_y_shape = (1, self.timesteps, self.width, self.heigt, 1)
 
     def _set_s3_variables(self, path_collection):
         """
@@ -146,7 +150,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             )
         return tensor
 
-    def get_items_paths(self, x_catalog):
+    def get_items_paths(self, x_catalog, search_for_item=False):
         """
         From a catalog get the paths for each item and the corresponding y.
 
@@ -167,6 +171,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         x_paths = []
         for item in x_catalog.get_items():
             x_paths.append(item.assets[item.id].href)
+            if search_for_item:
+                return item
         try:
             y_item_path = x_catalog.get_links("corresponding_y")[0].target
             y_item = pystac.Item.from_file(y_item_path)
@@ -176,7 +182,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             y_path = None
         return x_paths, y_path
 
-    def get_data(self, x_paths, y_path):
+    def get_data(self, x_paths, y_path, search_for_meta=False):
         """
         From the paths list get the raster info.
 
@@ -212,6 +218,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_tensor.append(np.array(src.read()))
+                if search_for_meta:
+                    return src.meta
                 src.close()
             y_tensor.append(np.array(y_img))
         if self.mode == "3D_Model":
@@ -242,7 +250,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             x_tensor = np.array(x_tensor)[: self.timesteps]
         return np.array(x_tensor), np.array(y_tensor)
 
-    def get_data_from_index(self, index):
+    def get_data_from_index(self, index, search_for_meta=False):
         """
         Generate data from index.
         """
@@ -254,6 +262,13 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.catalogs_dict[catalog_id]["x_paths"] = x_paths
             self.catalogs_dict[catalog_id]["y_path"] = y_path
         # (Timesteps, bands, img)
+        if search_for_meta:
+            meta = self.get_data(
+                self.catalogs_dict[catalog_id]["x_paths"],
+                self.catalogs_dict[catalog_id]["y_path"],
+                search_for_meta=search_for_meta,
+            )
+            return meta
         X, Y = self.get_data(
             self.catalogs_dict[catalog_id]["x_paths"],
             self.catalogs_dict[catalog_id]["y_path"],
@@ -283,18 +298,22 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.mode == "3D_Model":
             X = np.array([X])
             Y = np.array([Y])
-            expected_x_shape = (1, self.timesteps, self.width, self.heigt, 10)
-            expected_y_shape = (1, self.timesteps, self.width, self.heigt, 1)
-            if X.shape != expected_x_shape:
-                X = self._fill_missing_dimensions(X, expected_x_shape)
-            if Y.shape != expected_y_shape:
-                Y = self._fill_missing_dimensions(Y, expected_y_shape)
+            if X.shape != self.expected_x_shape:
+                X = self._fill_missing_dimensions(X, self.expected_x_shape)
+                logger.warning(f"X dimensions not suitable in index {index}.")
+            if Y.shape != self.expected_y_shape:
+                Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
+                logger.warning(f"Y dimensions not suitable in index {index}.")
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
                 self.__getitem__(index + 1)
-            if Y is None:
-                return X
+        if Y is None or not self.train:
+            return X
         return X, Y
+
+    def get_item_metadata(self, index):
+        meta = self.get_data_from_index(index, search_for_meta=True)
+        return meta
 
     def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
         """
