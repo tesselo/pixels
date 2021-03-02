@@ -1,5 +1,6 @@
 import io
 import math
+import logging
 
 import rasterio
 from dateutil import parser
@@ -11,6 +12,8 @@ from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
 from pixels.const import TESSELO_TAG_NAMESPACE
+
+logger = logging.getLogger(__name__)
 
 
 def compute_transform(geojson, scale):
@@ -284,7 +287,10 @@ def write_raster(
             for key, val in tags.items():
                 dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
             dst.write(data)
-            dst.build_overviews(factors, resampling)
+            try:
+                dst.build_overviews(factors, resampling)
+            except Exception as E:
+                logger.warning(f"Error in saving raster, building overviews: {E}")
     else:
         # Returns a memory file.
         output = io.BytesIO()
@@ -295,7 +301,10 @@ def write_raster(
                 dst.write(data)
                 # To be able to build the overviews we need to have a size
                 # bigger than the factors.
-                dst.build_overviews(factors, resampling)
+                try:
+                    dst.build_overviews(factors, resampling)
+                except Exception as E:
+                    logger.warning(f"Error in saving raster, building overviews: {E}")
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)

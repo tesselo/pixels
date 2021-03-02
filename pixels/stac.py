@@ -639,8 +639,40 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
             out_path, save_files=True, aditional_links=item.get_self_href()
         )
     except Exception as E:
-        logger.warning(f"Error in get_and_write_raster_from_item: {E}")
+        logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {E}")
     return x_cat
+
+
+def build_catalog_from_items(
+    path_to_items,
+    filetype="_item.json",
+    id_name="id",
+    description="",
+    aditional_links="",
+):
+    """"""
+    if path_to_items.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+        items_list = list_files_in_s3(path_to_items, filetype="_item.json")
+    else:
+        items_list = glob.glob(f"{path_to_items}/*{filetype}", recursive=True)
+    catalog = pystac.Catalog(id=id_name, description=description)
+    for item_path in items_list:
+        item = pystac.read_file(item_path)
+        # Add item to catalog.
+        catalog.add_item(item)
+    # Normalize paths inside catalog.
+    if aditional_links:
+        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
+    catalog.normalize_hrefs(os.path.dirname(items_list[0]))
+    catalog.make_all_links_absolute()
+    catalog.make_all_asset_hrefs_absolute()
+    # catalog.validate_all()
+    # Save files if bool is set.
+    catalog.save_object(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
+
+    return catalog
 
 
 def build_collection_from_pixels(
