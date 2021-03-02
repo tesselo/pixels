@@ -205,7 +205,7 @@ def predict_function_batch(
                 dtgen.collection.get_child(catalog_id), search_for_item=True
             )
             id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
-            datetime_var = str(datetime.datetime.now().date())
+            datetime_var = datetime.datetime.now().date()
             footprint = it.geometry
             bbox = it.bbox
             out_meta = meta
