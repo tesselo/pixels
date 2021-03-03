@@ -157,8 +157,8 @@ def train_model_function(
 
 def predict_function_batch(
     model_uri,
-    generator_config_uri,
     collection_uri,
+    generator_config_uri,
     items_per_job,
 ):
     """
