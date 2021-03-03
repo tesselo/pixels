@@ -217,8 +217,12 @@ def get_catalog_length(catalog_path):
     if catalog_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
-    catalog = pystac.Catalog.from_file(catalog_path)
-    size = len(catalog.get_item_links())
+    try:
+        collection = pystac.Collection.from_file(catalog_path)
+        size = len(collection.get_child_links())
+    except:
+        catalog = pystac.Catalog.from_file(catalog_path)
+        size = len(catalog.get_item_links())
     return size
 
 
@@ -646,11 +650,26 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
 def build_catalog_from_items(
     path_to_items,
     filetype="_item.json",
-    id_name="id",
+    id_name="predictions",
     description="",
     aditional_links="",
 ):
-    """"""
+    """
+    From a path containing pystac items build a pystact catalog.
+
+    Parameters
+    ----------
+        path_to_items : str
+            Path to items.
+        filetype : str, optional
+        id_name : str, optional
+        description : str, optional
+        aditional_links : str, optional
+
+    Returns
+    -------
+        catalog : pystac catalog
+    """
     if path_to_items.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
@@ -664,13 +683,11 @@ def build_catalog_from_items(
         catalog.add_item(item)
     # Normalize paths inside catalog.
     if aditional_links:
-        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
+        catalog.add_link(pystac.Link("corresponding_source", aditional_links))
     catalog.normalize_hrefs(os.path.dirname(items_list[0]))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
-    # catalog.validate_all()
-    # Save files if bool is set.
-    catalog.save_object(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
+    catalog.save_object()
 
     return catalog
 
