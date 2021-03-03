@@ -27,12 +27,12 @@ geojson = {
 # geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
 result = search_data(
     geojson,
-    start="2019-12-01",
+    start="2020-12-01",
     end="2021-01-01",
     maxcloud=20,
-    limit=10,
+    limit=1,
     level="L2A",
-    platforms=["SENTINEL_2"],
+    platforms="SENTINEL_2",
 )
 print(result)
 
