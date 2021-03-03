@@ -1,6 +1,6 @@
 import io
-import math
 import logging
+import math
 
 import rasterio
 from dateutil import parser
