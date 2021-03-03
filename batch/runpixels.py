@@ -21,6 +21,8 @@ ALLOWED_FUNCTIONS = [
     "collect_from_catalog_subsection",
     "create_x_catalog",
     "train_model_function",
+    "predict_function_batch",
+    "build_catalog_from_items",
 ]
 
 

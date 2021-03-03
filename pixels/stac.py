@@ -217,8 +217,12 @@ def get_catalog_length(catalog_path):
     if catalog_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
-    catalog = pystac.Catalog.from_file(catalog_path)
-    size = len(catalog.get_item_links())
+    try:
+        collection = pystac.Collection.from_file(catalog_path)
+        size = len(collection.get_child_links())
+    except:
+        catalog = pystac.Catalog.from_file(catalog_path)
+        size = len(catalog.get_item_links())
     return size
 
 
@@ -646,7 +650,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
 def build_catalog_from_items(
     path_to_items,
     filetype="_item.json",
-    id_name="id",
+    id_name="predictions",
     description="",
     aditional_links="",
 ):
