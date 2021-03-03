@@ -6,8 +6,10 @@ import logging
 import os
 
 import h5py
+import numpy as np
 import pystac
 import tensorflow as tf
+from dateutil import parser
 
 import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
@@ -49,12 +51,17 @@ def create_pystac_item(
     footprint,
     bbox,
     datetime_var,
-    out_meta,
+    meta,
     path_item,
     aditional_links,
     href_path,
 ):
-
+    out_meta = {}
+    # Add projection stac extension, assuming input crs has a EPSG id.
+    out_meta["proj:epsg"] = meta["crs"].to_epsg()
+    out_meta["stac_extensions"] = ["projection"]
+    # Make transform and crs json serializable.
+    out_meta["crs"] = {"init": "epsg:" + str(meta["crs"].to_epsg())}
     # Create stac item.
     item = pystac.Item(
         id=id_raster,
@@ -206,9 +213,9 @@ def predict_function_batch(
             )
             id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
             datetime_var = str(datetime.datetime.now().date())
+            datetime_var = parser.parse(datetime_var)
             footprint = it.geometry
             bbox = it.bbox
-            out_meta = meta
             path_item = out_path_tif
             aditional_links = x_path
             href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
@@ -217,7 +224,7 @@ def predict_function_batch(
                 footprint,
                 bbox,
                 datetime_var,
-                out_meta,
+                meta,
                 path_item,
                 aditional_links,
                 href_path,
