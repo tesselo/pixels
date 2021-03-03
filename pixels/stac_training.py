@@ -130,12 +130,15 @@ def train_model_function(
         model : tensorflow trained model
             Model trained with catalog data.
     """
-    # TODO: Think of a way to make img size an input.
+    # Load the generator arguments.
     gen_args = _load_dictionary(generator_arguments_uri)
+    # Instanciate generator.
     dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
+    # Load model, compile and fit arguments.
     model = load_model_from_file(model_config_uri)
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
+    # Train model.
     model.fit(dtgen, **fit_args)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     # Store the model in bucket.
@@ -149,7 +152,6 @@ def train_model_function(
     else:
         with h5py.File(path_model) as h5fl:
             model.save(h5fl)
-
     return model
 
 
@@ -159,6 +161,22 @@ def predict_function_batch(
     collection_uri,
     items_per_job,
 ):
+    """
+    From a trained model and the cnfigurations files build the predictions on
+    the given data. Save the predictions and pystac items representing them.
+
+    Parameters
+    ----------
+        model_uri : keras model h5
+            Trained model.
+        generator_config_uri : path to json file
+            File of dictonary containing the generator configuration.
+        collection_uri : str, path
+            Collection with the information from the input data.
+        items_per_job : int
+            Number of items per jobs.
+    """
+
     array_index = os.getenv("AWS_BATCH_ARRAY_INDEX", 0)
     item_list = [
         *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
@@ -175,22 +193,30 @@ def predict_function_batch(
         model = tf.keras.models.load_model(model_uri)
     # Instanciate generator.
     gen_args = _load_dictionary(generator_config_uri)
+    # Force generator to prediction.
+    gen_args["train"] = False
     dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
-    # Predict section (e.g. 500:550)
+    # Predict section (e.g. 500:550).
+    # Predict for every item (index).
     for item in item_list:
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
+        # Get metadata from index, and create paths.
         meta = dtgen.get_item_metadata(item)
         catalog_id = dtgen.id_list[item]
         x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
+        # If the generator output is bigger than model shape, do a jumping window.
         if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
-            prediction = np.array([])
+            # Get the data (X).
             data = dtgen[item]
             width = model.input_shape[2]
             height = model.input_shape[3]
+            # Instanciate empty result matrix.
             prediction = np.full((width, height), np.nan)
+            # Create a jumping window with the expected size.
+            # For every window replace the values in the result matrix.
             for i in range(0, dtgen.expected_x_shape[2], width):
                 for j in range(0, dtgen.expected_x_shape[2], height):
                     res = data[:, :, i : i + width, j : j + height, :]
@@ -205,8 +231,10 @@ def predict_function_batch(
         else:
             prediction = model.predict(dtgen[item])
             prediction = prediction[0, :, :, :, 0]
+        # Save the prediction tif.
         out_path_tif = f"{out_path}.tif"
         _save_and_write_tif(out_path_tif, prediction, meta)
+        # Build the corresponding pystac item.
         try:
             it = dtgen.get_items_paths(
                 dtgen.collection.get_child(catalog_id), search_for_item=True
