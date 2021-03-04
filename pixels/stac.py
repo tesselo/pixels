@@ -684,7 +684,7 @@ def build_catalog_from_items(
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_source", aditional_links))
-    catalog.normalize_hrefs(os.path.dirname(items_list[0]))
+    catalog.set_self_href(os.path.join(os.path.dirname(items_list[0]), "catalog.json"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
     catalog.save_object()
