@@ -1,8 +1,8 @@
 import logging
 import os
 
-import sqlalchemy
 from dateutil.parser import parse
+from sqlalchemy import create_engine
 
 from pixels.const import AWS_L1C, AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
 from pixels.utils import compute_wgs83_bbox
@@ -15,7 +15,7 @@ DB_HOST = os.environ.get("DB_HOST")
 DB_USER = os.environ.get("DB_USER")
 
 # Setup db engine and connect.
-if DB_NAME is not None:
+if DB_NAME is None:
     DB_TEMPLATE = "postgresql+pg8000://{username}:{password}@{host}:{port}/{database}"
     db_url = DB_TEMPLATE.format(
         username=DB_USER,
@@ -24,7 +24,7 @@ if DB_NAME is not None:
         port=5432,
         database=DB_NAME,
     )
-    engine = sqlalchemy.create_engine(db_url, client_encoding="utf8")
+    engine = create_engine(db_url, client_encoding="utf8")
     connection = engine.connect()
 
 
