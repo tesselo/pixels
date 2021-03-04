@@ -139,7 +139,7 @@ def train_model_function(
     model = load_model_from_file(model_config_uri)
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
-    if model_config_uri.startswith('s3'):
+    if model_config_uri.startswith("s3"):
         path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
     else:
         path_ep_md = os.path.dirname(model_config_uri)
@@ -148,7 +148,7 @@ def train_model_function(
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     # Train model.
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        os.path.join(path_ep_md,"model_{epoch:02d}.hdf5"),
+        os.path.join(path_ep_md, "model_{epoch:02d}.hdf5"),
         monitor="loss",
         verbose=1,
         save_best_only=False,
@@ -156,8 +156,8 @@ def train_model_function(
         save_freq="epoch",
     )
     model.fit(dtgen, **fit_args, callbacks=[checkpoint])
-    if model_config_uri.startswith('s3'):
-        stc.upload_files_s3(path_ep_md, file_type='.hdf5')
+    if model_config_uri.startswith("s3"):
+        stc.upload_files_s3(path_ep_md, file_type=".hdf5")
     # Store the model in bucket.
     if path_model.startswith("s3"):
         with io.BytesIO() as fl:
@@ -293,6 +293,7 @@ def predict_function_batch(
             )
         except Exception as E:
             logger.warning(f"Error in parsing data in predict_function_batch: {E}")
+
 
 def predict_function(
     model_uri,
