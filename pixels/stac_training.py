@@ -139,7 +139,15 @@ def train_model_function(
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
     # Train model.
-    model.fit(dtgen, **fit_args)
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        "model_{epoch:02d}_{val_loss:.2f}.hdf5",
+        monitor="loss",
+        verbose=1,
+        save_best_only=False,
+        mode="auto",
+        save_freq="epoch",
+    )
+    model.fit(dtgen, **fit_args, callbacks=[checkpoint])
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     # Store the model in bucket.
     if path_model.startswith("s3"):
@@ -157,8 +165,8 @@ def train_model_function(
 
 def predict_function_batch(
     model_uri,
-    generator_config_uri,
     collection_uri,
+    generator_config_uri,
     items_per_job,
 ):
     """
