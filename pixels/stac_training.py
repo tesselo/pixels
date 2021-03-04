@@ -24,12 +24,12 @@ def _load_dictionary(path_file):
     if path_file.startswith("s3"):
         my_str = stc.open_file_from_s3(path_file)["Body"].read()
         new_str = my_str.decode("utf-8")
-        dict = json.loads(new_str)
+        dicti = json.loads(new_str)
     else:
         with open(path_file, "r") as json_file:
             input_config = json_file.read()
-            dict = ast.literal_eval(input_config)
-    return dict
+            dicti = ast.literal_eval(input_config)
+    return dicti
 
 
 def _save_and_write_tif(out_path, img, meta):
@@ -139,9 +139,16 @@ def train_model_function(
     model = load_model_from_file(model_config_uri)
     model.compile(**_load_dictionary(model_compile_arguments_uri))
     fit_args = _load_dictionary(model_fit_arguments_uri)
+    if model_config_uri.startswith('s3'):
+        path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
+    else:
+        path_ep_md = os.path.dirname(model_config_uri)
+    if not os.path.exists(path_ep_md):
+        os.makedirs(path_ep_md)
+    path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     # Train model.
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        "model_{epoch:02d}.hdf5",
+        os.path.join(path_ep_md,"model_{epoch:02d}.hdf5"),
         monitor="loss",
         verbose=1,
         save_best_only=False,
@@ -149,7 +156,8 @@ def train_model_function(
         save_freq="epoch",
     )
     model.fit(dtgen, **fit_args, callbacks=[checkpoint])
-    path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+    if model_config_uri.startswith('s3'):
+        stc.upload_files_s3(path_ep_md, file_type='.hdf5')
     # Store the model in bucket.
     if path_model.startswith("s3"):
         with io.BytesIO() as fl:
@@ -210,6 +218,120 @@ def predict_function_batch(
     # Predict section (e.g. 500:550).
     # Predict for every item (index).
     for item in item_list:
+        out_path = os.path.join(predict_path, "predictions", f"item_{item}")
+        # Get metadata from index, and create paths.
+        meta = dtgen.get_item_metadata(item)
+        catalog_id = dtgen.id_list[item]
+        x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
+        x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
+        # If the generator output is bigger than model shape, do a jumping window.
+        if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
+            # Get the data (X).
+            data = dtgen[item]
+            width = model.input_shape[2]
+            height = model.input_shape[3]
+            # Instanciate empty result matrix.
+            prediction = np.full((width, height), np.nan)
+            # Create a jumping window with the expected size.
+            # For every window replace the values in the result matrix.
+            for i in range(0, dtgen.expected_x_shape[2], width):
+                for j in range(0, dtgen.expected_x_shape[3], height):
+                    res = data[:, :, i : i + width, j : j + height, :]
+                    if res.shape[1:] != model.input_shape[1:]:
+                        res = data[:, :, -width:, -height:, :]
+                    pred = model.predict(res)
+                    # Merge all predicitons
+                    pred = pred[0, :, :, :, 0]
+                    aux_pred = prediction[i : i + width, j : j + height]
+                    mean_pred = np.nanmean([pred, aux_pred], axis=0)
+                    prediction[i : i + width, j : j + height] = mean_pred
+        else:
+            prediction = model.predict(dtgen[item])
+            # out_path_temp = out_path.replace("s3://", "tmp/")
+            # if not os.path.exists(os.path.dirname(out_path_temp)):
+            #     os.makedirs(os.path.dirname(out_path_temp))
+            # np.savez(f"{out_path_temp}.npz", prediction)
+            # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
+            prediction = prediction[0, :, :, :, 0]
+        # TODO: verify input shape with rasterio
+        meta["width"] = model.input_shape[2]
+        meta["height"] = model.input_shape[3]
+        meta["count"] = 1
+        meta["transform"] = Affine(
+            1,
+            meta["transform"][1],
+            meta["transform"][2],
+            meta["transform"][3],
+            -1,
+            meta["transform"][5],
+        )
+        # Save the prediction tif.
+        out_path_tif = f"{out_path}.tif"
+        _save_and_write_tif(out_path_tif, prediction, meta)
+        # Build the corresponding pystac item.
+        try:
+            it = dtgen.get_items_paths(
+                dtgen.collection.get_child(catalog_id), search_for_item=True
+            )
+            id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            datetime_var = str(datetime.datetime.now().date())
+            datetime_var = parser.parse(datetime_var)
+            footprint = it.geometry
+            bbox = it.bbox
+            path_item = out_path_tif
+            aditional_links = x_path
+            href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
+            create_pystac_item(
+                id_raster,
+                footprint,
+                bbox,
+                datetime_var,
+                meta,
+                path_item,
+                aditional_links,
+                href_path,
+            )
+        except Exception as E:
+            logger.warning(f"Error in parsing data in predict_function_batch: {E}")
+
+def predict_function(
+    model_uri,
+    collection_uri,
+    generator_config_uri,
+):
+    """
+    From a trained model and the cnfigurations files build the predictions on
+    the given data. Save the predictions and pystac items representing them.
+
+    Parameters
+    ----------
+        model_uri : keras model h5
+            Trained model.
+        generator_config_uri : path to json file
+            File of dictonary containing the generator configuration.
+        collection_uri : str, path
+            Collection with the information from the input data.
+    """
+    # Load model.
+    if model_uri.startswith("s3"):
+        obj = stc.open_file_from_s3(model_uri)["Body"]
+        fid_ = io.BufferedReader(obj._raw_stream)
+        read_in_memory = fid_.read()
+        bio_ = io.BytesIO(read_in_memory)
+        f = h5py.File(bio_, "r")
+        model = tf.keras.models.load_model(f)
+    else:
+        model = tf.keras.models.load_model(model_uri)
+    # Instanciate generator.
+    gen_args = _load_dictionary(generator_config_uri)
+    # Force generator to prediction.
+    gen_args["train"] = False
+    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
+    # Get parent folder for prediciton.
+    predict_path = os.path.dirname(generator_config_uri)
+    # Predict section (e.g. 500:550).
+    # Predict for every item (index).
+    for item in range(len(dtgen)):
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_item_metadata(item)
