@@ -10,6 +10,7 @@ import numpy as np
 import pystac
 import tensorflow as tf
 from dateutil import parser
+from rasterio import Affine
 
 import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
@@ -140,7 +141,7 @@ def train_model_function(
     fit_args = _load_dictionary(model_fit_arguments_uri)
     # Train model.
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        "model_{epoch:02d}_{val_loss:.2f}.hdf5",
+        "model_{epoch:02d}.hdf5",
         monitor="loss",
         verbose=1,
         save_best_only=False,
@@ -226,7 +227,7 @@ def predict_function_batch(
             # Create a jumping window with the expected size.
             # For every window replace the values in the result matrix.
             for i in range(0, dtgen.expected_x_shape[2], width):
-                for j in range(0, dtgen.expected_x_shape[2], height):
+                for j in range(0, dtgen.expected_x_shape[3], height):
                     res = data[:, :, i : i + width, j : j + height, :]
                     if res.shape[1:] != model.input_shape[1:]:
                         res = data[:, :, -width:, -height:, :]
@@ -238,7 +239,24 @@ def predict_function_batch(
                     prediction[i : i + width, j : j + height] = mean_pred
         else:
             prediction = model.predict(dtgen[item])
+            # out_path_temp = out_path.replace("s3://", "tmp/")
+            # if not os.path.exists(os.path.dirname(out_path_temp)):
+            #     os.makedirs(os.path.dirname(out_path_temp))
+            # np.savez(f"{out_path_temp}.npz", prediction)
+            # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
             prediction = prediction[0, :, :, :, 0]
+        # TODO: verify input shape with rasterio
+        meta["width"] = model.input_shape[2]
+        meta["height"] = model.input_shape[3]
+        meta["count"] = 1
+        meta["transform"] = Affine(
+            1,
+            meta["transform"][1],
+            meta["transform"][2],
+            meta["transform"][3],
+            -1,
+            meta["transform"][5],
+        )
         # Save the prediction tif.
         out_path_tif = f"{out_path}.tif"
         _save_and_write_tif(out_path_tif, prediction, meta)

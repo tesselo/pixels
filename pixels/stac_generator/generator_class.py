@@ -35,6 +35,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         width=32,
         heigt=32,
         mode="3D_Model",
+        prediction_catalog=False,
     ):
         """
         Initial setup for the class.
@@ -56,6 +57,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.width = width
         self.heigt = heigt
         self.train = train
+        self.prediciton = prediction_catalog
         self._set_definition()
 
     def _set_definition(self):
@@ -67,6 +69,9 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.mode == "3D_Model":
             self.expected_x_shape = (1, self.timesteps, self.width, self.heigt, 10)
             self.expected_y_shape = (1, self.timesteps, self.width, self.heigt, 1)
+        if self.prediciton:
+            if isinstance(self.prediciton, str):
+                self.prediciton = pystac.Catalog.from_file(self.prediciton)
 
     def _set_s3_variables(self, path_collection):
         """
