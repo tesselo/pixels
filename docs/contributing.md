@@ -43,22 +43,4 @@ make html
 ```
 
 ## Deployment
-Deployment needs to be done through virtualenvs that have the minimal number of
-libraries installed to have slim lambda packages.
-
-```shell
-# Remove pyc files before deployment.
-find ./ -name "*.pyc" -exec rm -f {} \;
-```
-
-```shell
-# Deploy dev.
-workon pixels-deploy-dev
-./deploy.sh dev
-```
-
-```shell
-# Deploy production.
-workon pixels-deploy-production
-./deploy.sh production
-```
+Deployment happens automatically when pushing to the main branch.

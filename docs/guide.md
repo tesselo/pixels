@@ -2,6 +2,88 @@
 This part of the documentation includes an overview with basic concepts,
 installation instruction and topic oriented guides.
 
+## Stac Integration
+
+### Example for pipeline run pixel and build stac file
+
+#### Parse training data and create stac items
+Using ipython (prior set you aws credentials):
+```python
+from pixels.stac import *
+
+source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
+
+ycatalog = parse_training_data(source_s3_path, save_files=True, reference_date="2020-12-31")
+```
+
+#### Collecting and writing the pixels result
+In the same ipython:
+```python
+
+config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
+
+x_collection = collect_from_catalog(ycatalog, config_file)
+```
+
+You have both X and Y stac collections you can save them as intendend.
+
+#### Full pipeline in one function
+In ipython:
+```python
+from pixels.stac import *
+
+source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
+config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
+
+final_collection = create_and_collect(source_path, config_file)
+```
+
+### Stac Browser - setting up and usage
+Clone the following package:
+
+  https://github.com/radiantearth/stac-browser
+
+Install the package:
+```
+npm install
+```
+
+Create an app python file (app.py):
+
+```python
+from flask import Flask, send_from_directory
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route("/<path:path_file>")
+
+def stac(path_file):
+    return send_from_directory("/path/to/folder/with_the/catalog_or_collection", path_file)
+
+if __name__ == "__main__":
+    app.run()
+```
+
+Run on one terminal:
+
+```
+python app.py
+```
+
+Open another terminal in the stac-browser folder. Run:
+```
+CATALOG_URL=http://127.0.0.1:5000/collection.json npm start -- --open
+```
+
+In your browser open
+
+http://localhost:1234/
+
+
+# The section below is out of date and deprecated.
+
 ## Authentication
 All endpoints use Token based authentication. Pass the `?key=mysecretkey` query argument to all requests.
 
@@ -226,82 +308,3 @@ Within Tesselo Pixel, the platform type is "Sentinel-1" and the product type eit
 
 #### GRD
 Level-1 Ground Range Detected (GRD) products consist of focused SAR data that has been detected, multi-looked and projected to ground range using an Earth ellipsoid model. Phase information is lost. The resulting product has approximately square spatial resolution pixels and square pixel spacing with reduced speckle at the cost of worse spatial resolution.
-
-## Stac Integration
-
-### Example for pipeline run pixel and build stac file
-
-#### Parse training data and create stac items
-Using ipython (prior set you aws credentials):
-```python
-from pixels.stac import *
-
-source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
-
-ycatalog = parse_training_data(source_s3_path, save_files=True, reference_date="2020-12-31")
-```
-
-#### Collecting and writing the pixels result
-In the same ipython:
-```python
-
-config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
-
-x_collection = collect_from_catalog(ycatalog, config_file)
-```
-
-You have both X and Y stac collections you can save them as intendend.
-
-#### Full pipeline in one function
-In ipython:
-```python
-from pixels.stac import *
-
-source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
-config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
-
-final_collection = create_and_collect(source_path, config_file)
-```
-
-### Stac Browser - setting up and usage
-Clone the following package:
-
-  https://github.com/radiantearth/stac-browser
-
-Install the package:
-```
-npm install
-```
-
-Create an app python file (app.py):
-
-```python
-from flask import Flask, send_from_directory
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
-
-@app.route("/<path:path_file>")
-
-def stac(path_file):
-    return send_from_directory("/path/to/folder/with_the/catalog_or_collection", path_file)
-
-if __name__ == "__main__":
-    app.run()
-```
-
-Run on one terminal:
-
-```
-python app.py
-```
-
-Open another terminal in the stac-browser folder. Run:
-```
-CATALOG_URL=http://127.0.0.1:5000/collection.json npm start -- --open
-```
-
-In your browser open
-
-http://localhost:1234/
