@@ -1,4 +1,5 @@
 from pixels.search import search_data
+from pixels.const import L1_DATES, L2_DATES, L3_DATES, L4_DATES, L5_DATES, L7_DATES, L8_DATES
 
 geojson = {
     "type": "FeatureCollection",
@@ -25,18 +26,24 @@ geojson = {
 }
 
 # geojson = gpd.read_file('/home/keren/Desktop/belem.geojson')
+# result = search_data(
+#     geojson,
+#     start="2020-12-01",
+#     end="2021-01-01",
+#     maxcloud=50,
+#     limit=1,
+#     platforms="LANDSAT_1",
+# )
+
+            
 result = search_data(
-    geojson,
-    start="2020-12-01",
-    end="2021-01-01",
-    maxcloud=20,
-    limit=1,
-    level="L2A",
-    platforms="SENTINEL_2",
-)
+            geojson,
+            start=L8_DATES,
+            end="2020-12-31",
+            maxcloud=20,
+            limit=1,
+            platforms="LANDSAT_8") 
 print(result)
-
-
 # import requests
 
 # url = "http://127.0.0.1:5000/search"
