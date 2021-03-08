@@ -103,6 +103,20 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
+def nan_mean_squared_error_loss(nan_value=np.nan):
+    # Create a loss function
+    def loss(y_true, y_pred):
+        indices = tf.where(
+            tf.not_equal(y_true, nan_value)
+        )  #  or `tf.less`, `tf.equal` etc.
+        return tf.keras.losses.mean_squared_error(
+            tf.gather(y_true, indices), tf.gather(y_pred, indices)
+        )
+
+    # Return a function
+    return loss
+
+
 def train_model_function(
     catalog_uri,
     model_config_uri,
@@ -137,7 +151,13 @@ def train_model_function(
     dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     # Load model, compile and fit arguments.
     model = load_model_from_file(model_config_uri)
-    model.compile(**_load_dictionary(model_compile_arguments_uri))
+    compile_args = _load_dictionary(model_compile_arguments_uri)
+    if compile_args["loss"] == "custom":
+        compile_args.pop("loss")
+        custom = nan_mean_squared_error_loss(nan_value=0)
+        model.compile(loss=custom, **compile_args)
+    else:
+        model.compile(**compile_args)
     fit_args = _load_dictionary(model_fit_arguments_uri)
     if model_config_uri.startswith("s3"):
         path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
@@ -212,7 +232,7 @@ def predict_function_batch(
     gen_args = _load_dictionary(generator_config_uri)
     # Force generator to prediction.
     gen_args["train"] = False
-    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)    
+    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
     # Predict section (e.g. 500:550).
