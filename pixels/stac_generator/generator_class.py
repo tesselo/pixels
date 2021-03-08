@@ -252,7 +252,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                     )
                 )
             x_tensor = np.array(x_tensor)[: self.timesteps]
-            x_tensor = np.array(x_tensor)[: self.timesteps]
+            y_tensor = np.array(y_tensor)[: self.timesteps]
         return np.array(x_tensor), np.array(y_tensor)
 
     def get_data_from_index(self, index, search_for_meta=False):
