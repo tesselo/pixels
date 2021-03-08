@@ -212,14 +212,12 @@ def predict_function_batch(
     gen_args = _load_dictionary(generator_config_uri)
     # Force generator to prediction.
     gen_args["train"] = False
-    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
+    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)    
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
     # Predict section (e.g. 500:550).
     # Predict for every item (index).
     for item in item_list:
-        if item not in range(len(dtgen)):
-            continue
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_item_metadata(item)
