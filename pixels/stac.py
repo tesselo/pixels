@@ -367,7 +367,7 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     logger.debug("Building stac catalog for {}.".format(source_path))
-    if source_path.endswith("geojson"):
+    if source_path.endswith("geojson") or source_path.endswith("gpkg"):
         return parse_prediction_area(
             source_path,
             save_files=save_files,

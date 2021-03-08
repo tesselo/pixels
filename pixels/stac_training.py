@@ -218,6 +218,8 @@ def predict_function_batch(
     # Predict section (e.g. 500:550).
     # Predict for every item (index).
     for item in item_list:
+        if item not in range(len(dtgen)):
+            continue
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_item_metadata(item)
