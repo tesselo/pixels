@@ -114,6 +114,10 @@ def search_data(
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
+
+    # x = [dict(row) for row in result]
+    # print("Engine result: ", x)
+
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result])
     # Convert cloud cover into float to allow json serialization of the output.
