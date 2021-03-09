@@ -232,7 +232,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
-        # mask_img = y_img == self.nan_value
         x_tensor = []
         y_tensor = []
         for x_p in x_paths:
@@ -300,6 +299,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.height]
         Y = Y[:, :, : self.width, : self.height]
+        # Add band for NaN mask.
+        if self.mask_band:
+            mask_img = Y != self.nan_value
+            mask_band = mask_img.astype("int")
+            X = np.hstack([X, mask_band])
         return X, Y
 
     def __getitem__(self, index):
