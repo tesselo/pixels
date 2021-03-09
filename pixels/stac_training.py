@@ -349,6 +349,7 @@ def predict_function(
         read_in_memory = fid_.read()
         bio_ = io.BytesIO(read_in_memory)
         f = h5py.File(bio_, "r")
+        # TODO: hardcoded custom loss function.
         try:
             model = tf.keras.models.load_model(f)
         except:
