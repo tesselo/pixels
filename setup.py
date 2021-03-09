@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="Copyright (c) Tesselo - Space Mosaic Lda. All rights reserved.",
-    packages=find_packages(exclude=("tests", "batch", "app", "scripts")),
+    packages=find_packages(exclude=("tests", "batch", "scripts")),
     include_package_data=True,
     install_requires=install_requires,
 )
