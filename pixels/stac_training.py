@@ -222,11 +222,6 @@ def predict_function_batch(
         items_per_job : int
             Number of items per jobs.
     """
-
-    array_index = os.getenv("AWS_BATCH_ARRAY_INDEX", 0)
-    item_list = [
-        *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
-    ]
     # Load model.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
@@ -255,6 +250,14 @@ def predict_function_batch(
     dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
+    # Get jobs array.
+    array_index = os.getenv("AWS_BATCH_ARRAY_INDEX", 0)
+    item_list_max =  (array_index + 1) * int(items_per_job)
+    if item_list_max > len(dtgen):
+        item_list_max = len(dtgen)
+    item_list = [
+        *range(array_index * int(items_per_job), item_list_max)
+    ]
     # Predict section (e.g. 500:550).
     # Predict for every item (index).
     for item in item_list:
