@@ -106,11 +106,11 @@ def load_model_from_file(model_configuration_file):
 def nan_mean_squared_error_loss(nan_value=np.nan):
     # Create a loss function
     def loss(y_true, y_pred):
-        indices = tf.where(
-            tf.not_equal(y_true, nan_value)
-        )  #  or `tf.less`, `tf.equal` etc.
+        if y_true.shape != y_pred.shape:
+            y_true = y_true[:, :1]
+        indices = tf.where(tf.not_equal(y_true, nan_value))
         return tf.keras.losses.mean_squared_error(
-            tf.gather(y_true, indices), tf.gather(y_pred, indices)
+            tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
         )
 
     # Return a function
@@ -152,10 +152,19 @@ def train_model_function(
     # Load model, compile and fit arguments.
     model = load_model_from_file(model_config_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
-    if compile_args["loss"] == "custom":
+    if not hasattr(tf.keras.losses, compile_args["loss"]):
+        possibles = globals().copy()
+        possibles.update(locals())
+        loss_costum = possibles.get(compile_args["loss"])
+        loss_args = {"nan_value": dtgen.nan_value}
+        if not loss_costum:
+            logger.warning(
+                f"Method {compile_args['loss']} not implemented, going for mse."
+            )
+            loss_costum = tf.keras.losses.mean_squared_error
+            loss_args = {}
         compile_args.pop("loss")
-        custom = nan_mean_squared_error_loss(nan_value=0)
-        model.compile(loss=custom, **compile_args)
+        model.compile(loss=loss_costum(**loss_args), **compile_args)
     else:
         model.compile(**compile_args)
     fit_args = _load_dictionary(model_fit_arguments_uri)

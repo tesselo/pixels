@@ -36,6 +36,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         heigt=32,
         mode="3D_Model",
         prediction_catalog=False,
+        nan_value=0,
     ):
         """
         Initial setup for the class.
@@ -58,6 +59,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.heigt = heigt
         self.train = train
         self.prediciton = prediction_catalog
+        self.nan_value = nan_value
         self._set_definition()
 
     def _set_definition(self):
@@ -290,30 +292,34 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         Generate one batch of data
         """
-        X, Y = self.get_data_from_index(index)
-        # (Timesteps, bands, img) -> (Timesteps, img, Bands)
-        # For channel last models: otherwise uncoment.
-        # TODO: add the data_format mode based on model using.
-        X = np.swapaxes(X, 1, 2)
-        X = np.swapaxes(X, 2, 3)
+        try:
+            X, Y = self.get_data_from_index(index)
+            # (Timesteps, bands, img) -> (Timesteps, img, Bands)
+            # For channel last models: otherwise uncoment.
+            # TODO: add the data_format mode based on model using.
+            X = np.swapaxes(X, 1, 2)
+            X = np.swapaxes(X, 2, 3)
 
-        Y = np.swapaxes(Y, 1, 2)
-        Y = np.swapaxes(Y, 2, 3)
+            Y = np.swapaxes(Y, 1, 2)
+            Y = np.swapaxes(Y, 2, 3)
 
-        if self.mode == "3D_Model":
-            X = np.array([X])
-            Y = np.array([Y])
-            if X.shape != self.expected_x_shape:
-                X = self._fill_missing_dimensions(X, self.expected_x_shape)
-                logger.warning(f"X dimensions not suitable in index {index}.")
-            if Y.shape != self.expected_y_shape:
-                Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
-                logger.warning(f"Y dimensions not suitable in index {index}.")
-            # Hacky way to ensure data, must change.
-            if len(X.shape) < 4:
-                self.__getitem__(index + 1)
-        if Y is None or not self.train:
-            return X
+            if self.mode == "3D_Model":
+                X = np.array([X])
+                Y = np.array([Y])
+                if X.shape != self.expected_x_shape:
+                    X = self._fill_missing_dimensions(X, self.expected_x_shape)
+                    logger.warning(f"X dimensions not suitable in index {index}.")
+                if Y.shape != self.expected_y_shape:
+                    Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
+                    logger.warning(f"Y dimensions not suitable in index {index}.")
+                # Hacky way to ensure data, must change.
+                if len(X.shape) < 4:
+                    self.__getitem__(index + 1)
+            if Y is None or not self.train:
+                return X
+        except Exception as E:
+            logger.warning(f"Error in get_item in index {index}: {E}")
+            self.__getitem__(index + 1)
         return X, Y
 
     def get_item_metadata(self, index):
