@@ -232,7 +232,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
-        mask_img = y_img == self.nan_value
+        # mask_img = y_img == self.nan_value
         x_tensor = []
         y_tensor = []
         for x_p in x_paths:
