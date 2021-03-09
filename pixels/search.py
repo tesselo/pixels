@@ -15,7 +15,7 @@ DB_HOST = os.environ.get("DB_HOST")
 DB_USER = os.environ.get("DB_USER")
 
 # Setup db engine and connect.
-#if DB_NAME is None:
+# if DB_NAME is None:
 DB_TEMPLATE = "postgresql+pg8000://{username}:{password}@{host}:{port}/{database}"
 db_url = DB_TEMPLATE.format(
     username=DB_USER,
@@ -114,9 +114,6 @@ def search_data(
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
-
-    # x = [dict(row) for row in result]
-    # print("Engine result: ", x)
 
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result])
