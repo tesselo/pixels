@@ -349,9 +349,19 @@ def predict_function(
         read_in_memory = fid_.read()
         bio_ = io.BytesIO(read_in_memory)
         f = h5py.File(bio_, "r")
-        model = tf.keras.models.load_model(f)
+        try:
+            model = tf.keras.models.load_model(f)
+        except:
+            model = tf.keras.models.load_model(
+                f, custom_objects={"loss": nan_mean_squared_error_loss}
+            )
     else:
-        model = tf.keras.models.load_model(model_uri)
+        try:
+            model = tf.keras.models.load_model(model_uri)
+        except:
+            model = tf.keras.models.load_model(
+                model_uri, custom_objects={"loss": nan_mean_squared_error_loss}
+            )
     # Instanciate generator.
     gen_args = _load_dictionary(generator_config_uri)
     # Force generator to prediction.
