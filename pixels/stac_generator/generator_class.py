@@ -75,7 +75,13 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.width = int(math.ceil(self.width * self.upsampling))
             self.height = int(math.ceil(self.height * self.upsampling))
         if self.mode == "3D_Model":
-            self.expected_x_shape = (1, self.timesteps, self.width, self.height, self.num_bands)
+            self.expected_x_shape = (
+                1,
+                self.timesteps,
+                self.width,
+                self.height,
+                self.num_bands,
+            )
             self.expected_y_shape = (1, self.timesteps, self.width, self.height, 1)
         if self.prediction:
             if isinstance(self.prediction, str):
@@ -226,7 +232,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
-        mask_img = y_img==self.nan_value
+        mask_img = y_img == self.nan_value
         x_tensor = []
         y_tensor = []
         for x_p in x_paths:
