@@ -33,10 +33,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         upsampling=False,
         timesteps=12,
         width=32,
-        heigt=32,
+        height=32,
         mode="3D_Model",
         prediction_catalog=False,
         nan_value=0,
+        mask_band=False,
     ):
         """
         Initial setup for the class.
@@ -56,24 +57,35 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.timesteps = timesteps
         self.mode = mode
         self.width = width
-        self.heigt = heigt
+        self.height = height
         self.train = train
-        self.prediciton = prediction_catalog
+        self.prediction = prediction_catalog
         self.nan_value = nan_value
+        self.mask_band = mask_band
         self._set_definition()
 
     def _set_definition(self):
+        # TODO: Read number of bands from somewhere.
+        self.num_bands = 10
+        if self.mask_band:
+            self.num_bands = self.num_bands + 1
         if self.upsampling:
             self._orignal_width = self.width
-            self._orignal_heigt = self.heigt
+            self._orignal_height = self.height
             self.width = int(math.ceil(self.width * self.upsampling))
-            self.heigt = int(math.ceil(self.heigt * self.upsampling))
+            self.height = int(math.ceil(self.height * self.upsampling))
         if self.mode == "3D_Model":
-            self.expected_x_shape = (1, self.timesteps, self.width, self.heigt, 10)
-            self.expected_y_shape = (1, self.timesteps, self.width, self.heigt, 1)
-        if self.prediciton:
-            if isinstance(self.prediciton, str):
-                self.prediciton = pystac.Catalog.from_file(self.prediciton)
+            self.expected_x_shape = (
+                1,
+                self.timesteps,
+                self.width,
+                self.height,
+                self.num_bands,
+            )
+            self.expected_y_shape = (1, self.timesteps, self.width, self.height, 1)
+        if self.prediction:
+            if isinstance(self.prediction, str):
+                self.prediction = pystac.Catalog.from_file(self.prediction)
 
     def _set_s3_variables(self, path_collection):
         """
@@ -220,11 +232,13 @@ class DataGenerator_stac(keras.utils.Sequence):
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
+        # mask_img = y_img == self.nan_value
         x_tensor = []
         y_tensor = []
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
-                x_tensor.append(np.array(src.read()))
+                x_img = np.array(src.read())
+                x_tensor.append(x_img)
                 if search_for_meta:
                     return src.meta
                 src.close()
@@ -281,11 +295,11 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.catalogs_dict[catalog_id]["y_path"],
         )
         if self.upsampling:
-            X = X[:, :, : self._orignal_width, : self._orignal_heigt]
+            X = X[:, :, : self._orignal_width, : self._orignal_height]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # Remove extra pixels.
-        X = X[:, :, : self.width, : self.heigt]
-        Y = Y[:, :, : self.width, : self.heigt]
+        X = X[:, :, : self.width, : self.height]
+        Y = Y[:, :, : self.width, : self.height]
         return X, Y
 
     def __getitem__(self, index):
