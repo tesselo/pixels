@@ -298,12 +298,13 @@ def predict_function_batch(
         meta["width"] = model.input_shape[2]
         meta["height"] = model.input_shape[3]
         meta["count"] = 1
+        # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
-            1,
+            meta["transform"][0] / gen_args["upsampling"],
             meta["transform"][1],
             meta["transform"][2],
             meta["transform"][3],
-            -1,
+            meta["transform"][4] / gen_args["upsampling"],
             meta["transform"][5],
         )
         # Save the prediction tif.
