@@ -62,6 +62,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.prediction = prediction_catalog
         self.nan_value = nan_value
         self.mask_band = mask_band
+        self._wrong_sizes_list = []
         self._set_definition()
 
     def _set_definition(self):
@@ -310,9 +311,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         Y = Y[:, :, : self.width, : self.height]
         # Fill missing pixels to the standard, with the NaN value of the object.
         if X.shape != x_open_shape:
+            self._wrong_sizes_list.append(index)
             X = self._fill_missing_dimensions(X, x_open_shape)
             logger.warning(f"X dimensions not suitable in index {index}.")
         if Y.shape != y_open_shape:
+            self._wrong_sizes_list.append(index)
             Y = self._fill_missing_dimensions(Y, y_open_shape)
             logger.warning(f"Y dimensions not suitable in index {index}.")
         # Upsample the X.
@@ -347,9 +350,11 @@ class DataGenerator_stac(keras.utils.Sequence):
             X = np.array([X])
             Y = np.array([Y])
             if X.shape != self.expected_x_shape:
+                self._wrong_sizes_list.append(index)
                 X = self._fill_missing_dimensions(X, self.expected_x_shape)
                 logger.warning(f"X dimensions not suitable in index {index}.")
             if Y.shape != self.expected_y_shape:
+                self._wrong_sizes_list.append(index)
                 Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
                 logger.warning(f"Y dimensions not suitable in index {index}.")
             # Hacky way to ensure data, must change.
@@ -363,7 +368,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         meta = self.get_data_from_index(index, search_for_meta=True)
         return meta
 
-    def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000):
+    def visualize_data(self, index, RGB=[2, 1, 0], scaling=4000, in_out="IN"):
         """
         Visualize data.
 
@@ -378,9 +383,25 @@ class DataGenerator_stac(keras.utils.Sequence):
             scaling : int
                 Image scaling value.
         """
-        X, Y = self.get_data_from_index(index)
-        if not X.shape[-2:] == Y[0].shape[-2:]:
-            X = aug.upscale_multiple_images(X)
-        if self.mode == "3D_Model":
-            y = Y[0, 0]
-        vis.visualize_in_item(X, y, RGB=RGB, scaling=scaling)
+        if in_out == "IN":
+            X, Y = self.get_data_from_index(index)
+            if not X.shape[-2:] == Y[0].shape[-2:]:
+                X = aug.upscale_multiple_images(X)
+            if self.mode == "3D_Model":
+                y = Y[0, 0]
+            if self.mask_band:
+                mask = X[:1, -1:, :, :]
+                X = X[:, :-1, :, :]
+                mask = np.repeat(mask, X.shape[1], axis=1)
+                mask = mask * scaling
+                X = np.vstack([X, mask])
+        if in_out == "OUT":
+            X, Y = self.__getitem__(index)
+            y = Y[0]
+            if self.mask_band:
+                mask = X[:, :1, :, :, -1:]
+                X = X[:, :, :, :, :-1]
+                mask = np.repeat(mask, X.shape[-1], axis=-1)
+                mask = mask * scaling
+                X = np.hstack([X, mask])
+        vis.visualize_in_item(X, y, RGB=RGB, scaling=scaling, in_out=in_out)
