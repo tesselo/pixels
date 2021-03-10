@@ -184,7 +184,8 @@ def train_model_function(
         mode="auto",
         save_freq="epoch",
     )
-    model.fit(dtgen, **fit_args, callbacks=[checkpoint])
+    # Verbose level 2 prints one line per epoch to the log.
+    model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
     if model_config_uri.startswith("s3"):
         stc.upload_files_s3(path_ep_md, file_type=".hdf5")
     # Store the model in bucket.
