@@ -67,6 +67,7 @@ class DataGenerator_stac(keras.utils.Sequence):
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
         self.num_bands = 10
+        self._original_num_bands = self.num_bands
         if self.mask_band:
             self.num_bands = self.num_bands + 1
         if self.upsampling:
@@ -139,7 +140,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         #     self.length = self.length + len(child.get_item_links())
         return self.length
 
-    def _fill_missing_dimensions(self, tensor, expected_shape, value=0):
+    def _fill_missing_dimensions(self, tensor, expected_shape, value=None):
         """
         Fill a tensor with any shape (smaller dimensions than expected), with
         value to fill up until has the expected_shape dimensions.
@@ -159,6 +160,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Modified numpy array.
 
         """
+        if not value:
+            value = self.nan_value
         missing_shape = tuple(x1 - x2 for (x1, x2) in zip(expected_shape, tensor.shape))
         for dim in range(len(tensor.shape)):
             current_shape = tensor.shape
@@ -293,6 +296,26 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.catalogs_dict[catalog_id]["x_paths"],
             self.catalogs_dict[catalog_id]["y_path"],
         )
+        # Check if the loaded images have the needed dimensions.
+        # Cut or add NaN values on surplus/missing pixels.
+        x_open_shape = (
+            self.timesteps,
+            self._original_num_bands,
+            self._orignal_width,
+            self._orignal_height,
+        )
+        y_open_shape = (self.timesteps, 1, self.width, self.height)
+        # Remove extra pixels.
+        X = X[:, :, : self._orignal_width, : self._orignal_height]
+        Y = Y[:, :, : self.width, : self.height]
+        # Fill missing pixels to the standard, with the NaN value of the object.
+        if X.shape != x_open_shape:
+            X = self._fill_missing_dimensions(X, x_open_shape)
+            logger.warning(f"X dimensions not suitable in index {index}.")
+        if Y.shape != y_open_shape:
+            Y = self._fill_missing_dimensions(Y, y_open_shape)
+            logger.warning(f"Y dimensions not suitable in index {index}.")
+        # Upsample the X.
         if self.upsampling:
             X = X[:, :, : self._orignal_width, : self._orignal_height]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
