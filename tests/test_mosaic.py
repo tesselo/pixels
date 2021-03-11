@@ -1,7 +1,7 @@
 import datetime
 import os
 import unittest
-from unittest import mock
+from unittest import mock, skip
 
 import numpy
 
@@ -100,6 +100,7 @@ class TestMosaic(unittest.TestCase):
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
 
+    @skip("This test currently runs forever on CI.")
     def test_latest_pixel_s2_stack(self):
         # Test weekly latest pixel stack.
         creation_args, dates, stack = latest_pixel_s2_stack(
