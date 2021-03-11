@@ -76,7 +76,11 @@ def create_pystac_item(
         ),
     )
     if aditional_links:
-        item.add_link(pystac.Link("x_catalog", aditional_links))
+        if isinstance(aditional_links, dict):
+            for key in aditional_links.keys():
+                item.add_link(pystac.Link(key, aditional_links[key]))
+        else:
+            item.add_link(pystac.Link("x_catalog", aditional_links))
     item.set_self_href(href_path)
     # Validate item.
     item.validate()
@@ -323,7 +327,7 @@ def predict_function_batch(
             footprint = it.geometry
             bbox = it.bbox
             path_item = out_path_tif
-            aditional_links = x_path
+            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
             href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
             create_pystac_item(
                 id_raster,
@@ -450,7 +454,7 @@ def predict_function(
             footprint = it.geometry
             bbox = it.bbox
             path_item = out_path_tif
-            aditional_links = x_path
+            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
             href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
             create_pystac_item(
                 id_raster,
