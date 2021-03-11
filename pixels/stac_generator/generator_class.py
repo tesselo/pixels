@@ -346,15 +346,16 @@ class DataGenerator_stac(keras.utils.Sequence):
         if not self.prediction:
             return None
         catalog_id = self.id_list[index]
-        if catalog_id not in self.catalogs_dict or search_for_meta:
+        if catalog_id not in self.catalogs_dict:
             meta = self.get_data_from_index(index, search_for_meta=True)
-            if search_for_meta:
-                return meta
         pred_path = self.catalogs_dict[catalog_id]["prediction_path"]
         if not pred_path:
             return None
         with rasterio.open(pred_path) as src:
             prediction_img = src.read()
+            meta = src.meta
+        if search_for_meta:
+            return meta
         return prediction_img
 
     def __getitem__(self, index):
