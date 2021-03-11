@@ -316,7 +316,8 @@ def predict_function_batch(
             it = dtgen.get_items_paths(
                 dtgen.collection.get_child(catalog_id), search_for_item=True
             )
-            id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            # id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            id_raster = catalog_id
             datetime_var = str(datetime.datetime.now().date())
             datetime_var = parser.parse(datetime_var)
             footprint = it.geometry
