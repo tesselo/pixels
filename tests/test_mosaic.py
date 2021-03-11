@@ -6,7 +6,7 @@ from unittest import mock
 import numpy
 
 from pixels.algebra import parser
-from pixels.mosaic import latest_pixel
+from pixels.mosaic import latest_pixel, latest_pixel_s2_stack
 
 
 def mock_search_data(
@@ -98,6 +98,38 @@ class TestMosaic(unittest.TestCase):
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
+        numpy.testing.assert_array_equal(stack, expected)
+
+    def test_latest_pixel_s2_stack(self):
+        # Test weekly latest pixel stack.
+        creation_args, dates, stack = latest_pixel_s2_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-01",
+            scale=500,
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+        )
+        self.assertEqual(
+            dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
+        )
+        expected = [[[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]] * 4
+        numpy.testing.assert_array_equal(stack, expected)
+
+        # Test all latest pixel.
+        creation_args, dates, stack = latest_pixel_s2_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-01",
+            scale=500,
+            interval="all",
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+        )
+        self.assertEqual(dates, ["2020-01-20", "2020-01-21", "2020-01-22"])
+        expected = [[[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]] * 3
         numpy.testing.assert_array_equal(stack, expected)
 
     def test_algebra(self):

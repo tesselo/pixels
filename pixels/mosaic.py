@@ -29,6 +29,58 @@ def latest_pixel(
 ):
     """
     Get the latest pixel for the input items over the input fetures.
+
+    Parameters
+    ----------
+    geojson : dict
+        The area over which the raster data will be collected. The geometry
+        extent will be used as bounding box for the raster. A custom CRS
+        property can be used to define the projection.
+    end_date : str
+        A parseable date or datetime string. Represents the maximum date of the
+        input imagery. Only images before that date will be used for creating
+        the output. Example "2020-12-31".
+    scale : int or float
+        The scale (resolution) of the output raster. This number needs to be in
+        the uints of the input geojson. If not provided, the scale of the input
+        raster is used, but only if the projection of the raster is the same as
+        the projection of the geojson.
+    bands : list of int, optional
+        Defines which band indices shall be extracted from the source raster. If
+        it is empty or None, all bands will be extracted.
+    platforms : str or list, optional
+        The selection of satellites to search for images on pixels. The satellites
+        can be from Landsat collection or Sentinel 2. The str or list must contain
+        the following values: 'SENTINEL_2', 'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3',
+        'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or'LANDSAT_8'. If ignored, it returns
+        values from different platforms according to the combination of the other
+        parameters.
+    limit: integer
+        Limit the number of images that will be listed as candidates for
+        extracting pixels.
+    clip : boolean, optional
+        If True, the raster is clipped against the geometry. All values outside
+        the geometry will be set to nodata.
+    pool : boolean, optional
+        If True, thread pooling is used to request the image data.
+    maxcloud : int, optional
+        Maximun accepted cloud coverage in images. If not provided returns records with
+        up to 100% cloud coverage.
+    level : str, optional
+        The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
+        or 'L2A'(Level-2A) that provides Bottom Of Atmosphere (BOA) reflectance images
+        derived from associated Level-1C products. Ignored if platforms is not Sentinel 2.
+
+
+    Returns
+    -------
+    creation_args : dict
+        The creation arguments metadata for the extracted pixel matrix. Can be
+        used to write the extracted pixels to a file if desired.
+    first_end_date : date object
+        The date of the first scene used to create the output image.
+    stack : numpy array
+        The extracted pixel stack, with shape (bands, height, width).
     """
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
@@ -147,6 +199,7 @@ def latest_pixel_s2_stack(
     clip=False,
     maxcloud=None,
     pool_size=20,
+    level=None,
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -166,6 +219,7 @@ def latest_pixel_s2_stack(
             limit=limit,
             platforms=platforms,
             maxcloud=maxcloud,
+            level=level,
         )
 
         if not response:
@@ -185,6 +239,7 @@ def latest_pixel_s2_stack(
                 clip,
                 retrieve_pool,
                 maxcloud,
+                level,
             )
             for item in response
         ]
@@ -201,6 +256,7 @@ def latest_pixel_s2_stack(
                 clip,
                 retrieve_pool,
                 maxcloud,
+                level,
             )
             for step in timeseries_steps(start, end, interval)
         ]
