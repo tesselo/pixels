@@ -38,11 +38,7 @@ def _save_and_write_tif(out_path, img, meta):
         out_path_tif = out_path_tif.replace("s3://", "tmp/")
     if not os.path.exists(os.path.dirname(out_path_tif)):
         os.makedirs(os.path.dirname(out_path_tif))
-    write_raster(
-        img,
-        meta,
-        out_path=out_path_tif,
-    )
+    write_raster(img, meta, out_path=out_path_tif, dtype=img.dtype.name)
     if out_path.startswith("s3"):
         stc.upload_files_s3(os.path.dirname(out_path_tif), file_type="tif")
 
@@ -443,7 +439,8 @@ def predict_function(
             it = dtgen.get_items_paths(
                 dtgen.collection.get_child(catalog_id), search_for_item=True
             )
-            id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            # id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            id_raster = catalog_id
             datetime_var = str(datetime.datetime.now().date())
             datetime_var = parser.parse(datetime_var)
             footprint = it.geometry
