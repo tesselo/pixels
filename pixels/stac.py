@@ -512,6 +512,7 @@ def validate_pixels_config(
     bands=("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"),
     maxcloud=20,
     pool_size=0,
+    level=None,
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -531,6 +532,8 @@ def validate_pixels_config(
         maxcloud: int, optional
             Maximun accepted cloud coverage in image.
         pool_size: int, optional
+        level : str, optional
+            The processing level. Only valid if
     Returns
     -------
         config : dict
@@ -553,6 +556,7 @@ def validate_pixels_config(
         "bands": bands,
         "maxcloud": maxcloud,
         "pool_size": pool_size,
+        "level": level,
     }
     return config
 
