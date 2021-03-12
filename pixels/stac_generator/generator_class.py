@@ -285,6 +285,16 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.catalogs_dict[catalog_id] = {}
             self.catalogs_dict[catalog_id]["x_paths"] = x_paths
             self.catalogs_dict[catalog_id]["y_path"] = y_path
+            if self.prediction:
+                try:
+                    pred_path = (
+                        self.prediction.get_item(catalog_id)
+                        .get_assets()[catalog_id]
+                        .href
+                    )
+                except:
+                    pred_path = None
+                self.catalogs_dict[catalog_id]["prediction_path"] = pred_path
         # (Timesteps, bands, img)
         if search_for_meta:
             meta = self.get_data(
@@ -331,6 +341,22 @@ class DataGenerator_stac(keras.utils.Sequence):
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y
+
+    def get_prediction_from_index(self, index, search_for_meta=False):
+        if not self.prediction:
+            return None
+        catalog_id = self.id_list[index]
+        if catalog_id not in self.catalogs_dict:
+            meta = self.get_data_from_index(index, search_for_meta=True)
+        pred_path = self.catalogs_dict[catalog_id]["prediction_path"]
+        if not pred_path:
+            return None
+        with rasterio.open(pred_path) as src:
+            prediction_img = src.read()
+            meta = src.meta
+        if search_for_meta:
+            return meta
+        return prediction_img
 
     def __getitem__(self, index):
         """
@@ -383,6 +409,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             scaling : int
                 Image scaling value.
         """
+        pred_img = None
         if in_out == "IN":
             X, Y = self.get_data_from_index(index)
             if not X.shape[-2:] == Y[0].shape[-2:]:
@@ -404,4 +431,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                 mask = np.repeat(mask, X.shape[-1], axis=-1)
                 mask = mask * scaling
                 X = np.hstack([X, mask])
-        vis.visualize_in_item(X, y, RGB=RGB, scaling=scaling, in_out=in_out)
+        if self.prediction:
+            pred_img = self.get_prediction_from_index(index)
+        vis.visualize_in_item(
+            X, y, RGB=RGB, scaling=scaling, in_out=in_out, prediction=pred_img
+        )

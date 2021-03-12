@@ -38,11 +38,7 @@ def _save_and_write_tif(out_path, img, meta):
         out_path_tif = out_path_tif.replace("s3://", "tmp/")
     if not os.path.exists(os.path.dirname(out_path_tif)):
         os.makedirs(os.path.dirname(out_path_tif))
-    write_raster(
-        img,
-        meta,
-        out_path=out_path_tif,
-    )
+    write_raster(img, meta, out_path=out_path_tif, dtype=img.dtype.name)
     if out_path.startswith("s3"):
         stc.upload_files_s3(os.path.dirname(out_path_tif), file_type="tif")
 
@@ -80,7 +76,11 @@ def create_pystac_item(
         ),
     )
     if aditional_links:
-        item.add_link(pystac.Link("x_catalog", aditional_links))
+        if isinstance(aditional_links, dict):
+            for key in aditional_links.keys():
+                item.add_link(pystac.Link(key, aditional_links[key]))
+        else:
+            item.add_link(pystac.Link("x_catalog", aditional_links))
     item.set_self_href(href_path)
     # Validate item.
     item.validate()
@@ -185,9 +185,13 @@ def train_model_function(
         save_freq="epoch",
     )
     # Verbose level 2 prints one line per epoch to the log.
-    model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
+    history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
+    with open(os.path.join(path_ep_md, "history.json"), "w") as f:
+        json.dump(history.history, f)
     if model_config_uri.startswith("s3"):
         stc.upload_files_s3(path_ep_md, file_type=".hdf5")
+        stc.upload_files_s3(path_ep_md, file_type="tory.json")
+
     # Store the model in bucket.
     if path_model.startswith("s3"):
         with io.BytesIO() as fl:
@@ -323,7 +327,7 @@ def predict_function_batch(
             footprint = it.geometry
             bbox = it.bbox
             path_item = out_path_tif
-            aditional_links = x_path
+            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
             href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
             create_pystac_item(
                 id_raster,
@@ -443,13 +447,14 @@ def predict_function(
             it = dtgen.get_items_paths(
                 dtgen.collection.get_child(catalog_id), search_for_item=True
             )
-            id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            # id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            id_raster = catalog_id
             datetime_var = str(datetime.datetime.now().date())
             datetime_var = parser.parse(datetime_var)
             footprint = it.geometry
             bbox = it.bbox
             path_item = out_path_tif
-            aditional_links = x_path
+            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
             href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
             create_pystac_item(
                 id_raster,
