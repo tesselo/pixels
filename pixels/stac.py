@@ -105,7 +105,10 @@ def open_file_from_s3(source_path):
     bucket = s3_path.split("/")[0]
     path = s3_path.replace(bucket + "/", "")
     s3 = boto3.client("s3")
-    data = s3.get_object(Bucket=bucket, Key=path)
+    try:
+        data = s3.get_object(Bucket=bucket, Key=path)
+    except s3.exceptions.NoSuchKey:
+        data = None
     return data
 
 
