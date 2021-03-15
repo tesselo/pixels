@@ -38,6 +38,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         prediction_catalog=False,
         nan_value=0,
         mask_band=False,
+        random_seed=24,
     ):
         """
         Initial setup for the class.
@@ -51,6 +52,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.path_collection = path_collection
         self.split = split
         self.catalogs_dict = {}
+        self.random_seed = random_seed
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -114,9 +116,14 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.collection = pystac.Collection.from_file(path_collection)
         self.id_list = []
         count = 0
+        # Build a list of indexes, choosing randomly.
+        np.random.seed(self.random_seed)
+        indexes = np.random.choice(
+            len(self.collection.get_child_links()), len(self), replace=False
+        )
         for catalog in self.collection.get_children():
-            if count >= len(self):
-                break
+            if count not in indexes:
+                continue
             self.id_list.append(catalog.id)
             count = count + 1
         self.source_y_path = self.collection.get_links("origin_files")[0].target
