@@ -38,7 +38,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         prediction_catalog=False,
         nan_value=0,
         mask_band=False,
-        random_seed=24,
+        random_seed=None,
     ):
         """
         Initial setup for the class.
@@ -117,12 +117,17 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.id_list = []
         count = 0
         # Build a list of indexes, choosing randomly.
-        np.random.seed(self.random_seed)
-        indexes = np.random.choice(
-            len(self.collection.get_child_links()), len(self), replace=False
-        )
+        if self.random_seed:
+            np.random.seed(self.random_seed)
+            indexes = np.random.choice(
+                len(self.collection.get_child_links()), len(self), replace=False
+            )
+        else:
+            indexes = np.arange(len(self))
         for catalog in self.collection.get_children():
             if count not in indexes:
+                if count > max(indexes):
+                    break
                 continue
             self.id_list.append(catalog.id)
             count = count + 1
