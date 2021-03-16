@@ -40,6 +40,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         mask_band=False,
         random_seed=None,
         num_classes=1,
+        batch_number=1,
     ):
         """
         Initial setup for the class.
@@ -55,6 +56,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.catalogs_dict = {}
         self.random_seed = random_seed
         self.num_classes = num_classes
+        self.batch_number = batch_number
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -82,13 +84,18 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.height = int(math.ceil(self.height * self.upsampling))
         if self.mode == "3D_Model":
             self.expected_x_shape = (
-                1,
+                self.batch_number,
                 self.timesteps,
                 self.width,
                 self.height,
                 self.num_bands,
             )
-            self.expected_y_shape = (1, 1, self.width, self.height, self.num_classes)
+            self.expected_y_shape = (
+                self.batch_number,
+                self.num_classes,
+                self.width,
+                self.height,
+            )
         if self.prediction:
             if isinstance(self.prediction, str):
                 self.prediction = pystac.Catalog.from_file(self.prediction)
@@ -251,7 +258,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
         x_tensor = []
-        y_tensor = [np.array(y_img)]
+        y_tensor = np.array(y_img)
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_img = np.array(src.read())
@@ -318,10 +325,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             self._orignal_width,
             self._orignal_height,
         )
-        y_open_shape = (1, self.num_classes, self.width, self.height)
+        y_open_shape = (self.num_classes, self.width, self.height)
         # Remove extra pixels.
         X = X[:, :, : self._orignal_width, : self._orignal_height]
-        Y = Y[:, :, : self.width, : self.height]
+        Y = Y[:, : self.width, : self.height]
         # Fill missing pixels to the standard, with the NaN value of the object.
         if X.shape != x_open_shape:
             self._wrong_sizes_list.append(index)
@@ -337,11 +344,11 @@ class DataGenerator_stac(keras.utils.Sequence):
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.height]
-        Y = Y[:, :, : self.width, : self.height]
+        Y = Y[:, : self.width, : self.height]
         # Add band for NaN mask.
         if self.mask_band:
             mask_img = Y != self.nan_value
-            mask_img = np.repeat(mask_img, self.timesteps, axis=0)
+            mask_img = np.repeat([mask_img], self.timesteps, axis=0)
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y
@@ -372,9 +379,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         # TODO: add the data_format mode based on model using.
         X = np.swapaxes(X, 1, 2)
         X = np.swapaxes(X, 2, 3)
-
-        Y = np.swapaxes(Y, 1, 2)
-        Y = np.swapaxes(Y, 2, 3)
 
         if self.mode == "3D_Model":
             X = np.array([X])
@@ -419,7 +423,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             if not X.shape[-2:] == Y[0].shape[-2:]:
                 X = aug.upscale_multiple_images(X)
             if self.mode == "3D_Model":
-                y = Y[0, 0]
+                y = Y[0]
             if self.mask_band:
                 mask = X[:1, -1:, :, :]
                 X = X[:, :-1, :, :]
