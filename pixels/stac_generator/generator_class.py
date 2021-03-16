@@ -36,9 +36,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         height=32,
         mode="3D_Model",
         prediction_catalog=False,
-        nan_value=0,
+        nan_value=-9999,
         mask_band=False,
         random_seed=None,
+        num_classes=1,
     ):
         """
         Initial setup for the class.
@@ -53,6 +54,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.split = split
         self.catalogs_dict = {}
         self.random_seed = random_seed
+        self.num_classes = num_classes
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -86,7 +88,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 self.height,
                 self.num_bands,
             )
-            self.expected_y_shape = (1, self.timesteps, self.width, self.height, 1)
+            self.expected_y_shape = (1, 1, self.width, self.height, self.num_classes)
         if self.prediction:
             if isinstance(self.prediction, str):
                 self.prediction = pystac.Catalog.from_file(self.prediction)
@@ -249,7 +251,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
         x_tensor = []
-        y_tensor = []
+        y_tensor = [np.array(y_img)]
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_img = np.array(src.read())
@@ -257,7 +259,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 if search_for_meta:
                     return src.meta
                 src.close()
-            y_tensor.append(np.array(y_img))
+            # y_tensor.append(np.array(y_img))
         if self.mode == "3D_Model":
             if len(x_tensor) < self.timesteps:
                 x_tensor = np.vstack(
@@ -271,19 +273,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                         ),
                     )
                 )
-                y_tensor = np.vstack(
-                    (
-                        y_tensor,
-                        np.zeros(
-                            (
-                                self.timesteps - np.array(y_tensor).shape[0],
-                                *np.array(y_tensor).shape[1:],
-                            )
-                        ),
-                    )
-                )
             x_tensor = np.array(x_tensor)[: self.timesteps]
-            y_tensor = np.array(y_tensor)[: self.timesteps]
+            y_tensor = np.array(y_tensor)
         return np.array(x_tensor), np.array(y_tensor)
 
     def get_data_from_index(self, index, search_for_meta=False):
@@ -327,7 +318,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             self._orignal_width,
             self._orignal_height,
         )
-        y_open_shape = (self.timesteps, 1, self.width, self.height)
+        y_open_shape = (1, self.num_classes, self.width, self.height)
         # Remove extra pixels.
         X = X[:, :, : self._orignal_width, : self._orignal_height]
         Y = Y[:, :, : self.width, : self.height]
@@ -350,6 +341,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         # Add band for NaN mask.
         if self.mask_band:
             mask_img = Y != self.nan_value
+            mask_img = np.repeat(mask_img, self.timesteps, axis=0)
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y
