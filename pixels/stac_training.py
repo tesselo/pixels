@@ -189,7 +189,7 @@ def train_model_function(
     with open(os.path.join(path_ep_md, "history.json"), "w") as f:
         json.dump(history.history, f)
     if model_config_uri.startswith("s3"):
-        stc.upload_files_s3(path_ep_md, file_type=".hdf5")
+        stc.upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
         stc.upload_files_s3(path_ep_md, file_type="tory.json")
 
     # Store the model in bucket.
