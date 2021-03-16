@@ -144,7 +144,7 @@ def upload_obj_s3(uri, obj):
         s3.put_object(Key=key, Bucket=bucket, Body=obj)
 
 
-def upload_files_s3(path, file_type=".json"):
+def upload_files_s3(path, file_type=".json", delete_folder=True):
     """
     Upload files inside a folder to s3.
     The s3 paths most be the same as the folder.
@@ -170,7 +170,8 @@ def upload_files_s3(path, file_type=".json"):
     for file in file_list:
         key_path = file.replace(sta + "/" + bucket + "/", "")
         s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
-    shutil.rmtree(sta)
+    if delete_folder:
+        shutil.rmtree(sta)
 
 
 def stac_s3_read_method(uri):
