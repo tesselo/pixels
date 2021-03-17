@@ -418,7 +418,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 self._wrong_sizes_list.append(index)
                 X = self._fill_missing_dimensions(X, self.expected_x_shape)
                 logger.warning(f"X dimensions not suitable in index {index}.")
-            if Y:
+            if Y.any():
                 Y = np.array([Y])
                 if Y.shape != self.expected_y_shape:
                     self._wrong_sizes_list.append(index)
