@@ -59,6 +59,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.num_classes = num_classes
         self.batch_number = batch_number
         self.train_split = train_split
+        self.train = train
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -66,7 +67,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.mode = mode
         self.width = width
         self.height = height
-        self.train = train
         self.prediction = prediction_catalog
         self.nan_value = nan_value
         self.mask_band = mask_band
