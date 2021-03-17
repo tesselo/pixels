@@ -1,7 +1,7 @@
 # /bin/bash
 
 # Reset build dir.
-rm -r build
+rm -rf build
 mkdir build
 
 # Copy pixels app.
