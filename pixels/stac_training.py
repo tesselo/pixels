@@ -298,7 +298,7 @@ def predict_function_batch(
             #     os.makedirs(os.path.dirname(out_path_temp))
             # np.savez(f"{out_path_temp}.npz", prediction)
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
-            # prediction = prediction[0, :, :, :, 0]
+            prediction = prediction[0, :, :, :]
         # TODO: verify input shape with rasterio
         meta["width"] = model.input_shape[2]
         meta["height"] = model.input_shape[3]
