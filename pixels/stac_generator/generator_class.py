@@ -41,6 +41,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         random_seed=None,
         num_classes=1,
         batch_number=1,
+        train_split=1,
     ):
         """
         Initial setup for the class.
@@ -57,6 +58,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.random_seed = random_seed
         self.num_classes = num_classes
         self.batch_number = batch_number
+        self.train_split = train_split
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -128,11 +130,27 @@ class DataGenerator_stac(keras.utils.Sequence):
         # Build a list of indexes, choosing randomly.
         if self.random_seed:
             np.random.seed(self.random_seed)
-            indexes = np.random.choice(
-                len(self.collection.get_child_links()), len(self), replace=False
-            )
-            # if not self.train:
-            #     indexes = np.setdiff1d(np.arange(len(self.collection.get_child_links())), indexes)
+            if self.train:
+                indexes = np.random.choice(
+                    len(self.collection.get_child_links()), len(self), replace=False
+                )
+            else:
+                indexes = np.random.choice(
+                    len(self.collection.get_child_links()),
+                    len(self.collection.get_child_links()) * self.train_split,
+                    replace=False,
+                )
+                indexes = np.setdiff1d(
+                    np.arange(len(self.collection.get_child_links())), indexes
+                )
+                if len(indexes) > len(self):
+                    indexes = np.random.choice(indexes, len(self), replace=False)
+                elif len(indexes) < len(self):
+                    new_ind = np.random.choice(
+                        np.setdiff1d(np.arange(len(self)), indexes),
+                        len(self) - len(indexes),
+                    )
+                    indexes = np.concatenate([indexes, new_ind])
         else:
             indexes = np.arange(len(self))
         for catalog in self.collection.get_children():
@@ -257,6 +275,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             with rasterio.open(y_raster_file) as src:
                 y_img = src.read()
                 src.close()
+            if self.num_classes > 1:
+                y_img = np.squeeze(
+                    np.swapaxes(keras.utils.to_categorical(y_img), 0, -1)
+                )
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
@@ -343,7 +365,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.height]
         # Y is not None treat Y.
-        if Y:
+        if Y.any():
             y_open_shape = (self.num_classes, self.width, self.height)
             Y = Y[:, : self.width, : self.height]
             if Y.shape != y_open_shape:
