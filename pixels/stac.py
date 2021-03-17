@@ -19,7 +19,6 @@ from pixels.const import (
     PIXELS_LATEST_PIXEL_MODE,
     PIXELS_MODES,
     PIXELS_S2_STACK_MODE,
-    TESSELO_TAG_NAMESPACE,
 )
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
@@ -70,7 +69,7 @@ def get_bbox_and_footprint(raster_uri):
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
-        datetime_var = ds.tags(ns=TESSELO_TAG_NAMESPACE).get("datetime")
+        datetime_var = ds.tags().get("datetime")
         return bbox, footprint, datetime_var, ds.meta
 
 
