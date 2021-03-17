@@ -131,12 +131,15 @@ class DataGenerator_stac(keras.utils.Sequence):
             indexes = np.random.choice(
                 len(self.collection.get_child_links()), len(self), replace=False
             )
+            # if not self.train:
+            #     indexes = np.setdiff1d(np.arange(len(self.collection.get_child_links())), indexes)
         else:
             indexes = np.arange(len(self))
         for catalog in self.collection.get_children():
             if count not in indexes:
                 if count > max(indexes):
                     break
+                count = count + 1
                 continue
             self.id_list.append(catalog.id)
             count = count + 1
@@ -319,36 +322,43 @@ class DataGenerator_stac(keras.utils.Sequence):
         )
         # Check if the loaded images have the needed dimensions.
         # Cut or add NaN values on surplus/missing pixels.
+        # Treat X, then test for Y, treat Y.
         x_open_shape = (
             self.timesteps,
             self._original_num_bands,
             self._orignal_width,
             self._orignal_height,
         )
-        y_open_shape = (self.num_classes, self.width, self.height)
         # Remove extra pixels.
         X = X[:, :, : self._orignal_width, : self._orignal_height]
-        Y = Y[:, : self.width, : self.height]
         # Fill missing pixels to the standard, with the NaN value of the object.
         if X.shape != x_open_shape:
             self._wrong_sizes_list.append(index)
             X = self._fill_missing_dimensions(X, x_open_shape)
             logger.warning(f"X dimensions not suitable in index {index}.")
-        if Y.shape != y_open_shape:
-            self._wrong_sizes_list.append(index)
-            Y = self._fill_missing_dimensions(Y, y_open_shape)
-            logger.warning(f"Y dimensions not suitable in index {index}.")
         # Upsample the X.
         if self.upsampling:
             X = X[:, :, : self._orignal_width, : self._orignal_height]
             X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.height]
-        Y = Y[:, : self.width, : self.height]
+        # Y is not None treat Y.
+        if Y:
+            y_open_shape = (self.num_classes, self.width, self.height)
+            Y = Y[:, : self.width, : self.height]
+            if Y.shape != y_open_shape:
+                self._wrong_sizes_list.append(index)
+                Y = self._fill_missing_dimensions(Y, y_open_shape)
+                logger.warning(f"Y dimensions not suitable in index {index}.")
+            Y = Y[:, : self.width, : self.height]
         # Add band for NaN mask.
         if self.mask_band:
             mask_img = Y != self.nan_value
             mask_img = np.repeat([mask_img], self.timesteps, axis=0)
+            if not self.train:
+                mask_shp = X.shape
+                mask_shp[1] = 1
+                mask_img = np.ones(mask_shp)
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y
@@ -382,19 +392,20 @@ class DataGenerator_stac(keras.utils.Sequence):
 
         if self.mode == "3D_Model":
             X = np.array([X])
-            Y = np.array([Y])
             if X.shape != self.expected_x_shape:
                 self._wrong_sizes_list.append(index)
                 X = self._fill_missing_dimensions(X, self.expected_x_shape)
                 logger.warning(f"X dimensions not suitable in index {index}.")
-            if Y.shape != self.expected_y_shape:
-                self._wrong_sizes_list.append(index)
-                Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
-                logger.warning(f"Y dimensions not suitable in index {index}.")
+            if Y:
+                Y = np.array([Y])
+                if Y.shape != self.expected_y_shape:
+                    self._wrong_sizes_list.append(index)
+                    Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
+                    logger.warning(f"Y dimensions not suitable in index {index}.")
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
                 self.__getitem__(index + 1)
-        if Y is None or not self.train:
+        if not Y.any() or not self.train:
             return X
         return X, Y
 
