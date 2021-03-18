@@ -416,6 +416,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         index_count = index
         for i in range(self.batch_number):
             if index_count >= len(self.id_list):
+                x, y = self.get_data_from_index(index_count - len(self))
                 X.append(x)
                 Y.append(y)
                 break
