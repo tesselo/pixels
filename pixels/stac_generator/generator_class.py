@@ -125,6 +125,7 @@ class DataGenerator_stac(keras.utils.Sequence):
 
     def _set_collection(self, path_collection):
         self.collection = pystac.Collection.from_file(path_collection)
+        len(self)
         self.id_list = []
         count = 0
         # Build a list of indexes, choosing randomly.
@@ -132,7 +133,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             np.random.seed(self.random_seed)
             if self.train:
                 indexes = np.random.choice(
-                    len(self.collection.get_child_links()), len(self), replace=False
+                    len(self.collection.get_child_links()),
+                    self._original_size,
+                    replace=False,
                 )
             else:
                 indexes = np.random.choice(
@@ -143,16 +146,18 @@ class DataGenerator_stac(keras.utils.Sequence):
                 indexes = np.setdiff1d(
                     np.arange(len(self.collection.get_child_links())), indexes
                 )
-                if len(indexes) > len(self):
-                    indexes = np.random.choice(indexes, len(self), replace=False)
-                elif len(indexes) < len(self):
+                if len(indexes) > self._original_size:
+                    indexes = np.random.choice(
+                        indexes, self._original_size, replace=False
+                    )
+                elif len(indexes) < self._original_size:
                     new_ind = np.random.choice(
-                        np.setdiff1d(np.arange(len(self)), indexes),
-                        len(self) - len(indexes),
+                        np.setdiff1d(np.arange(self._original_size), indexes),
+                        self._original_size - len(indexes),
                     )
                     indexes = np.concatenate([indexes, new_ind])
         else:
-            indexes = np.arange(len(self))
+            indexes = np.arange(self._original_size)
         for catalog in self.collection.get_children():
             if count not in indexes:
                 if count > max(indexes):
@@ -176,9 +181,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         for now just the 3D mode.
         """
         # For 3D mode:
-        self.length = int(
-            (len(self.collection.get_child_links()) * self.split) / self.batch_number
-        )
+        self._original_size = int(len(self.collection.get_child_links()) * self.split)
+        self.length = int(math.ceil(self._original_size / self.batch_number))
         # For 2D:
         # self.length = 0
         # for child in self.collection.get_children():
@@ -407,28 +411,38 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         Generate one batch of data
         """
-        X, Y = self.get_data_from_index(index)
-        # (Timesteps, bands, img) -> (Timesteps, img, Bands)
-        # For channel last models: otherwise uncoment.
-        # TODO: add the data_format mode based on model using.
-        X = np.swapaxes(X, 1, 2)
-        X = np.swapaxes(X, 2, 3)
-
+        X = []
+        Y = []
+        index_count = index
+        for i in range(self.batch_number):
+            if index_count >= len(self.id_list):
+                X.append(x)
+                Y.append(y)
+                break
+            x, y = self.get_data_from_index(index_count)
+            # (Timesteps, bands, img) -> (Timesteps, img, Bands)
+            # For channel last models: otherwise uncoment.
+            # TODO: add the data_format mode based on model using.
+            x = np.swapaxes(x, 1, 2)
+            x = np.swapaxes(x, 2, 3)
+            X.append(x)
+            Y.append(y)
+            index_count = index_count + len(self)
         if self.mode == "3D_Model":
-            X = np.array([X])
+            X = np.array(X)
             if X.shape != self.expected_x_shape:
-                self._wrong_sizes_list.append(index)
+                self._wrong_sizes_list.append(index_count)
                 X = self._fill_missing_dimensions(X, self.expected_x_shape)
-                logger.warning(f"X dimensions not suitable in index {index}.")
+                logger.warning(f"X dimensions not suitable in index {index_count}.")
+            Y = np.array(Y)
             if Y.any():
-                Y = np.array([Y])
                 if Y.shape != self.expected_y_shape:
-                    self._wrong_sizes_list.append(index)
+                    self._wrong_sizes_list.append(index_count)
                     Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
-                    logger.warning(f"Y dimensions not suitable in index {index}.")
+                    logger.warning(f"Y dimensions not suitable in index {index_count}.")
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
-                self.__getitem__(index + 1)
+                self.__getitem__(index_count + 1)
         if not Y.any() or not self.train:
             return X
         return X, Y
