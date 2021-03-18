@@ -176,7 +176,9 @@ class DataGenerator_stac(keras.utils.Sequence):
         for now just the 3D mode.
         """
         # For 3D mode:
-        self.length = int(len(self.collection.get_child_links()) * self.split)
+        self.length = int(
+            (len(self.collection.get_child_links()) * self.split) / self.batch_number
+        )
         # For 2D:
         # self.length = 0
         # for child in self.collection.get_children():
