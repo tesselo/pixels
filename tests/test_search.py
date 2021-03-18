@@ -95,7 +95,6 @@ class SearchTest(unittest.TestCase):
             platforms="LANDSAT_1",
         )
         self.assertEqual(actual, [])
-        # Raise error Wrong date
 
     @patch("pixels.search.engine.execute", empty_data_mock)
     def test_platform(self):
@@ -156,8 +155,6 @@ class SearchTest(unittest.TestCase):
             platforms="LANDSAT_4",
         )
         self.assertDictEqual(actual[0], l4_expected_scene)
-        # self.assertRaises = Raise ValueError
-        # Raise error wrong platform format, should be string in uppercase separeted by _
 
     @patch("pixels.search.engine.execute", l5_data_mock)
     def test_result_l5(self):
