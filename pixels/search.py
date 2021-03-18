@@ -25,6 +25,10 @@ if DB_NAME is not None:
         database=DB_NAME,
     )
     engine = create_engine(db_url, client_encoding="utf8")
+else:
+    engine = create_engine(
+        "postgresql+pg8000://postgres:postgres@localhost:5432/eo_catalog"
+    )
 
 
 def search_data(
