@@ -422,7 +422,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             if index_count >= len(self.id_list):
                 X.append(x)
                 Y.append(y)
-                break
+                continue
             x, y = self.get_data_from_index(index_count)
             # (Timesteps, bands, img) -> (Timesteps, img, Bands)
             # For channel last models: otherwise uncoment.
