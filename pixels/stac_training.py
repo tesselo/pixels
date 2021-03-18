@@ -287,7 +287,7 @@ def predict_function_batch(
                         res = data[:, :, -width:, -height:, :]
                     pred = model.predict(res)
                     # Merge all predicitons
-                    pred = pred[0, :, :, :, 0]
+                    pred = pred[0, :, :, :]
                     aux_pred = prediction[i : i + width, j : j + height]
                     mean_pred = np.nanmean([pred, aux_pred], axis=0)
                     prediction[i : i + width, j : j + height] = mean_pred
@@ -299,6 +299,8 @@ def predict_function_batch(
             # np.savez(f"{out_path_temp}.npz", prediction)
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
             prediction = prediction[0, :, :, :]
+            if dtgen.num_classe > 1:
+                prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
         meta["width"] = model.input_shape[2]
         meta["height"] = model.input_shape[3]
