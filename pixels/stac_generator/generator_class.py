@@ -137,6 +137,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                     self._original_size,
                     replace=False,
                 )
+                print(max(indexes))
+                print(len(indexes))
             else:
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
@@ -413,10 +415,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         X = []
         Y = []
+        x = np.ones(self.expected_x_shape[1:])
+        y = np.ones(self.expected_y_shape[1:])
         index_count = index
         for i in range(self.batch_number):
             if index_count >= len(self.id_list):
-                x, y = self.get_data_from_index(index_count - len(self))
                 X.append(x)
                 Y.append(y)
                 break
