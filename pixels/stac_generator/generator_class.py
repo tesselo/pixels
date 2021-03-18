@@ -431,8 +431,8 @@ class DataGenerator_stac(keras.utils.Sequence):
             x = np.swapaxes(x, 2, 3)
             X.append(x)
             Y.append(y)
-            print("X", X.shape)
-            print("Y", Y.shape)
+            print("X", np.array(X).shape)
+            print("Y", np.array(Y).shape)
             index_count = index_count + len(self)
         if self.mode == "3D_Model":
             X = np.array(X)
