@@ -106,14 +106,9 @@ def load_model_from_file(model_configuration_file):
 def nan_mean_squared_error_loss(nan_value=np.nan):
     # Create a loss function
     def loss(y_true, y_pred):
-<<<<<<< HEAD
         if y_true.shape != y_pred.shape:
             y_true = y_true[:, :1]
         indices = tf.where(tf.not_equal(y_true, nan_value))
-=======
-        indices = tf.where(tf.not_equal(y_true, nan_value))
-        #  Or `tf.less`, `tf.equal` etc.
->>>>>>> Fixed comment on stac training.
         return tf.keras.losses.mean_squared_error(
             tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
         )
