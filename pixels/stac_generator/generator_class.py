@@ -133,7 +133,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             np.random.seed(self.random_seed)
             if self.train:
                 indexes = np.random.choice(
-                    len(self.collection.get_child_links()), self._original_size, replace=False
+                    len(self.collection.get_child_links()),
+                    self._original_size,
+                    replace=False,
                 )
             else:
                 indexes = np.random.choice(
@@ -145,7 +147,9 @@ class DataGenerator_stac(keras.utils.Sequence):
                     np.arange(len(self.collection.get_child_links())), indexes
                 )
                 if len(indexes) > self._original_size:
-                    indexes = np.random.choice(indexes, self._original_size, replace=False)
+                    indexes = np.random.choice(
+                        indexes, self._original_size, replace=False
+                    )
                 elif len(indexes) < self._original_size:
                     new_ind = np.random.choice(
                         np.setdiff1d(np.arange(self._original_size), indexes),
@@ -177,15 +181,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         for now just the 3D mode.
         """
         # For 3D mode:
-        self._original_size = int(
-            len(self.collection.get_child_links()) * self.split
-        )
-        self.length = int(
-            math.ceil(
-                self._original_size
-                / self.batch_number
-            )
-        )
+        self._original_size = int(len(self.collection.get_child_links()) * self.split)
+        self.length = int(math.ceil(self._original_size / self.batch_number))
         # For 2D:
         # self.length = 0
         # for child in self.collection.get_children():
