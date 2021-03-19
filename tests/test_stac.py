@@ -1,14 +1,21 @@
 import json
 import os
+import shutil
 import tempfile
 import unittest
 import zipfile
+from unittest.mock import MagicMock, patch
 
 import numpy
 import pystac
 import rasterio
 
-from pixels.stac import parse_training_data
+from pixels.stac import (
+    collect_from_catalog_subsection,
+    create_x_catalog,
+    parse_training_data,
+)
+from tests.scenarios import l8_data_mock
 
 
 def write_temp_raster(
@@ -33,6 +40,14 @@ def write_temp_raster(
     return raster.name
 
 
+l8_return = MagicMock(
+    return_value={
+        "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+        "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+    }
+)
+
+
 class TestUtils(unittest.TestCase):
     def setUp(self, origin_x=-1028560.0, origin_y=4689560.0):
         # Create 3 temp raster.
@@ -41,9 +56,11 @@ class TestUtils(unittest.TestCase):
         origin_y = 4689560.0
         self.raster = []
         self.zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
-        raster = write_temp_raster()
+        raster = write_temp_raster(tags={"datetime": "2021-01-01"})
         self.raster.append(raster)
-        raster = write_temp_raster(origin_x=origin_x + size)
+        raster = write_temp_raster(
+            origin_x=origin_x + size, tags={"datetime": "2021-01-01"}
+        )
         self.raster.append(raster)
         raster = write_temp_raster(
             origin_y=origin_y + size, tags={"datetime": "2021-01-01"}
@@ -93,6 +110,16 @@ class TestUtils(unittest.TestCase):
             ],
         }
 
+    def tearDown(self):
+        """
+        Remove some temp files.
+        """
+        if os.path.exists(self.zip_file.name):
+            os.remove(self.zip_file.name)
+        for path in self.raster:
+            if os.path.exists(path):
+                os.remove(path)
+
     def test_parse_training_data(self):
         catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
@@ -104,3 +131,59 @@ class TestUtils(unittest.TestCase):
             obj = json.loads(data)
 
         self.assertEqual(obj, self.catalog_example)
+
+    @patch("pixels.search.engine.execute", l8_data_mock)
+    @patch("pixels.search.format_ls_band", l8_return)
+    def test_collect_from_catalog_subsection(self):
+        catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
+        catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
+        target = tempfile.mkdtemp()
+        print(target)
+        with tempfile.NamedTemporaryFile(suffix=".json", dir=target) as fl:
+            config = {
+                "bands": [
+                    "B1",
+                    "B2",
+                ],
+                "clip": False,
+                "start": "2020-01-01",
+                "end": "2020-02-01",
+                "interval": "all",
+                "maxcloud": 30,
+                "pool_size": 0,
+                "scale": 500,
+                "platforms": "LANDSAT_8",
+            }
+            fl.write(bytes(json.dumps(config).encode("utf8")))
+            fl.seek(0)
+            nr_of_items = 3
+            collect_from_catalog_subsection(
+                catalog.get_self_href(), fl.name, nr_of_items
+            )
+            create_x_catalog(target, self.zip_file.name)
+        # Open the collection.
+        with open(os.path.join(target, "data/collection.json"), "r") as myfile:
+            obj = json.loads(myfile.read())
+        # Remove the links with varying temp paths.
+        links = obj.pop("links")
+        # The rest of the collection is as expected.
+        expected = {
+            "id": f"x_collection_{target.split('/')[-1]}",
+            "stac_version": "1.0.0-beta.2",
+            "description": "",
+            "title": "",
+            "extent": {
+                "spatial": {"bbox": [[-1028560.0, 4686560.0, -1025304.0, 4689816.0]]},
+                "temporal": {
+                    "interval": [["2020-11-21T00:00:00Z", "2020-11-21T00:00:00Z"]]
+                },
+            },
+            "license": "proprietary",
+        }
+        self.assertEqual(obj, expected)
+        # A link to the zip training file is present.
+        self.assertIn({"rel": "origin_files", "href": self.zip_file.name}, links)
+        # Number of links is as expected.
+        self.assertEqual(len(links), 12)
+        # Cleanup.
+        shutil.rmtree(target)
