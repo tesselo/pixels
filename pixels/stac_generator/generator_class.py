@@ -155,7 +155,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             if self.train_split:
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
-                    len(self.collection.get_child_links()) * self.train_split,
+                    int(len(self.collection.get_child_links()) * self.train_split),
                     replace=False,
                 )
                 indexes = np.setdiff1d(

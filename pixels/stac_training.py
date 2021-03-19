@@ -179,6 +179,19 @@ def train_model_function(
     history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
         json.dump(history.history, f)
+
+    # Store the model in bucket.
+    if path_model.startswith("s3"):
+        with io.BytesIO() as fl:
+            with h5py.File(fl) as h5fl:
+                model.save(h5fl)
+                h5fl.flush()
+                h5fl.close()
+            stc.upload_obj_s3(path_model, fl.getvalue())
+    else:
+        with h5py.File(path_model) as h5fl:
+            model.save(h5fl)
+
     # Evaluate model on test set.
     gen_args["train"] = False
     gen_args["train_split"] = gen_args["split"]
@@ -210,17 +223,6 @@ def train_model_function(
             delete_folder=False,
         )
 
-    # Store the model in bucket.
-    if path_model.startswith("s3"):
-        with io.BytesIO() as fl:
-            with h5py.File(fl) as h5fl:
-                model.save(h5fl)
-                h5fl.flush()
-                h5fl.close()
-            stc.upload_obj_s3(path_model, fl.getvalue())
-    else:
-        with h5py.File(path_model) as h5fl:
-            model.save(h5fl)
     return model
 
 
