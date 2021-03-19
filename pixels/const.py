@@ -68,9 +68,6 @@ L3 = 800
 L4 = 100
 S2_SCALE = 3000
 
-# Raster reference in tags.
-TESSELO_TAG_NAMESPACE = "tesselo"
-
 # Modes to call pixels.
 PIXELS_S2_STACK_MODE = "s2_stack"
 PIXELS_LATEST_PIXEL_MODE = "latest_pixel"
