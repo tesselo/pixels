@@ -69,7 +69,7 @@ def get_bbox_and_footprint(raster_uri):
         }
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
-        datetime_var = ds.tags().get("datetime")
+        datetime_var = ds.tags().get("datetime", None)
         return bbox, footprint, datetime_var, ds.meta
 
 
@@ -516,6 +516,7 @@ def validate_pixels_config(
     maxcloud=20,
     pool_size=0,
     level=None,
+    platforms=None,
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -561,6 +562,10 @@ def validate_pixels_config(
         "pool_size": pool_size,
         "level": level,
     }
+    if platforms is not None:
+        if not isinstance(platforms, (list, tuple)):
+            platforms = [platforms]
+        config["platforms"] = platforms
     return config
 
 
@@ -826,7 +831,12 @@ def create_x_catalog(x_folder, source_path=None):
     if x_folder.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
-    catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
+        catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
+    else:
+        catalogs_path_list = glob.glob(
+            f"{downloads_folder}/**/**/catalog.json", recursive=True
+        )
+
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         x_catalogs.append(x_cat)
