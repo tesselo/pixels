@@ -1,6 +1,7 @@
 import io
 import logging
 import math
+import os
 import zipfile
 from urllib.parse import urlparse
 
@@ -109,6 +110,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         dict_path = os.path.join(
             os.path.dirname(self.path_collection), "catalogs_dict.json"
         )
+        dict_exists = False
         if self.path_collection.startswith("s3"):
             dict_exists = pxstc.check_file_in_s3(dict_path)
         else:
