@@ -115,9 +115,8 @@ class DataGenerator_stac(keras.utils.Sequence):
             dict_exists = pxstc.check_file_in_s3(dict_path)
         else:
             dict_exists = os.path.exists(dict_path)
-        if dict_exist:
+        if dict_exists:
             self.catalogs_dict = stctr._load_dictionary(dict_path)
-        return dict_exist
 
     def _set_s3_variables(self, path_collection):
         """
