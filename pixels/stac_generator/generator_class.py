@@ -1,6 +1,7 @@
 import io
 import logging
 import math
+import os
 import zipfile
 from urllib.parse import urlparse
 
@@ -14,6 +15,7 @@ from tensorflow import keras
 import pixels.generator.generator_augmentation_2D as aug
 import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
+import pixels.stac_training as stctr
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -41,7 +43,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         random_seed=None,
         num_classes=1,
         batch_number=1,
-        train_split=1,
+        train_split=None,
     ):
         """
         Initial setup for the class.
@@ -72,6 +74,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.mask_band = mask_band
         self._wrong_sizes_list = []
         self._set_definition()
+        self._check_get_catalogs_indexing()
 
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
@@ -101,6 +104,18 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.prediction:
             if isinstance(self.prediction, str):
                 self.prediction = pystac.Catalog.from_file(self.prediction)
+
+    def _check_get_catalogs_indexing(self):
+        dict_path = os.path.join(
+            os.path.dirname(self.path_collection), "catalogs_dict.json"
+        )
+        dict_exists = False
+        if self.path_collection.startswith("s3"):
+            dict_exists = pxstc.check_file_in_s3(dict_path)
+        else:
+            dict_exists = os.path.exists(dict_path)
+        if dict_exists:
+            self.catalogs_dict = stctr._load_dictionary(dict_path)
 
     def _set_s3_variables(self, path_collection):
         """
@@ -137,7 +152,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                     self._original_size,
                     replace=False,
                 )
-            else:
+            if self.train_split:
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
                     len(self.collection.get_child_links()) * self.train_split,
@@ -384,9 +399,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             mask_img = Y != self.nan_value
             mask_img = np.repeat([mask_img], self.timesteps, axis=0)
             if not self.train:
-                mask_shp = X.shape
+                mask_shp = list(X.shape)
                 mask_shp[1] = 1
-                mask_img = np.ones(mask_shp)
+                mask_img = np.ones(tuple(mask_shp))
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y

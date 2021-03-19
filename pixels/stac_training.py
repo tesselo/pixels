@@ -177,11 +177,38 @@ def train_model_function(
     )
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
-    with open(os.path.join(path_ep_md, "history.json"), "w") as f:
+    with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
         json.dump(history.history, f)
+    # Evaluate model on test set.
+    gen_args["train"] = False
+    gen_args["train_split"] = gen_args["split"]
+    gen_args["split"] = 1 - gen_args["split"]
+    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
+        gen_args["split"] = 0.1
+    dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
+    results = model.evaluate(dpredgen)
+    with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
+        json.dump(results, f)
     if model_config_uri.startswith("s3"):
         stc.upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
-        stc.upload_files_s3(path_ep_md, file_type="tory.json")
+        stc.upload_files_s3(path_ep_md, file_type="_stats.json")
+
+    # Save collection index dictionary.
+    catalog_dict_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
+    catalog_dict = dtgen.catalogs_dict
+    catalog_dict.update(dpredgen.catalogs_dict)
+    if catalog_dict_path.startswith("s3"):
+        catalog_dict_path = catalog_dict_path.replace("s3://", "tmp/")
+    if not os.path.exists(catalog_dict_path):
+        os.makedirs(os.path.dirname(catalog_dict_path))
+    with open(catalog_dict_path, "w") as f:
+        json.dump(catalog_dict, f)
+    if catalog_uri.startswith("s3"):
+        stc.upload_files_s3(
+            os.path.dirname(catalog_dict_path),
+            file_type="_dict.json",
+            delete_folder=False,
+        )
 
     # Store the model in bucket.
     if path_model.startswith("s3"):
