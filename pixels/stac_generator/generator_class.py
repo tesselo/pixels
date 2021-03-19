@@ -416,9 +416,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         x = np.ones(self.expected_x_shape[1:])
         y = np.ones(self.expected_y_shape[1:])
         index_count = index
-        print("indes", index)
         for i in range(self.batch_number):
-            print("index_count", index_count)
             if index_count >= len(self.id_list):
                 X.append(x)
                 Y.append(y)
@@ -431,8 +429,6 @@ class DataGenerator_stac(keras.utils.Sequence):
             x = np.swapaxes(x, 2, 3)
             X.append(x)
             Y.append(y)
-            print("X", np.array(X).shape)
-            print("Y", np.array(Y).shape)
             index_count = index_count + len(self)
         if self.mode == "3D_Model":
             X = np.array(X)
