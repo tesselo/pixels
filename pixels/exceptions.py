@@ -12,3 +12,10 @@ class TrainingDataParseError(PixelsException):
     """
 
     pass
+
+    
+class InvalidCustomLossException(PixelsException):
+    """
+    User requested invalid custom loss.
+    """
+    pass

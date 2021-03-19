@@ -15,6 +15,9 @@ from rasterio import Affine
 import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
 from pixels.utils import write_raster
+from pixels import losses
+
+ALLOWED_CUSTOM_LOSSES = ["nan_mean_squared_error_loss"]
 
 logger = logging.getLogger(__name__)
 
@@ -103,20 +106,6 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
-def nan_mean_squared_error_loss(nan_value=np.nan):
-    # Create a loss function
-    def loss(y_true, y_pred):
-        if y_true.shape != y_pred.shape:
-            y_true = y_true[:, :1]
-        indices = tf.where(tf.not_equal(y_true, nan_value))
-        return tf.keras.losses.mean_squared_error(
-            tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
-        )
-
-    # Return a function
-    return loss
-
-
 def train_model_function(
     catalog_uri,
     model_config_uri,
@@ -153,9 +142,11 @@ def train_model_function(
     model = load_model_from_file(model_config_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
     if not hasattr(tf.keras.losses, compile_args["loss"]):
-        possibles = globals().copy()
-        possibles.update(locals())
-        loss_costum = possibles.get(compile_args["loss"])
+        input = generator_args['loss_function']
+        # Validate input
+        if input not in ALLOWED_CUSTOM_LOSSES:
+            raise ValueError()
+        loss_costum = getattr(losses, input)
         loss_args = {"nan_value": dtgen.nan_value}
         if not loss_costum:
             logger.warning(
