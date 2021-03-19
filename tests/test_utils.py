@@ -89,7 +89,7 @@ class TestUtils(unittest.TestCase):
                     self.data,
                 )
                 # Tags were set.
-                self.assertEqual(src.tags(ns="tesselo").get("date"), "2021-01-01")
+                self.assertEqual(src.tags().get("date"), "2021-01-01")
                 # Overviews were built.
                 self.assertEqual(src.overviews(1), [2, 4, 8, 16, 32, 64])
                 # Raster has internal tiling.
