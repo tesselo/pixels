@@ -14,8 +14,8 @@ from rasterio import Affine
 
 import pixels.stac as stc
 import pixels.stac_generator.generator_class as stcgen
-from pixels.utils import write_raster
 from pixels import losses
+from pixels.utils import write_raster
 
 ALLOWED_CUSTOM_LOSSES = ["nan_mean_squared_error_loss"]
 
