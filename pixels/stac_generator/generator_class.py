@@ -17,7 +17,6 @@ import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 import pixels.stac_training as stctr
 
-
 # S3 class instanciation.
 s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
