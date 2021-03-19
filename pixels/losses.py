@@ -1,3 +1,7 @@
+import numpy as np
+import tensorflow as tf
+
+
 def nan_mean_squared_error_loss(nan_value=np.nan):
     # Create a loss function
     def loss(y_true, y_pred):

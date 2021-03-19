@@ -142,7 +142,7 @@ def train_model_function(
     model = load_model_from_file(model_config_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
     if not hasattr(tf.keras.losses, compile_args["loss"]):
-        input = generator_args['loss_function']
+        input = compile_args["loss"]
         # Validate input
         if input not in ALLOWED_CUSTOM_LOSSES:
             raise ValueError()
@@ -230,14 +230,14 @@ def predict_function_batch(
             model = tf.keras.models.load_model(f)
         except:
             model = tf.keras.models.load_model(
-                f, custom_objects={"loss": nan_mean_squared_error_loss}
+                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
             )
     else:
         try:
             model = tf.keras.models.load_model(model_uri)
         except:
             model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": nan_mean_squared_error_loss}
+                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
             )
     # Instanciate generator.
     gen_args = _load_dictionary(generator_config_uri)
@@ -366,14 +366,14 @@ def predict_function(
             model = tf.keras.models.load_model(f)
         except:
             model = tf.keras.models.load_model(
-                f, custom_objects={"loss": nan_mean_squared_error_loss}
+                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
             )
     else:
         try:
             model = tf.keras.models.load_model(model_uri)
         except:
             model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": nan_mean_squared_error_loss}
+                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
             )
     # Instanciate generator.
     gen_args = _load_dictionary(generator_config_uri)
