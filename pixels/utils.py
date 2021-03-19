@@ -11,8 +11,6 @@ from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
-from pixels.const import TESSELO_TAG_NAMESPACE
-
 logger = logging.getLogger(__name__)
 
 
@@ -285,7 +283,7 @@ def write_raster(
         with rasterio.open(out_path, "w", **out_meta) as dst:
             # Set the given metadata tags.
             for key, val in tags.items():
-                dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
+                dst.update_tags(**tags)
             dst.write(data)
             try:
                 dst.build_overviews(factors, resampling)
@@ -297,7 +295,7 @@ def write_raster(
         with rasterio.io.MemoryFile() as memfile:
             with memfile.open(**out_meta) as dst:
                 # Set the given metadata tags.
-                dst.update_tags(ns=TESSELO_TAG_NAMESPACE, **tags)
+                dst.update_tags(**tags)
                 dst.write(data)
                 # To be able to build the overviews we need to have a size
                 # bigger than the factors.
