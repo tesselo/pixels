@@ -271,7 +271,7 @@ def write_raster(
         }
     )
     # Determine resampling type for overviews.
-    if "int" in dtype.lower():
+    if "int" in str(dtype).lower():
         resampling = Resampling.nearest
     else:
         resampling = Resampling.average

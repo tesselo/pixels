@@ -517,6 +517,7 @@ def validate_pixels_config(
     pool_size=0,
     level=None,
     platforms=None,
+    limit=None,
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -537,7 +538,11 @@ def validate_pixels_config(
             Maximun accepted cloud coverage in image.
         pool_size: int, optional
         level : str, optional
-            The processing level. Only valid if
+            The processing level. Only valid if platforms is S2.
+        platform: str or list, optional
+            The platforms to use in this collection.
+        limit: int, optional
+            Limit the number of images per search.
     Returns
     -------
         config : dict
@@ -566,6 +571,8 @@ def validate_pixels_config(
         if not isinstance(platforms, (list, tuple)):
             platforms = [platforms]
         config["platforms"] = platforms
+    if limit is not None:
+        config["limit"] = limit
     return config
 
 
@@ -647,7 +654,13 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
             out_paths_tmp.append(out_path_date)
         if not os.path.exists(os.path.dirname(out_path_date)):
             os.makedirs(os.path.dirname(out_path_date))
-        write_raster(np_img, meta, out_path=out_path_date, tags={"datetime": date})
+        write_raster(
+            np_img,
+            meta,
+            out_path=out_path_date,
+            dtype=np_img.dtype,
+            tags={"datetime": date},
+        )
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     try:
