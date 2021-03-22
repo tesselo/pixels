@@ -195,10 +195,10 @@ def latest_pixel_s2_stack(
     interval="weeks",
     bands=None,
     platforms="SENTINEL_2",
-    limit=10,
+    limit=100,
     clip=False,
     maxcloud=None,
-    pool_size=20,
+    pool_size=5,
     level=None,
 ):
     """
