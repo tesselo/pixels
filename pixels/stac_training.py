@@ -319,7 +319,7 @@ def predict_function_batch(
             # np.savez(f"{out_path_temp}.npz", prediction)
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
             prediction = prediction[0, :, :, :]
-            if dtgen.num_classe > 1:
+            if dtgen.num_classes > 1:
                 prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
         meta["width"] = model.input_shape[2]
