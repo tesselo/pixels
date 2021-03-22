@@ -44,6 +44,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         num_classes=1,
         batch_number=1,
         train_split=None,
+        num_bands=10,
     ):
         """
         Initial setup for the class.
@@ -62,6 +63,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.batch_number = batch_number
         self.train_split = train_split
         self.train = train
+        self.num_bands = num_bands
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -78,7 +80,6 @@ class DataGenerator_stac(keras.utils.Sequence):
 
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
-        self.num_bands = 10
         self._original_num_bands = self.num_bands
         if self.mask_band:
             self.num_bands = self.num_bands + 1
