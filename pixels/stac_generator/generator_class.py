@@ -15,6 +15,7 @@ from tensorflow import keras
 import pixels.generator.generator_augmentation_2D as aug
 import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
+import pixels.stac_generator.filters as pxfl
 import pixels.stac_training as stctr
 
 # S3 class instanciation.
@@ -273,8 +274,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         From the paths list get the raster info.
 
-        TODO: Predict mode not sending y_path, or send an empty one
-
         Parameters
         ----------
             x_paths : list str
@@ -327,6 +326,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                         ),
                     )
                 )
+            x_tensor = pxfl._order_tensor_on_masks(np.array(x_tensor), self.nan_value)
             x_tensor = np.array(x_tensor)[: self.timesteps]
             y_tensor = np.array(y_tensor)
         return np.array(x_tensor), np.array(y_tensor)
@@ -342,6 +342,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.catalogs_dict[catalog_id] = {}
             self.catalogs_dict[catalog_id]["x_paths"] = x_paths
             self.catalogs_dict[catalog_id]["y_path"] = y_path
+        if "prediction_path" not in self.catalogs_dict[catalog_id]:
             if self.prediction:
                 try:
                     pred_path = (
