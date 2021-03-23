@@ -393,7 +393,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         # Remove extra pixels.
         X = X[:, :, : self.width, : self.height]
         # Y is not None treat Y.
-        if Y.any():
+        if Y.shape:
             y_open_shape = (self.num_classes, self.width, self.height)
             Y = Y[:, : self.width, : self.height]
             if Y.shape != y_open_shape:
@@ -459,19 +459,22 @@ class DataGenerator_stac(keras.utils.Sequence):
                 X = self._fill_missing_dimensions(X, self.expected_x_shape)
                 logger.warning(f"X dimensions not suitable in index {index_count}.")
             Y = np.array(Y)
-            if Y.any():
-                if Y.shape != self.expected_y_shape:
-                    self._wrong_sizes_list.append(index_count)
-                    Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
-                    logger.warning(f"Y dimensions not suitable in index {index_count}.")
+            if Y.shape and Y.shape != self.expected_y_shape:
+                self._wrong_sizes_list.append(index_count)
+                Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
+                logger.warning(f"Y dimensions not suitable in index {index_count}.")
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
+                logger.warning(
+                    f"X shape insuficient, going to next item with index {index_count + 1}."
+                )
                 self.__getitem__(index_count + 1)
         if self.dtype:
             X = X.astype(self.dtype)
-            if Y.any():
+            if Y.shape:
                 Y = Y.astype(self.dtype)
-        if not Y.any() or not self.train:
+
+        if not Y.shape or not self.train:
             return X
         return X, Y
 
