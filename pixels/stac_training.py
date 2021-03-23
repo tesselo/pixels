@@ -292,6 +292,9 @@ def predict_function_batch(
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
         # If the generator output is bigger than model shape, do a jumping window.
         if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
+            logger.warning(
+                f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
+            )
             # Get the data (X).
             data = dtgen[item]
             width = model.input_shape[2]
