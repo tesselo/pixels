@@ -144,6 +144,10 @@ def train_model_function(
     logger.warning(
         f"Dtypes dtgenX:{dtgen[0][0].dtype}, dtgenY:{dtgen[0][1].dtype}, model:{model.input.dtype.name}."
     )
+    logger.warning(
+        f"Shapes dtgenX:{dtgen[0][0].shape}, dtgenY:{dtgen[0][1].shape}, model:{model.input_shape}."
+    )
+
     compile_args = _load_dictionary(model_compile_arguments_uri)
     if not hasattr(tf.keras.losses, compile_args["loss"]):
         input = compile_args["loss"]
