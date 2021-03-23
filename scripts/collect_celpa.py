@@ -4,7 +4,7 @@ import logging
 import numpy
 from PIL import Image
 
-from pixels.mosaic import latest_pixel_s2_stack
+from pixels.mosaic import latest_pixel_stack
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,7 +37,7 @@ geojson = {
 # Get pixels.
 now = datetime.datetime.now()
 
-result = latest_pixel_s2_stack(
+result = latest_pixel_stack(
     geojson=geojson,
     start="2020-01-01",
     end="2020-01-31",

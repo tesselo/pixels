@@ -5,7 +5,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy
 
-from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
+from pixels.mosaic import composite, latest_pixel, latest_pixel_stack
 
 # from PIL import Image
 
@@ -72,7 +72,7 @@ creation_args, stack = composite(
     pool=True,
 )
 
-args, date, stack = latest_pixel_s2_stack(
+args, date, stack = latest_pixel_stack(
     geojson=geojson,
     start="2020-07-01",
     end="2020-07-31",

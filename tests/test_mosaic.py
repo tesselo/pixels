@@ -6,7 +6,7 @@ from unittest import mock, skip
 import numpy
 
 from pixels.algebra import parser
-from pixels.mosaic import latest_pixel, latest_pixel_s2_stack
+from pixels.mosaic import latest_pixel, latest_pixel_stack
 
 
 def mock_search_data(
@@ -101,9 +101,9 @@ class TestMosaic(unittest.TestCase):
         numpy.testing.assert_array_equal(stack, expected)
 
     @skip("This test currently runs forever on CI.")
-    def test_latest_pixel_s2_stack(self):
+    def test_latest_pixel_stack(self):
         # Test weekly latest pixel stack.
-        creation_args, dates, stack = latest_pixel_s2_stack(
+        creation_args, dates, stack = latest_pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-01",
@@ -119,7 +119,7 @@ class TestMosaic(unittest.TestCase):
         numpy.testing.assert_array_equal(stack, expected)
 
         # Test all latest pixel.
-        creation_args, dates, stack = latest_pixel_s2_stack(
+        creation_args, dates, stack = latest_pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-01",

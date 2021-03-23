@@ -187,7 +187,7 @@ def latest_pixel(
     return creation_args, first_end_date, numpy.array(stack)
 
 
-def latest_pixel_s2_stack(
+def latest_pixel_stack(
     geojson,
     start,
     end,

@@ -13,7 +13,7 @@ from shapely.ops import transform
 from supermercado.burntiles import burn
 
 from pixels.clouds import pixels_mask
-from pixels.mosaic import latest_pixel_s2_stack
+from pixels.mosaic import latest_pixel_stack
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -90,7 +90,7 @@ for i, (x, y, z) in enumerate(burn(rep["features"], 11)):
         "features": [mercantile.feature((x, y, z), projected="mercator")],
     }
     zoom_level_14_scale = 9.554628535654047
-    result = latest_pixel_s2_stack(
+    result = latest_pixel_stack(
         geojson,
         config["min_date"],
         config["max_date"],

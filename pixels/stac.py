@@ -21,7 +21,7 @@ from pixels.const import (
     PIXELS_S2_STACK_MODE,
 )
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.mosaic import composite, latest_pixel, latest_pixel_s2_stack
+from pixels.mosaic import composite, latest_pixel, latest_pixel_stack
 from pixels.utils import write_raster
 
 # Get logger
@@ -586,7 +586,7 @@ def run_pixels(config, mode="s2_stack"):
             Dictionary containing the parameters to pass on to pixels.
         mode : str, optional
             Mode to use pixel. Avaible modes:
-                's2_stack' : All avaible timesteps in timerange. -> latest_pixel_s2_stack()
+                's2_stack' : All avaible timesteps in timerange. -> latest_pixel_stack()
                 'latest': Lastest avaible scene in timerange. -> latest_pixel()
                 'composite' Composite from best pixels in timerange. -> composite()
     Returns
@@ -599,7 +599,7 @@ def run_pixels(config, mode="s2_stack"):
             Dictionary containing the item's meta data.
     """
     if mode == PIXELS_S2_STACK_MODE:
-        result = latest_pixel_s2_stack(**config)
+        result = latest_pixel_stack(**config)
     elif mode == PIXELS_LATEST_PIXEL_MODE:
         result = latest_pixel(**config)
     elif mode == PIXELS_COMPOSITE_MODE:

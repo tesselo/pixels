@@ -9,7 +9,7 @@ import boto3
 import fiona
 import numpy
 
-from pixels.mosaic import latest_pixel_s2_stack
+from pixels.mosaic import latest_pixel_stack
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def collect():
                 )
     for feature in features:
         # Fetch pixels.
-        creation_args, dates, data = latest_pixel_s2_stack(
+        creation_args, dates, data = latest_pixel_stack(
             geojson=feature,
             start=config["min_date"],
             end=config["max_date"],
