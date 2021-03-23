@@ -1,9 +1,11 @@
+import datetime
 import json
 import os
 import shutil
 import tempfile
 import unittest
 import zipfile
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import numpy
@@ -15,7 +17,6 @@ from pixels.stac import (
     create_x_catalog,
     parse_training_data,
 )
-from tests.scenarios import l8_data_mock
 
 
 def write_temp_raster(
@@ -45,6 +46,27 @@ l8_return = MagicMock(
         "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
         "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
     }
+)
+
+l8_data_mock = MagicMock(
+    return_value=[
+        {
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "granule_id": None,
+            "sensing_time": datetime.datetime(2020, 11, 21, 11, 20, 37, 137788),
+            "mgrs_tile": None,
+            "cloud_cover": Decimal("0.01"),
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+        },
+        {
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "granule_id": None,
+            "sensing_time": datetime.datetime(2020, 11, 20, 11, 20, 37, 137788),
+            "mgrs_tile": None,
+            "cloud_cover": Decimal("0.01"),
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+        },
+    ]
 )
 
 
@@ -138,7 +160,6 @@ class TestUtils(unittest.TestCase):
         catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
         target = tempfile.mkdtemp()
-        print(target)
         with tempfile.NamedTemporaryFile(suffix=".json", dir=target) as fl:
             config = {
                 "bands": [
@@ -150,7 +171,7 @@ class TestUtils(unittest.TestCase):
                 "end": "2020-02-01",
                 "interval": "all",
                 "maxcloud": 30,
-                "pool_size": 0,
+                "pool_size": 2,
                 "scale": 500,
                 "platforms": "LANDSAT_8",
             }
@@ -175,7 +196,7 @@ class TestUtils(unittest.TestCase):
             "extent": {
                 "spatial": {"bbox": [[-1028560.0, 4686560.0, -1025304.0, 4689816.0]]},
                 "temporal": {
-                    "interval": [["2020-11-21T00:00:00Z", "2020-11-21T00:00:00Z"]]
+                    "interval": [["2020-11-20T00:00:00Z", "2020-11-21T00:00:00Z"]]
                 },
             },
             "license": "proprietary",

@@ -268,11 +268,19 @@ def latest_pixel_s2_stack(
         "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
     )
 
-    if pool_size:
+    result = []
+    if pool_size > 1:
         with Pool(pool_size) as p:
             result = p.starmap(latest_pixel, dates)
+            with ThreadPoolExecutor(max_workers=pool_size) as executor:
+                # Submit band retrieval tasks to pool.
+                futures = []
+                for date in dates:
+                    futures.append(executor.submit(latest_pixel, *date))
+                # Process completed tasks.
+                for future in futures:
+                    result.append(future.result())
     else:
-        result = []
         for date in dates:
             result.append(latest_pixel(*date))
 
