@@ -136,10 +136,11 @@ def train_model_function(
     """
     # Load the generator arguments.
     gen_args = _load_dictionary(generator_arguments_uri)
-    # Instanciate generator.
-    dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     # Load model, compile and fit arguments.
     model = load_model_from_file(model_config_uri)
+    gen_args["dtype"] = model.input.dtype.name
+    # Instanciate generator.
+    dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     compile_args = _load_dictionary(model_compile_arguments_uri)
     if not hasattr(tf.keras.losses, compile_args["loss"]):
         input = compile_args["loss"]
@@ -272,6 +273,7 @@ def predict_function_batch(
     gen_args = _load_dictionary(generator_config_uri)
     # Force generator to prediction.
     gen_args["train"] = False
+    gen_args["dtype"] = model.input.dtype.name
     dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)

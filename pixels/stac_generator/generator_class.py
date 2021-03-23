@@ -46,6 +46,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         batch_number=1,
         train_split=None,
         num_bands=10,
+        augmentation=False,
+        dtype=None,
     ):
         """
         Initial setup for the class.
@@ -64,6 +66,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.batch_number = batch_number
         self.train_split = train_split
         self.train = train
+        self.dtype = dtype
         self.num_bands = num_bands
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
@@ -466,6 +469,9 @@ class DataGenerator_stac(keras.utils.Sequence):
                 self.__getitem__(index_count + 1)
         if not Y.any() or not self.train:
             return X
+        if self.dtype:
+            X = X.astype(self.dtype)
+            Y = Y.astype(self.dtype)
         return X, Y
 
     def get_item_metadata(self, index):
