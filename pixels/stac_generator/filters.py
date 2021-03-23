@@ -21,7 +21,7 @@ def _make_mask_on_value(img, mask_value):
     return mask_img
 
 
-def _order_tensor_on_masks(image, mask_value):
+def _order_tensor_on_masks(image, mask_value, number_images=12):
     """
     Order a set of images based on a mask count.
 
@@ -39,5 +39,5 @@ def _order_tensor_on_masks(image, mask_value):
     """
     mask_img = _make_mask_on_value(image, mask_value)
     mask_count = np.sum(mask_img, axis=(1, 2, 3))
-    ind = np.argsort(mask_count)
+    ind = np.sort(np.argsort(mask_count)[:number_images])
     return np.array(image[ind])
