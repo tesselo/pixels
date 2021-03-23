@@ -467,11 +467,12 @@ class DataGenerator_stac(keras.utils.Sequence):
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
                 self.__getitem__(index_count + 1)
-        if not Y.any() or not self.train:
-            return X
         if self.dtype:
             X = X.astype(self.dtype)
-            Y = Y.astype(self.dtype)
+            if Y.any():
+                Y = Y.astype(self.dtype)
+        if not Y.any() or not self.train:
+            return X
         return X, Y
 
     def get_item_metadata(self, index):
