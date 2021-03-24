@@ -282,10 +282,11 @@ def predict_function_batch(
     item_list_max = (array_index + 1) * int(items_per_job)
     if item_list_max > len(dtgen):
         item_list_max = len(dtgen)
-    item_list = [*range(array_index * int(items_per_job), item_list_max)]
-    # Predict section (e.g. 500:550).
-    # Predict for every item (index).
-    for item in item_list:
+    item_list_min = array_index * int(items_per_job)
+    item_range = range(item_list_min, item_list_max)
+    logger.info(f"Predicting generator range from {item_list_min} to {item_list_max}.")
+    # Predict the index range for this batch job.
+    for item in item_range:
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_item_metadata(item)
