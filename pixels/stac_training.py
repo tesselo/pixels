@@ -106,6 +106,31 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
+def load_existing_model_from_file(model_uri):
+    # Load model.
+    if model_uri.startswith("s3"):
+        obj = stc.open_file_from_s3(model_uri)["Body"]
+        fid_ = io.BufferedReader(obj._raw_stream)
+        read_in_memory = fid_.read()
+        bio_ = io.BytesIO(read_in_memory)
+        f = h5py.File(bio_, "r")
+        # TODO: Change this!
+        try:
+            model = tf.keras.models.load_model(f)
+        except:
+            model = tf.keras.models.load_model(
+                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
+            )
+    else:
+        try:
+            model = tf.keras.models.load_model(model_uri)
+        except:
+            model = tf.keras.models.load_model(
+                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
+            )
+    return model
+
+
 def train_model_function(
     catalog_uri,
     model_config_uri,
@@ -136,29 +161,48 @@ def train_model_function(
     """
     # Load the generator arguments.
     gen_args = _load_dictionary(generator_arguments_uri)
-    # Load model, compile and fit arguments.
-    model = load_model_from_file(model_config_uri)
+    compile_args = _load_dictionary(model_compile_arguments_uri)
+    path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+    if "use_existing_model" in compile_args:
+        if compile_args["use_existing_model"]:
+            no_compile = True
+            model = load_existing_model_from_file(path_model)
+            last_training_epochs = len(
+                stc.list_files_in_folder(
+                    os.path.dirname(model_config_uri), filetype=".hdf5"
+                )
+            )
+            logger.warning(
+                f"Training from existing model with {last_training_epochs} trained epochs."
+            )
+    else:
+        no_compile = False
+        last_training_epochs = 0
+        # Load model, compile and fit arguments.
+        model = load_model_from_file(model_config_uri)
+
     gen_args["dtype"] = model.input.dtype.name
     # Instanciate generator.
     dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
-    compile_args = _load_dictionary(model_compile_arguments_uri)
-    if not hasattr(tf.keras.losses, compile_args["loss"]):
-        input = compile_args["loss"]
-        # Validate input
-        if input not in ALLOWED_CUSTOM_LOSSES:
-            raise ValueError()
-        loss_costum = getattr(losses, input)
-        loss_args = {"nan_value": dtgen.nan_value}
-        if not loss_costum:
-            logger.warning(
-                f"Method {compile_args['loss']} not implemented, going for mse."
-            )
-            loss_costum = tf.keras.losses.mean_squared_error
-            loss_args = {}
-        compile_args.pop("loss")
-        model.compile(loss=loss_costum(**loss_args), **compile_args)
-    else:
-        model.compile(**compile_args)
+    if not no_compile:
+        if not hasattr(tf.keras.losses, compile_args["loss"]):
+            input = compile_args["loss"]
+            # Validate input
+            if input not in ALLOWED_CUSTOM_LOSSES:
+                raise ValueError()
+            loss_costum = getattr(losses, input)
+            loss_args = {"nan_value": dtgen.nan_value}
+            if not loss_costum:
+                logger.warning(
+                    f"Method {compile_args['loss']} not implemented, going for mse."
+                )
+                loss_costum = tf.keras.losses.mean_squared_error
+                loss_args = {}
+            compile_args.pop("loss")
+            model.compile(loss=loss_costum(**loss_args), **compile_args)
+        else:
+            model.compile(**compile_args)
+
     fit_args = _load_dictionary(model_fit_arguments_uri)
     if model_config_uri.startswith("s3"):
         path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
@@ -166,10 +210,11 @@ def train_model_function(
         path_ep_md = os.path.dirname(model_config_uri)
     if not os.path.exists(path_ep_md):
         os.makedirs(path_ep_md)
-    path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     # Train model.
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        os.path.join(path_ep_md, "model_{epoch:02d}.hdf5"),
+        os.path.join(
+            path_ep_md, f"model_{last_training_epochs}+" + "_{epoch:02d}.hdf5"
+        ),
         monitor="loss",
         verbose=1,
         save_best_only=False,
