@@ -87,7 +87,7 @@ def latest_pixel(
 
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
     if isinstance(end_date, (list, tuple)):
-        logger.info(f"Latest pixels for {len(end_date)} items.")
+        logger.debug(f"Latest pixels for {len(end_date)} items.")
         items = end_date
     else:
         items = search_data(
@@ -110,7 +110,7 @@ def latest_pixel(
     mask = None
     # Get data for each item.
     for item in items:
-        logger.info(item["product_id"])
+        logger.debug(item["product_id"])
         # Track first end date (highest priority image in stack).
         if first_end_date is None:
             first_end_date = str(items[0]["sensing_time"].date())
@@ -225,7 +225,7 @@ def latest_pixel_stack(
         if not response:
             raise ValueError("No scenes in search response.")
 
-        logger.info("Getting {} scenes for this geom.".format(len(response)))
+        logger.info("Getting {} scenes for this stack.".format(len(response)))
 
         limit = 5
         dates = [
@@ -260,13 +260,11 @@ def latest_pixel_stack(
             )
             for step in timeseries_steps(start, end, interval)
         ]
-        logger.info("Getting {} {} for this geom.".format(len(dates), interval))
+        logger.info("Getting {} {} for this stack.".format(len(dates), interval))
 
     # Get pixels.
     pool_size = min(len(dates), pool_size)
-    logger.info(
-        "Found {} scenes, processing pool size is {}.".format(len(dates), pool_size)
-    )
+    logger.info("Processing pool size is {}.".format(pool_size))
 
     result = []
     if pool_size > 1:

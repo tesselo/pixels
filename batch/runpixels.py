@@ -3,18 +3,44 @@
 Execute a function from the pixels package from the commandline.
 """
 import importlib
-import logging
+import logging.config
 import sys
 
-logger = logging.getLogger(__name__)
+# Logging configuration as dictionary.
+LOGGING_CONFIG = {
+    "version": 1,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "default": {
+            "level": "DEBUG",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",  # Default is stderr
+        },
+    },
+    "loggers": {
+        "": {  # root logger
+            "handlers": ["default"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "pixels": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "runpixels": {"handlers": ["default"], "level": "INFO", "propagate": False},
+    },
+}
+# Set logging config.
+logging.config.dictConfig(LOGGING_CONFIG)
 
-logging.basicConfig(
-    level=logging.WARNING,
-)
-logging.getLogger("botocore").setLevel(logging.ERROR)
-logging.getLogger("rasterio").setLevel(logging.ERROR)
-logging.getLogger("fiona").setLevel(logging.ERROR)
+# Get logger for the this module.
+logger = logging.getLogger("runpixels")
 
+# List of modules and functions that can be specified in commandline input.
 ALLOWED_MODULES = ["pixels.stac", "pixels.stac_training"]
 ALLOWED_FUNCTIONS = [
     "parse_training_data",
@@ -27,11 +53,14 @@ ALLOWED_FUNCTIONS = [
 
 
 def main():
+    """
+    Import the requested function and run it with the provided input.
+    """
     # Get input function name.
     funk_path = sys.argv[1]
     # Get module for function.
     module_name = ".".join(funk_path.split(".")[:-1])
-    logger.debug("Module name {}.".format(module_name))
+    logger.info("Module name {}.".format(module_name))
     # Verify the requested module is in shortlist.
     if module_name not in ALLOWED_MODULES:
         raise ValueError(
@@ -42,7 +71,7 @@ def main():
     module = importlib.import_module(module_name)
     # Get function to execute.
     funk_name = funk_path.split(".")[-1]
-    logger.debug("Function name {}.".format(funk_name))
+    logger.info("Function name {}.".format(funk_name))
     if funk_name not in ALLOWED_FUNCTIONS:
         raise ValueError(
             'Invalid input function. "{}" should be one of {}.'.format(
@@ -50,7 +79,7 @@ def main():
             )
         )
     funk = getattr(module, funk_name)
-    logger.debug("Function args {}.".format(sys.argv[2:]))
+    logger.info("Function args {}.".format(sys.argv[2:]))
     # Run function with rest of arguments.
     funk(*sys.argv[2:])
 
