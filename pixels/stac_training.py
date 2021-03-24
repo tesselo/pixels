@@ -163,6 +163,7 @@ def train_model_function(
     gen_args = _load_dictionary(generator_arguments_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+    # Check for existing model boolean.
     if "use_existing_model" in compile_args:
         if compile_args["use_existing_model"]:
             no_compile = True
