@@ -9,10 +9,10 @@ from pixels.utils import compute_wgs83_bbox
 
 logger = logging.getLogger(__name__)
 
-DB_NAME = os.environ.get("DB_NAME")
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
-DB_HOST = os.environ.get("DB_HOST")
-DB_USER = os.environ.get("DB_USER")
+DB_NAME = os.getenv("DB_NAME")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
 
 # Setup db engine and connect.
 if DB_NAME is not None:

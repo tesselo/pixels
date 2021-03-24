@@ -803,7 +803,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     if "geojson" in input_config:
         input_config.pop("geojson")
     # Batch enviroment variables.
-    array_index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 0))
+    array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     # Read the catalog.
     if y_catalog_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method

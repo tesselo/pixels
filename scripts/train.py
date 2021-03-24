@@ -21,8 +21,8 @@ session = tensorflow.compat.v1.InteractiveSession(config=config)
 # Setup boto client.
 s3 = boto3.client("s3")
 # Fetch all data to memory.
-bucket = os.environ.get("AWS_S3_BUCKET", "tesselo-pixels-results")
-project_id = os.environ.get("PIXELS_PROJECT_ID", "replant")
+bucket = os.getenv("AWS_S3_BUCKET", "tesselo-pixels-results")
+project_id = os.getenv("PIXELS_PROJECT_ID", "replant")
 # config = s3.get_object(Bucket=bucket, Key=project_id + '/config.json')
 # config = json.loads(config['Body'].read())
 paginator = s3.get_paginator("list_objects_v2")
