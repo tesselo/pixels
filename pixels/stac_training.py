@@ -278,7 +278,7 @@ def predict_function_batch(
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
     # Get jobs array.
-    array_index = os.getenv("AWS_BATCH_ARRAY_INDEX", 0)
+    array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     item_list_max = (array_index + 1) * int(items_per_job)
     if item_list_max > len(dtgen):
         item_list_max = len(dtgen)
