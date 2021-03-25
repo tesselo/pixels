@@ -101,6 +101,7 @@ def latest_pixel(
         )
 
         if not items:
+            logger.warning(f"No scenes in search response.")
             raise ValueError("No scenes in search response.")
 
     # Assign variables to be populated during pixel collection.
@@ -134,12 +135,14 @@ def latest_pixel(
                         result = future.result()
                         data.append(result)
             except RasterioIOError:
+                logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
                 failed_retrieve = True
         else:
             for band in band_list:
                 try:
                     result = retrieve(*band)
                 except RasterioIOError:
+                    logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
                     failed_retrieve = True
                     break
                 data.append(result)
