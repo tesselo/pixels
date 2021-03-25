@@ -643,7 +643,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     config = validate_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
-    if not meta or not results:
+    if not meta:
         logger.warning(f"No images for {str(item.id)}")
         return
     # For a lack of out_path argument build one based on item name.
@@ -655,6 +655,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     for date, np_img in zip(dates, results):
         # If the given image is empty continue to next.
         if not np_img.shape:
+            logger.warning(f"No images for {str(item.id)}")
             continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
