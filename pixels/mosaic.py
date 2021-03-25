@@ -101,8 +101,8 @@ def latest_pixel(
         )
 
         if not items:
-            logger.warning("No scenes in search response.")
-            raise ValueError("No scenes in search response.")
+            logger.warning(f"No scenes in search response. Latest Pixel.")
+            raise ValueError("No scenes in search response. Latest Pixel.")
 
     # Assign variables to be populated during pixel collection.
     stack = None
@@ -226,7 +226,7 @@ def latest_pixel_stack(
         )
 
         if not response:
-            raise ValueError("No scenes in search response.")
+            raise ValueError("No scenes in search response. latest_pixel_stack")
 
         logger.info("Getting {} scenes for this stack.".format(len(response)))
 
@@ -331,7 +331,7 @@ def composite(
     )
 
     if not items:
-        raise ValueError("No features in search response.")
+        raise ValueError("No features in search response. composite")
 
     stack = None
     creation_args = None
