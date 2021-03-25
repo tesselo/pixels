@@ -18,6 +18,7 @@ import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 import pixels.stac_generator.filters as pxfl
 import pixels.stac_training as stctr
+from pixels.exceptions import InvalidGeneratorConfig
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -89,6 +90,9 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._wrong_sizes_list = []
         self._set_definition()
         self._check_get_catalogs_indexing()
+        # Check if batch size.
+        if self.batch_number > 1 and not self.train:
+            raise InvalidGeneratorConfig("Batch size needs to be 1 for prediction.")
 
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.

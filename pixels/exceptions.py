@@ -20,3 +20,11 @@ class InvalidCustomLossException(PixelsException):
     """
 
     pass
+
+
+class InvalidGeneratorConfig(PixelsException):
+    """
+    The input for the generator is not valid.
+    """
+
+    pass
