@@ -644,7 +644,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = run_pixels(config)
     if not meta or not results:
-        logger.warning(f"No images for {item.id}")
+        logger.warning(f"No images for {str(item.id)}")
         return
     # For a lack of out_path argument build one based on item name.
     # The directory for the raster will be one folder paralel to the stac one
