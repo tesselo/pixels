@@ -46,7 +46,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         batch_number=1,
         train_split=None,
         num_bands=10,
-        augmentation=False,
+        augmentation=0,
         dtype=None,
     ):
         """
@@ -68,6 +68,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.train = train
         self.dtype = dtype
         self.num_bands = num_bands
+        self.augmentation = augmentation
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -109,6 +110,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         if self.prediction:
             if isinstance(self.prediction, str):
                 self.prediction = pystac.Catalog.from_file(self.prediction)
+        if not self.train:
+            self.augmentation = 0
 
     def _check_get_catalogs_indexing(self):
         dict_path = os.path.join(
@@ -429,6 +432,55 @@ class DataGenerator_stac(keras.utils.Sequence):
             return meta
         return prediction_img
 
+    def do_augmentation(self, X, y, augmentation_index=1, batch_size=1):
+        """
+        Define how many augmentations to do, and build the correct input for the augmentation function
+
+        Parameters
+        ----------
+            X : numpy array
+                Set of collected images.
+            Y : numpy array
+                Goal image in training.
+            augmentation_index : int or list
+                Set the number of augmentations. If list, does the augmentatios
+                with the keys on the list, if int, does all the keys up to that.
+                keys:
+                    0: No augmentation
+                    1, 2, 3: flips
+                    4: noise
+                    5: bright
+        Returns
+        -------
+            augmentedX, augmentedY : numpy array
+                Augmented images.
+        """
+        if isinstance(augmentation_index, int):
+            augmentation_index = np.arange(augmentation_index) + 1
+        if self.mode == "3D_Model":
+            batchX = np.array([])
+            batchY = np.array([])
+            for batch in range(batch_size):
+                augmentedX = np.array([X[batch]])
+                augmentedY = np.array([y[batch]])
+                for i in augmentation_index:
+                    augX, augY = aug.augmentation(
+                        np.array([X[batch]]),
+                        np.array([y[batch]]),
+                        sizex=self.width,
+                        sizey=self.height,
+                        augmentation_index=i,
+                    )
+                    augmentedX = np.concatenate([augmentedX, augX])
+                    augmentedY = np.concatenate([augmentedY, augY])
+                if not batchX.any():
+                    batchX = augmentedX
+                    batchY = augmentedY
+                else:
+                    batchX = np.concatenate([batchX, augmentedX])
+                    batchY = np.concatenate([batchY, augmentedY])
+        return np.array(batchX), np.array(batchY)
+
     def __getitem__(self, index):
         """
         Generate one batch of data
@@ -474,6 +526,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             if self.train:
                 Y = Y.astype(self.dtype)
 
+        if self.augmentation > 0:
+            X, Y = self.do_augmentation(
+                X, Y, augmentation_index=self.augmentation, batch_size=self.batch_number
+            )
         if not self.train:
             return X
         return X, Y
