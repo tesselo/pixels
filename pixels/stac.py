@@ -107,6 +107,7 @@ def open_file_from_s3(source_path):
     try:
         data = s3.get_object(Bucket=bucket, Key=path)
     except s3.exceptions.NoSuchKey:
+        logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
         data = None
     return data
 
