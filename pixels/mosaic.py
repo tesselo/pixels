@@ -101,7 +101,7 @@ def latest_pixel(
         )
 
         if not items:
-            logger.warning(f"No scenes in search response.")
+            logger.warning("No scenes in search response.")
             raise ValueError("No scenes in search response.")
 
     # Assign variables to be populated during pixel collection.
