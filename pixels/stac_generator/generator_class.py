@@ -48,6 +48,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         num_bands=10,
         augmentation=0,
         dtype=None,
+        y_downsample=[],
     ):
         """
         Initial setup for the class.
@@ -69,6 +70,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.dtype = dtype
         self.num_bands = num_bands
         self.augmentation = augmentation
+        self.y_downsample = y_downsample
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -182,6 +184,13 @@ class DataGenerator_stac(keras.utils.Sequence):
         else:
             indexes = np.arange(self._original_size)
         for catalog in self.collection.get_children():
+            y_index = int(
+                os.path.dirname(catalog.get_links("corresponding_y")[0].target)
+                .split("/")[-1]
+                .split("_")[-1]
+            )
+            if y_index in self.y_downsample:
+                continue
             if count not in indexes:
                 if count > max(indexes):
                     break
@@ -205,7 +214,11 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         # For 3D mode:
         self._original_size = int(len(self.collection.get_child_links()) * self.split)
-        self.length = int(math.ceil(self._original_size / self.batch_number))
+        self.length = int(
+            math.ceil(
+                (self._original_size - len(self.y_downsample)) / self.batch_number
+            )
+        )
         # For 2D:
         # self.length = 0
         # for child in self.collection.get_children():
