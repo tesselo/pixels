@@ -243,6 +243,8 @@ def train_model_function(
     gen_args["train"] = False
     gen_args["train_split"] = gen_args["split"]
     gen_args["split"] = 1 - gen_args["split"]
+    if "y_downsample" in gen_args:
+        gen_args.pop("y_downsample")
     if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
         gen_args["split"] = 0.1
     dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
