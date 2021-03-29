@@ -17,7 +17,10 @@ import pixels.stac_generator.generator_class as stcgen
 from pixels import losses
 from pixels.utils import write_raster
 
-ALLOWED_CUSTOM_LOSSES = ["nan_mean_squared_error_loss"]
+ALLOWED_CUSTOM_LOSSES = [
+    "nan_mean_squared_error_loss",
+    "nan_root_mean_squared_error_loss",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +109,25 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
-def load_existing_model_from_file(model_uri):
+def get_custom_loss(compile_args):
+    if not hasattr(tf.keras.losses, compile_args["loss"]):
+        input = compile_args["loss"]
+        # Validate input
+        if input not in ALLOWED_CUSTOM_LOSSES:
+            raise ValueError()
+        loss_custom = getattr(losses, input)
+        if not loss_custom:
+            logger.warning(
+                f"Method {compile_args['loss']} not implemented, going for mse."
+            )
+            loss_custom = tf.keras.losses.mean_squared_error
+        compile_args.pop("loss")
+    return loss_custom
+
+
+def load_existing_model_from_file(
+    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}
+):
     # Load model.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
@@ -114,20 +135,14 @@ def load_existing_model_from_file(model_uri):
         read_in_memory = fid_.read()
         bio_ = io.BytesIO(read_in_memory)
         f = h5py.File(bio_, "r")
-        # TODO: Change this!
-        try:
-            model = tf.keras.models.load_model(f)
-        except:
-            model = tf.keras.models.load_model(
-                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
-            )
-    else:
-        try:
-            model = tf.keras.models.load_model(model_uri)
-        except:
-            model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
-            )
+        model_uri = f
+    try:
+        model = tf.keras.models.load_model(model_uri)
+    except:
+
+        model = tf.keras.models.load_model(
+            model_uri, custom_objects={"loss": get_custom_loss(loss_dict)}
+        )
     return model
 
 
@@ -167,7 +182,7 @@ def train_model_function(
     if "use_existing_model" in compile_args:
         if compile_args["use_existing_model"]:
             no_compile = True
-            model = load_existing_model_from_file(path_model)
+            model = load_existing_model_from_file(path_model, compile_args)
             last_training_epochs = len(
                 stc.list_files_in_folder(
                     os.path.dirname(model_config_uri), filetype=".hdf5"
@@ -247,6 +262,8 @@ def train_model_function(
         gen_args.pop("y_downsample")
     if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
         gen_args["split"] = 0.1
+    if len(dtgen) * gen_args["split"] > 200:
+        gen_args["split"] = len(dtgen) / gen_args["split"]
     dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     results = model.evaluate(dpredgen)
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
@@ -296,6 +313,19 @@ def predict_function_batch(
         items_per_job : int
             Number of items per jobs.
     """
+    gen_args = _load_dictionary(generator_config_uri)
+    # Get loss function.
+    if "loss" in gen_args:
+        if not hasattr(tf.keras.losses, gen_args["loss"]):
+            input = gen_args["loss"]
+            # Validate input
+            if input not in ALLOWED_CUSTOM_LOSSES:
+                raise ValueError()
+            loss_costum = getattr(losses, input)
+            if not loss_costum:
+                logger.warning(f"Method {input} not implemented, going for mse.")
+                loss_costum = tf.keras.losses.mean_squared_error
+        gen_args.pop("loss")
     # Load model.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
@@ -307,18 +337,15 @@ def predict_function_batch(
         try:
             model = tf.keras.models.load_model(f)
         except:
-            model = tf.keras.models.load_model(
-                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
-            )
+            model = tf.keras.models.load_model(f, custom_objects={"loss": loss_costum})
     else:
         try:
             model = tf.keras.models.load_model(model_uri)
         except:
             model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
+                model_uri, custom_objects={"loss": loss_costum}
             )
     # Instanciate generator.
-    gen_args = _load_dictionary(generator_config_uri)
     # Force generator to prediction.
     gen_args["train"] = False
     gen_args["dtype"] = model.input.dtype.name
