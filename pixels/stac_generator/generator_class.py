@@ -49,6 +49,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         augmentation=0,
         dtype=None,
         y_downsample=[],
+        padding=0,
+        padding_mode="edge",
     ):
         """
         Initial setup for the class.
@@ -71,6 +73,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.num_bands = num_bands
         self.augmentation = augmentation
         self.y_downsample = y_downsample
+        self.padding = padding
+        self.padding_mode = padding_mode
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
@@ -95,19 +99,21 @@ class DataGenerator_stac(keras.utils.Sequence):
             self._orignal_height = self.height
             self.width = int(math.ceil(self.width * self.upsampling))
             self.height = int(math.ceil(self.height * self.upsampling))
+            self.x_width = self.width + (self.padding * 2)
+            self.x_height = self.height + (self.padding * 2)
         if self.mode == "3D_Model":
             self.expected_x_shape = (
                 self.batch_number,
                 self.timesteps,
-                self.width,
-                self.height,
+                self.x_width,
+                self.x_height,
                 self.num_bands,
             )
             self.expected_y_shape = (
                 self.batch_number,
-                self.num_classes,
                 self.width,
                 self.height,
+                self.num_classes,
             )
         if self.prediction:
             if isinstance(self.prediction, str):
@@ -225,6 +231,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         #     self.length = self.length + len(child.get_item_links())
         return self.length
 
+    def _make_padding(self, tensor):
+
+        return tensor
+
     def _fill_missing_dimensions(self, tensor, expected_shape, value=None):
         """
         Fill a tensor with any shape (smaller dimensions than expected), with
@@ -324,6 +334,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             y_img = None
         x_tensor = []
         y_tensor = np.array(y_img)
+        # Change y raster from (num_bands, wdt, hgt) to (wdt, hgt, num_classes).
+        y_tensor = y_tensor.swapaxes(0, 1)
+        y_tensor = y_tensor.swapaxes(1, 2)
+        # Open all X images.
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_img = np.array(src.read())
@@ -410,16 +424,16 @@ class DataGenerator_stac(keras.utils.Sequence):
         X = X[:, :, : self.width, : self.height]
         # Y is not None treat Y.
         if self.train:
-            y_open_shape = (self.num_classes, self.width, self.height)
-            Y = Y[:, : self.width, : self.height]
+            y_open_shape = (self.width, self.height, self.num_classes)
+            Y = Y[: self.width, : self.height, :]
             if Y.shape != y_open_shape:
                 self._wrong_sizes_list.append(index)
                 Y = self._fill_missing_dimensions(Y, y_open_shape)
                 logger.warning(f"Y dimensions not suitable in index {index}.")
-            Y = Y[:, : self.width, : self.height]
+            Y = Y[: self.width, : self.height, :]
         # Add band for NaN mask.
         if self.mask_band:
-            mask_img = Y != self.nan_value
+            mask_img = np.array([Y[:, :, 0]]) != self.nan_value
             mask_img = np.repeat([mask_img], self.timesteps, axis=0)
             if not self.train:
                 mask_shp = list(X.shape)
@@ -480,8 +494,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                     augX, augY = aug.augmentation(
                         np.array([X[batch]]),
                         np.array([y[batch]]),
-                        sizex=self.width,
-                        sizey=self.height,
+                        sizex=self.x_width,
+                        sizey=self.x_height,
                         augmentation_index=i,
                     )
                     augmentedX = np.concatenate([augmentedX, augX])
@@ -509,6 +523,18 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Y.append(y)
                 continue
             x, y = self.get_data_from_index(index_count)
+            # Add padding.
+            if self.padding > 0:
+                x = np.pad(
+                    x,
+                    (
+                        (0, 0),
+                        (0, 0),
+                        (self.padding, self.padding),
+                        (self.padding, self.padding),
+                    ),
+                    mode=self.padding_mode,
+                )
             # (Timesteps, bands, img) -> (Timesteps, img, Bands)
             # For channel last models: otherwise uncoment.
             # TODO: add the data_format mode based on model using.
@@ -569,10 +595,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         pred_img = None
         if in_out == "IN":
             X, Y = self.get_data_from_index(index)
-            if not X.shape[-2:] == Y[0].shape[-2:]:
+            if not X.shape[-2:] == Y[:, :, 0].shape[-2:]:
                 X = aug.upscale_multiple_images(X)
             if self.mode == "3D_Model":
-                y = Y[0]
+                y = np.array([Y])
             if self.mask_band:
                 mask = X[:1, -1:, :, :]
                 X = X[:, :-1, :, :]
@@ -581,13 +607,24 @@ class DataGenerator_stac(keras.utils.Sequence):
                 X = np.vstack([X, mask])
         if in_out == "OUT":
             X, Y = self.__getitem__(index)
-            y = Y[0]
+            y = Y
             if self.mask_band:
                 mask = X[:, :1, :, :, -1:]
                 X = X[:, :, :, :, :-1]
                 mask = np.repeat(mask, X.shape[-1], axis=-1)
                 mask = mask * scaling
                 X = np.hstack([X, mask])
+            if self.padding > 0:
+                y = np.pad(
+                    y,
+                    (
+                        (0, 0),
+                        (self.padding, self.padding),
+                        (self.padding, self.padding),
+                        (0, 0),
+                    ),
+                    mode="constant",
+                )
         if self.prediction:
             pred_img = self.get_prediction_from_index(index)
         vis.visualize_in_item(
