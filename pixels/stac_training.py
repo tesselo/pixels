@@ -314,7 +314,9 @@ def predict_function_batch(
             Number of items per jobs.
     """
     gen_args = _load_dictionary(generator_config_uri)
-    compile_args = _load_dictionary(os.path.join(os.path.dirname(model_uri), "compile_args.json"))
+    compile_args = _load_dictionary(
+        os.path.join(os.path.dirname(model_uri), "compile_args.json")
+    )
     # Get loss function.
     if "loss" in compile_args:
         if not hasattr(tf.keras.losses, compile_args["loss"]):
