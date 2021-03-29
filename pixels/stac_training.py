@@ -314,10 +314,11 @@ def predict_function_batch(
             Number of items per jobs.
     """
     gen_args = _load_dictionary(generator_config_uri)
+    compile_args = _load_dictionary(os.path.join(os.path.dirname(model_uri), "compile_args.json"))
     # Get loss function.
-    if "loss" in gen_args:
-        if not hasattr(tf.keras.losses, gen_args["loss"]):
-            input = gen_args["loss"]
+    if "loss" in compile_args:
+        if not hasattr(tf.keras.losses, compile_args["loss"]):
+            input = compile_args["loss"]
             # Validate input
             if input not in ALLOWED_CUSTOM_LOSSES:
                 raise ValueError()
@@ -325,7 +326,6 @@ def predict_function_batch(
             if not loss_costum:
                 logger.warning(f"Method {input} not implemented, going for mse.")
                 loss_costum = tf.keras.losses.mean_squared_error
-        gen_args.pop("loss")
     # Load model.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
