@@ -403,13 +403,13 @@ def predict_function_batch(
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
             # Change this to allow batch on prediction.
             prediction = prediction[0, :, :, :]
-            prediction = prediction.swapaxes(0, 1)
             prediction = prediction.swapaxes(1, 2)
+            prediction = prediction.swapaxes(0, 1)
             if dtgen.num_classes > 1:
-                prediction = np.argmax(prediction, axis=0)
+                prediction = np.argmax(prediction, axis=-1)
         # TODO: verify input shape with rasterio
-        meta["width"] = model.input_shape[2]
-        meta["height"] = model.input_shape[3]
+        meta["width"] = model.output_shape[1]
+        meta["height"] = model.output_shape[2]
         meta["count"] = 1
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
