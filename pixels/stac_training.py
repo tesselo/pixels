@@ -406,7 +406,7 @@ def predict_function_batch(
             prediction = prediction.swapaxes(1, 2)
             prediction = prediction.swapaxes(0, 1)
             if dtgen.num_classes > 1:
-                prediction = np.argmax(prediction, axis=-1)
+                prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
         meta["width"] = model.output_shape[1]
         meta["height"] = model.output_shape[2]
