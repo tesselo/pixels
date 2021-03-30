@@ -531,7 +531,10 @@ class DataGenerator_stac(keras.utils.Sequence):
                 X.append(x)
                 Y.append(y)
                 continue
-            x, y = self.get_data_from_index(index_count)
+            try:
+                x, y = self.get_data_from_index(index_count)
+            except:
+                x, y = self.get_data_from_index(index_count+1)
             # Add padding.
             if self.padding > 0:
                 x = np.pad(
