@@ -434,12 +434,13 @@ class DataGenerator_stac(keras.utils.Sequence):
             Y = Y[: self.width, : self.height, :]
         # Add band for NaN mask.
         if self.mask_band:
-            mask_img = np.array([Y[:, :, 0]]) != self.nan_value
-            mask_img = np.repeat([mask_img], self.timesteps, axis=0)
             if not self.train:
                 mask_shp = list(X.shape)
                 mask_shp[1] = 1
                 mask_img = np.ones(tuple(mask_shp))
+            else:
+                mask_img = np.array([Y[:, :, 0]]) != self.nan_value
+                mask_img = np.repeat([mask_img], self.timesteps, axis=0)
             mask_band = mask_img.astype("int")
             X = np.hstack([X, mask_band])
         return X, Y

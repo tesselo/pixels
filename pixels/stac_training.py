@@ -401,7 +401,10 @@ def predict_function_batch(
             #     os.makedirs(os.path.dirname(out_path_temp))
             # np.savez(f"{out_path_temp}.npz", prediction)
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
+            # Change this to allow batch on prediction.
             prediction = prediction[0, :, :, :]
+            prediction = prediction.swapaxes(0, 1)
+            prediction = prediction.swapaxes(1, 2)
             if dtgen.num_classes > 1:
                 prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
