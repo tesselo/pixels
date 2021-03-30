@@ -10,6 +10,7 @@ import numpy as np
 import pystac
 import rasterio
 from pystac import STAC_IO
+from rasterio.errors import RasterioIOError
 from tensorflow import keras
 
 import pixels.generator.generator_augmentation_2D as aug
@@ -397,10 +398,16 @@ class DataGenerator_stac(keras.utils.Sequence):
                 search_for_meta=search_for_meta,
             )
             return meta
-        X, Y = self.get_data(
-            self.catalogs_dict[catalog_id]["x_paths"],
-            self.catalogs_dict[catalog_id]["y_path"],
-        )
+        for i in range(3):
+            try:
+                X, Y = self.get_data(
+                    self.catalogs_dict[catalog_id]["x_paths"],
+                    self.catalogs_dict[catalog_id]["y_path"],
+                )
+                break
+            except RasterioIOError:
+                logger.warning(f"Rasterio IO error, trying again. try number: {i}.")
+
         # Check if the loaded images have the needed dimensions.
         # Cut or add NaN values on surplus/missing pixels.
         # Treat X, then test for Y, treat Y.
