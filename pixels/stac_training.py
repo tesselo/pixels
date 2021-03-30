@@ -315,7 +315,7 @@ def predict_function_batch(
     """
     gen_args = _load_dictionary(generator_config_uri)
     compile_args = _load_dictionary(
-        os.path.join(os.path.dirname(model_uri), "compile_args.json")
+        os.path.join(os.path.dirname(model_uri), "compile_arguments.json")
     )
     # Get loss function.
     if "loss" in compile_args:
