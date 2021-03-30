@@ -334,9 +334,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             y_img = None
         x_tensor = []
         y_tensor = np.array(y_img)
-        # Change y raster from (num_bands, wdt, hgt) to (wdt, hgt, num_classes).
-        y_tensor = y_tensor.swapaxes(0, 1)
-        y_tensor = y_tensor.swapaxes(1, 2)
+        if self.train and y_tensor.any():
+            # Change y raster from (num_bands, wdt, hgt) to (wdt, hgt, num_classes).
+            y_tensor = y_tensor.swapaxes(0, 1)
+            y_tensor = y_tensor.swapaxes(1, 2)
         # Open all X images.
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
