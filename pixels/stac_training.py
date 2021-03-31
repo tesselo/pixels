@@ -126,7 +126,7 @@ def get_custom_loss(compile_args):
 
 
 def load_existing_model_from_file(
-    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}
+    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}, nan_value=-9999
 ):
     # Load model.
     if model_uri.startswith("s3"):
@@ -139,9 +139,8 @@ def load_existing_model_from_file(
     try:
         model = tf.keras.models.load_model(model_uri)
     except:
-
         model = tf.keras.models.load_model(
-            model_uri, custom_objects={"loss": get_custom_loss(loss_dict)}
+            model_uri, custom_objects={"loss": get_custom_loss(loss_dict)(nan_value)}
         )
     return model
 
@@ -182,7 +181,9 @@ def train_model_function(
     if "use_existing_model" in compile_args:
         if compile_args["use_existing_model"]:
             no_compile = True
-            model = load_existing_model_from_file(path_model, compile_args)
+            model = load_existing_model_from_file(
+                path_model, loss_dict=compile_args, nan_value=gen_args["nan_value"]
+            )
             last_training_epochs = len(
                 stc.list_files_in_folder(
                     os.path.dirname(model_config_uri), filetype=".hdf5"
@@ -339,13 +340,15 @@ def predict_function_batch(
         try:
             model = tf.keras.models.load_model(f)
         except:
-            model = tf.keras.models.load_model(f, custom_objects={"loss": loss_costum})
+            model = tf.keras.models.load_model(
+                f, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
+            )
     else:
         try:
             model = tf.keras.models.load_model(model_uri)
         except:
             model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": loss_costum}
+                model_uri, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
             )
     # Instanciate generator.
     # Force generator to prediction.
