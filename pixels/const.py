@@ -1,22 +1,6 @@
 NODATA_VALUE = 0
 S2_MAX_LUMINOSITY = 10000
 
-# Bands
-S2_BANDS = [
-    "B01",
-    "B02",
-    "B03",
-    "B04",
-    "B05",
-    "B06",
-    "B07",
-    "B08",
-    "B8A",
-    "B10",
-    "B09",
-    "B11",
-    "B12",
-]
 LS_BANDS = [
     "B1",
     "B2",
@@ -31,12 +15,6 @@ LS_BANDS = [
     "B11",
     "BQA",
 ]
-
-# Bands combination
-S2_BANDS_10 = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
-L1_L2_L3_RGB = ["B6", "B5", "B4"]
-L4_L5_L7_RGB = ["B3", "B2", "B1"]
-L8_RGB = ["B4", "B3", "B2"]
 
 # Platforms
 LS_PLATFORMS = ["LANDSAT_7", "LANDSAT_8"]
@@ -67,6 +45,174 @@ L2 = 150
 L3 = 800
 L4 = 100
 S2_SCALE = 3000
+
+# Platforms const
+SENTINEL_2 = 'SENTINEL_2'
+LANDSAT_1 = 'LANDSAT_1'
+LANDSAT_2 = 'LANDSAT_2'
+LANDSAT_3 = 'LANDSAT_3'
+LANDSAT_4 = 'LANDSAT_4'
+LANDSAT_5 = 'LANDSAT_5'
+LANDSAT_7 = 'LANDSAT_7'
+LANDSAT_8 = 'LANDSAT_8'
+
+# Const fort each band name
+BAND_COASTAL = 'coastal'
+BAND_BLUE = 'blue'
+BAND_GREEN = 'green'
+BAND_RED = 'red'
+BAND_VRE1 = 'vre1'
+BAND_VRE2 = 'vre2'
+BAND_VRE3 = 'vre3'
+BAND_NIR1 = 'nir1'
+BAND_NIR2 = 'nir2'
+BAND_WV = 'wv'
+BAND_CIRRUS = 'cirrus'
+BAND_SWIR1 = 'swir1'
+BAND_SWIR2 = 'swir2'
+BAND_PAN = 'pan'
+BAND_THERMAL1 = 'tirsi'
+BAND_THERMAL2 = 'tirsii' 
+
+# Create bands list for each platform
+L4_5_SENSOR_ID = 'TM'
+S2_BANDS = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08A', 'B08', 'B09', 'B10', 'B11', 'B12']
+L8_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11']
+L7_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']
+L4_L5_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7']
+L1_L2_L3_BANDS = ['B4', 'B5', 'B6', 'B7']
+
+# Create const dict for band correpondence for each platform
+BANDS_CORRESPONDENCE_S2 = {
+    BAND_COASTAL:'B01',
+    BAND_BLUE:'B02',
+    BAND_GREEN:'B03',
+    BAND_RED:'B04',
+    BAND_VRE1:'B05',
+    BAND_VRE2:'B06',
+    BAND_VRE3:'B07',
+    BAND_NIR1:'B08',
+    BAND_NIR2:'B08A',
+    BAND_WV:'B09',
+    BAND_CIRRUS:'B10',
+    BAND_SWIR1:'B11',
+    BAND_SWIR2:'B12',
+    BAND_PAN:None,
+    BAND_THERMAL1:None,
+    BAND_THERMAL2:None
+    }
+
+
+BANDS_CORRESPONDENCE_L8 = {
+    BAND_COASTAL:'B1',
+    BAND_BLUE:'B2',
+    BAND_GREEN:'B3',
+    BAND_RED:'B4',
+    BAND_VRE1:None,
+    BAND_VRE2:None,
+    BAND_VRE3:None,
+    BAND_NIR1:'B5',
+    BAND_NIR2:None,
+    BAND_WV:None,
+    BAND_CIRRUS: 'B9',
+    BAND_SWIR1: 'B6',
+    BAND_SWIR2: 'B7',
+    BAND_PAN:'B8',
+    BAND_THERMAL1:'B10',
+    BAND_THERMAL2:'B11'
+    }
+
+BANDS_CORRESPONDENCE_L7 = {
+    BAND_COASTAL:None,
+    BAND_BLUE:'B1',
+    BAND_GREEN:'B2',
+    BAND_RED:'B3',
+    BAND_VRE1:None,
+    BAND_VRE2:None,
+    BAND_VRE3:None,
+    BAND_NIR1:'B4',
+    BAND_NIR2:None,
+    BAND_WV:None,
+    BAND_CIRRUS: None,
+    BAND_SWIR1:'B5',
+    BAND_SWIR2:'B7',
+    BAND_PAN:'B8',
+    BAND_THERMAL1:'B6',
+    BAND_THERMAL2:'B6'
+}
+
+BANDS_CORRESPONDENCE_L4_L5 = {
+    BAND_COASTAL:None,
+    BAND_BLUE:'B1',
+    BAND_GREEN:'B2',
+    BAND_RED:'B3',
+    BAND_VRE1:None,
+    BAND_VRE2:None,
+    BAND_VRE3:None,
+    BAND_NIR1:'B4',
+    BAND_NIR2:None,
+    BAND_WV:None,
+    BAND_CIRRUS:None,
+    BAND_SWIR1:'B5',
+    BAND_SWIR2:'B7',
+    BAND_PAN:None,
+    BAND_THERMAL1:'B6',
+    BAND_THERMAL2:'B6'
+}
+
+BANDS_CORRESPONDENCE_L1_L2_L3 = {
+    BAND_COASTAL:None,
+    BAND_BLUE:None,
+    BAND_GREEN:'B4',
+    BAND_RED:'B5',
+    BAND_VRE1:None,
+    BAND_VRE2:None,
+    BAND_VRE3:None,
+    BAND_NIR1:'B6',
+    BAND_NIR2:'B7',
+    BAND_WV:None,
+    BAND_CIRRUS: None,
+    BAND_SWIR1: 'B5',
+    BAND_SWIR2: 'B7',
+    BAND_PAN:None,
+    BAND_THERMAL1:None,
+    BAND_THERMAL2:None
+}
+
+
+#Create a dict with all bands correpondence according to platform
+BAND_CORRESPONDENCE_ALL = {
+    SENTINEL_2: BAND_CORRESPONDENCE_S2,
+    LANDSAT_8: BAND_CORRESPONDENCE_L8,
+    LANDSAT_7: BANDS_CORRESPONDENCE_L7,
+    LANDSAT_5: BANDS_CORRESPONDENCE_L4_L5,
+    LANDSAT_4: BANDS_CORRESPONDENCE_L4_L5,
+    LANDSAT_3: BANDS_CORRESPONDENCE_L1_L2_L3,
+    LANDSAT_2: BANDS_CORRESPONDENCE_L1_L2_L3,
+    LANDSAT_1: BANDS_CORRESPONDENCE_L1_L2_L3
+}
+
+# Create formulas dict
+
+FORMULAS = {
+ 'infrared': ['nir1,red,green', [BAND_NIR1, BAND_RED, BAND_GREEN]],
+ 'rgb': ['red,green,blue',[BAND_RED, BAND_GREEN, BAND_BLUE]],
+ 'swi': ['swir2,nir1,red',[BAND_SWIR1, BAND_NIR1, BAND_RED]],
+ 'agriculture': ['swir1,nir1,blue',[BAND_SWIR1,BAND_NIR1,BAND_BLUE]],
+ 'geology': ['swir2,swir1,blue',[BAND_SWIR2,BAND_SWIR1, BAND_BLUE]],
+ 'bathymetric': ['red,green,coastal',[BAND_RED, BAND_GREEN, BAND_COASTAL]],
+ 'ndvi': ['(nir1-red)/(nir1+red)',[BAND_NIR1,BAND_RED]],
+ 'ndmi': ['(nir1-swir1)/(nir1+swir1)',[BAND_NIR1, BAND_SWIR1]],
+ 'ndwi1': ['(green-swir1)/(green+swir1)',[BAND_GREEN, BAND_SWIR1]],
+ 'ndwi2': ['(green-nir1)/(green+nir1)',[BAND_GREEN, BAND_NIR1]],
+ 'nhi': ['(swir1-green)/(swir1+green)',[BAND_SWIR1,BAND_GREEN]],
+ 'savi': ['(nir1-red)/(nir1+red+0.5)*(1.0+0.5)',[BAND_NIR1, BAND_RED]],
+ 'gdvi': ['nir1-green',[BAND_NIR1, BAND_GREEN]],
+ 'evi': ['2.5*(nir1-red)/(nir1+6*red-7.5*blue)+1',[BAND_NIR1, BAND_RED, BAND_BLUE]],
+ 'nbr': ['(nir1-swir2)/(nir1+swir2)',[BAND_NIR1, BAND_SWIR2]],
+ 'bai': ['(blue-nir1)/(nir1+blue)',[BAND_BLUE, BAND_NIR1]],
+ 'chlorogreen': ['nir1/(green+vre1)'[BAND_NIR1, BAND_GREEN, BAND_VRE3]]}
+
 
 # Modes to call pixels.
 PIXELS_S2_STACK_MODE = "s2_stack"
