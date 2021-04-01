@@ -26,13 +26,12 @@ geojson = {
 
 result = search_data(
     geojson,
-    start="2020-12-01",
-    end="2021-01-01",
-    maxcloud=50,
+    scene="S2B_MSIL2A_20201230T112359_N0214_R037_T29SND_20201230T132319",
+    platforms="SENTINEL_2",
     limit=1,
-    platforms="LANDSAT_1",
 )
 
+print(result)
 
 # import requests
 

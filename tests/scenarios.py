@@ -6,6 +6,8 @@ from unittest.mock import MagicMock
 sentinel_2_data_mock = MagicMock(
     return_value=[
         {
+            "spacecraft_id": "SENTINEL_2",
+            "sensor_id": None,
             "product_id": "S2B_MSIL2A_20201230T112359_N0214_R037_T29SND_20201230T132319",
             "granule_id": "L2A_T29SND_A019940_20201230T112446",
             "sensing_time": "2020-12-30T11:30:27.462",
@@ -17,6 +19,8 @@ sentinel_2_data_mock = MagicMock(
 )
 
 s2_expected_scene = {
+    "spacecraft_id": "SENTINEL_2",
+    "sensor_id": None,
     "product_id": "S2B_MSIL2A_20201230T112359_N0214_R037_T29SND_20201230T132319",
     "granule_id": "L2A_T29SND_A019940_20201230T112446",
     "sensing_time": "2020-12-30T11:30:27.462",

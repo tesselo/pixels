@@ -4,7 +4,18 @@ import os
 from dateutil.parser import parse
 from sqlalchemy import create_engine
 
-from pixels.const import AWS_L1C, AWS_URL, BASE_LANDSAT, GOOGLE_URL, LS_BANDS, S2_BANDS
+from pixels.const import (
+    AWS_L1C,
+    AWS_URL,
+    BASE_LANDSAT,
+    GOOGLE_URL,
+    L1_L2_L3_BANDS,
+    L4_L5_BANDS,
+    L4_L5_BANDS_MSS,
+    L7_BANDS,
+    L8_BANDS,
+    S2_BANDS,
+)
 from pixels.utils import compute_wgs83_bbox
 
 logger = logging.getLogger(__name__)
@@ -27,7 +38,7 @@ if DB_NAME is not None:
     engine = create_engine(db_url, client_encoding="utf8")
 else:
     engine = create_engine(
-        "postgresql+pg8000://postgres:postgres@localhost:5432/eo_catalog"
+        "postgresql+pg8000://postgres:postgres@localhost:5432/pixels"
     )
 
 
@@ -93,7 +104,7 @@ def search_data(
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
     # SQL query template.
-    query = "SELECT product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
     # Check inputs.
     if start is not None:
@@ -229,17 +240,51 @@ def format_ls_band(value):
         data : dict
             Dictionary of each bands url.
     """
+    plat = value["spacecraft_id"]
     product_id = value["product_id"]
+    sensor = value["sensor_id"]
     data = {}
-    for band in LS_BANDS:
+    if plat == "LANDSAT_8":
+        for band in L8_BANDS:
+            base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
+            ls_band_template = "{base_url}/{product_id}_{band}.TIF"
 
-        base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
-        ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+            data[band] = ls_band_template.format(
+                base_url=base_url, product_id=product_id, band=band
+            )
+    elif plat == "LANDSAT_7":
+        for band in L7_BANDS:
+            base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
+            ls_band_template = "{base_url}/{product_id}_{band}.TIF"
 
-        data[band] = ls_band_template.format(
-            base_url=base_url, product_id=product_id, band=band
-        )
+            data[band] = ls_band_template.format(
+                base_url=base_url, product_id=product_id, band=band
+            )
 
+    elif plat == "LANDSAT_4" or plat == "LANDSAT_5" and sensor == "TM":
+        for band in L4_L5_BANDS:
+            base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
+            ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                base_url=base_url, product_id=product_id, band=band
+            )
+    elif plat == "LANDSAT_4" or plat == "LANDSAT_5" and sensor == "MSS":
+        for band in L4_L5_BANDS_MSS:
+            base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
+            ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                base_url=base_url, product_id=product_id, band=band
+            )
+    else:
+        for band in L1_L2_L3_BANDS:
+            base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
+            ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                base_url=base_url, product_id=product_id, band=band
+            )
     return data
 
 
