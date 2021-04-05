@@ -1,4 +1,14 @@
+import pandas as pd
+
 from pixels.combinations import format_formula, get_index_bands
+from pixels.const import BANDS_CORRESPONDENCE_ALL, FORMULAS
+
+bands = pd.DataFrame.from_dict(BANDS_CORRESPONDENCE_ALL).reset_index()
+bands.rename(columns={"index": "bands"}, inplace=True)
+bands.head()
+
+indexes = pd.DataFrame.from_dict(FORMULAS)
+indexes.head()
 
 # Test some examples for empty band case = L1-3
 bands_dict = get_index_bands(indexes, bands, "RGB", "L1-3")

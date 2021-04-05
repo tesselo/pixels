@@ -187,8 +187,8 @@ BANDS_CORRESPONDENCE_L1_L2_L3 = {
     BAND_NIR2: "B7",
     BAND_WV: None,
     BAND_CIRRUS: None,
-    BAND_SWIR1: "B5",
-    BAND_SWIR2: "B7",
+    BAND_SWIR1: None,
+    BAND_SWIR2: None,
     BAND_PAN: None,
     BAND_THERMAL1: None,
     BAND_THERMAL2: None,
@@ -196,7 +196,7 @@ BANDS_CORRESPONDENCE_L1_L2_L3 = {
 
 
 # Create a dict with all bands correpondence according to platform
-BAND_CORRESPONDENCE_ALL = {
+BANDS_CORRESPONDENCE_ALL = {
     SENTINEL_2: BANDS_CORRESPONDENCE_S2,
     LANDSAT_8: BANDS_CORRESPONDENCE_L8,
     LANDSAT_7: BANDS_CORRESPONDENCE_L7,
@@ -207,28 +207,66 @@ BAND_CORRESPONDENCE_ALL = {
     LANDSAT_1: BANDS_CORRESPONDENCE_L1_L2_L3,
 }
 
-# Create formulas dict
-
+# Create formulas dict correspondence
 FORMULAS = {
-    "infrared": ["nir1,red,green", [BAND_NIR1, BAND_RED, BAND_GREEN]],
-    "rgb": ["red,green,blue", [BAND_RED, BAND_GREEN, BAND_BLUE]],
-    "swi": ["swir2,nir1,red", [BAND_SWIR1, BAND_NIR1, BAND_RED]],
-    "agriculture": ["swir1,nir1,blue", [BAND_SWIR1, BAND_NIR1, BAND_BLUE]],
-    "geology": ["swir2,swir1,blue", [BAND_SWIR2, BAND_SWIR1, BAND_BLUE]],
-    "bathymetric": ["red,green,coastal", [BAND_RED, BAND_GREEN, BAND_COASTAL]],
-    "ndvi": ["(nir1-red)/(nir1+red)", [BAND_NIR1, BAND_RED]],
-    "ndmi": ["(nir1-swir1)/(nir1+swir1)", [BAND_NIR1, BAND_SWIR1]],
-    "ndwi1": ["(green-swir1)/(green+swir1)", [BAND_GREEN, BAND_SWIR1]],
-    "ndwi2": ["(green-nir1)/(green+nir1)", [BAND_GREEN, BAND_NIR1]],
-    "nhi": ["(swir1-green)/(swir1+green)", [BAND_SWIR1, BAND_GREEN]],
-    "savi": ["(nir1-red)/(nir1+red+0.5)*(1.0+0.5)", [BAND_NIR1, BAND_RED]],
-    "gdvi": ["nir1-green", [BAND_NIR1, BAND_GREEN]],
-    "evi": ["2.5*(nir1-red)/(nir1+6*red-7.5*blue)+1", [BAND_NIR1, BAND_RED, BAND_BLUE]],
-    "nbr": ["(nir1-swir2)/(nir1+swir2)", [BAND_NIR1, BAND_SWIR2]],
-    "bai": ["(blue-nir1)/(nir1+blue)", [BAND_BLUE, BAND_NIR1]],
-    "chlorogreen": ["nir1/(green+vre1)", [BAND_NIR1, BAND_GREEN, BAND_VRE3]],
+    "idx": [
+        "infrared",
+        "rgb",
+        "swi",
+        "agriculture",
+        "geology",
+        "bathymetric",
+        "ndvi",
+        "ndmi",
+        "ndwi1",
+        "ndwi2",
+        "nhi",
+        "savi",
+        "gdvi",
+        "evi",
+        "nbr",
+        "bai",
+        "chlorogreen",
+    ],
+    "combination": [
+        "nir1,red,green",
+        "red,green,blue",
+        "swir2,nir1,red",
+        "swir1,nir1,blue",
+        "swir2,swir1,blue",
+        "red,green,coastal",
+        "(nir1-red)/(nir1+red)",
+        "(nir1-swir1)/(nir1+swir1)",
+        "(green-swir1)/(green+swir1)",
+        "(green-nir1)/(green+nir1)",
+        "(swir1-green)/(swir1+green)",
+        "(nir1-red)/(nir1+red+0.5)*(1.0+0.5)",
+        "nir1-green",
+        "2.5*(nir1-red)/(nir1+6*red-7.5*blue)+1",
+        "(nir1-swir2)/(nir1+swir2)",
+        "(blue-nir1)/(nir1+blue)",
+        "nir1/(green+vre1)",
+    ],
+    "bands": [
+        f"{BAND_NIR1},{BAND_RED},{BAND_GREEN}",
+        f"{BAND_RED},{BAND_GREEN},{BAND_BLUE}",
+        f"{BAND_SWIR1},{BAND_NIR1},{BAND_RED}",
+        f"{BAND_SWIR1},{BAND_NIR1},{BAND_BLUE}",
+        f"{BAND_SWIR2},{BAND_SWIR1},{BAND_BLUE}",
+        f"{BAND_RED},{BAND_GREEN},{BAND_COASTAL}",
+        f"{BAND_NIR1},{BAND_RED}",
+        f"{BAND_NIR1},{BAND_SWIR1}",
+        f"{BAND_GREEN},{BAND_SWIR1}",
+        f"{BAND_GREEN},{BAND_NIR1}",
+        f"{BAND_SWIR1},{BAND_GREEN}",
+        f"{BAND_NIR1},{BAND_RED}",
+        f"{BAND_NIR1},{BAND_GREEN}",
+        f"{BAND_NIR1},{BAND_RED},{BAND_BLUE}",
+        f"{BAND_NIR1},{BAND_SWIR2}",
+        f"{BAND_BLUE},{BAND_NIR1}",
+        f"{BAND_NIR1},{BAND_GREEN},{BAND_VRE3}",
+    ],
 }
-
 
 # Modes to call pixels.
 PIXELS_S2_STACK_MODE = "s2_stack"

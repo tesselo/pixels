@@ -1,3 +1,4 @@
+from pixels.const import L7_DATES
 from pixels.search import search_data
 
 geojson = {
@@ -24,14 +25,22 @@ geojson = {
     ],
 }
 
-result = search_data(
-    geojson,
-    scene="S2B_MSIL2A_20201230T112359_N0214_R037_T29SND_20201230T132319",
-    platforms="SENTINEL_2",
-    limit=1,
-)
+# result = search_data(
+#     geojson,
+#     scene="S2B_MSIL2A_20201230T112359_N0214_R037_T29SND_20201230T132319",
+#     platforms="SENTINEL_2",
+#     limit=1,
+# )
 
-print(result)
+actual = search_data(
+    geojson,
+    start=L7_DATES,
+    end="2020-12-31",
+    maxcloud=20,
+    limit=1,
+    platforms="LANDSAT_7",
+)
+print(actual)
 
 # import requests
 

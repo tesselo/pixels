@@ -49,6 +49,7 @@ def search_data(
     platforms=None,
     maxcloud=None,
     scene=None,
+    sensor=None,
     level=None,
     limit=10,
     sort="sensing_time",
@@ -80,6 +81,8 @@ def search_data(
             up to 100% cloud coverage.
         scene : str, optional
             The product id to search for a specific scene. Ignored if not provided.
+        sensor: str, optional
+            The imager sensor used in the Landsat 4. It can be 'MSS' or 'TM'.
         level : str, optional
             The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
             or 'L2A'(Level-2A) that provides Bottom Of Atmosphere (BOA) reflectance images
@@ -119,6 +122,8 @@ def search_data(
         query += " AND cloud_cover <= {} ".format(maxcloud)
     if scene is not None:
         query += " AND product_id = '{}' ".format(scene)
+    if sensor is not None:
+        query += " AND sensor_id = '{}' ".format(sensor)
     if is_level_valid(level, platforms):
         query += " AND granule_id LIKE '{}%'".format(level)
     if sort is not None:
@@ -129,7 +134,8 @@ def search_data(
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
-
+    result = [dict(row) for row in result]
+    print(result)
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result])
     # Convert cloud cover into float to allow json serialization of the output.
