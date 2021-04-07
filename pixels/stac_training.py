@@ -181,8 +181,12 @@ def train_model_function(
     if "use_existing_model" in compile_args:
         if compile_args["use_existing_model"]:
             no_compile = True
+            if "nan_value" in gen_args:
+                nan_value = gen_args["nan_value"]
+            else:
+                nan_value = None
             model = load_existing_model_from_file(
-                path_model, loss_dict=compile_args, nan_value=gen_args["nan_value"]
+                path_model, loss_dict=compile_args, nan_value=nan_value
             )
             last_training_epochs = len(
                 stc.list_files_in_folder(
