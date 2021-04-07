@@ -14,7 +14,12 @@ from pixels.const import (
     L4_L5_BANDS_MSS,
     L7_BANDS,
     L8_BANDS,
+    LANDSAT_4,
+    LANDSAT_5,
+    LANDSAT_7,
+    LANDSAT_8,
     S2_BANDS,
+    SENTINEL_2,
 )
 from pixels.utils import compute_wgs83_bbox
 
@@ -134,8 +139,6 @@ def search_data(
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
-    result = [dict(row) for row in result]
-    print(result)
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result])
     # Convert cloud cover into float to allow json serialization of the output.
@@ -250,7 +253,7 @@ def format_ls_band(value):
     product_id = value["product_id"]
     sensor = value["sensor_id"]
     data = {}
-    if plat == "LANDSAT_8":
+    if plat == LANDSAT_8:
         for band in L8_BANDS:
             base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
             ls_band_template = "{base_url}/{product_id}_{band}.TIF"
@@ -258,7 +261,7 @@ def format_ls_band(value):
             data[band] = ls_band_template.format(
                 base_url=base_url, product_id=product_id, band=band
             )
-    elif plat == "LANDSAT_7":
+    elif plat == LANDSAT_7:
         for band in L7_BANDS:
             base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
             ls_band_template = "{base_url}/{product_id}_{band}.TIF"
@@ -267,7 +270,7 @@ def format_ls_band(value):
                 base_url=base_url, product_id=product_id, band=band
             )
 
-    elif plat == "LANDSAT_4" or plat == "LANDSAT_5" and sensor == "TM":
+    elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
         for band in L4_L5_BANDS:
             base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
             ls_band_template = "{base_url}/{product_id}_{band}.TIF"
@@ -275,7 +278,7 @@ def format_ls_band(value):
             data[band] = ls_band_template.format(
                 base_url=base_url, product_id=product_id, band=band
             )
-    elif plat == "LANDSAT_4" or plat == "LANDSAT_5" and sensor == "MSS":
+    elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "MSS":
         for band in L4_L5_BANDS_MSS:
             base_url = "{}".format(value["base_url"]).replace(BASE_LANDSAT, GOOGLE_URL)
             ls_band_template = "{base_url}/{product_id}_{band}.TIF"
@@ -309,4 +312,4 @@ def is_level_valid(level, platforms):
         True if the level is not empty, the platform is a unique value list and contains
         Sentinel 2.
     """
-    return level is not None and len(platforms) == 1 and platforms[0] == "SENTINEL_2"
+    return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
