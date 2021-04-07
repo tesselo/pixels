@@ -173,7 +173,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                     self._original_size,
                     replace=False,
                 )
-            if self.train_split:
+            if self.train_split and self.train_split != 1:
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
                     int(len(self.collection.get_child_links()) * self.train_split),
@@ -235,10 +235,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         # for child in self.collection.get_children():
         #     self.length = self.length + len(child.get_item_links())
         return self.length
-
-    def _make_padding(self, tensor):
-
-        return tensor
 
     def _fill_missing_dimensions(self, tensor, expected_shape, value=None):
         """
