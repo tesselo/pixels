@@ -18,7 +18,6 @@ import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 import pixels.stac_generator.filters as pxfl
 import pixels.stac_training as stctr
-
 from pixels.exceptions import InvalidGeneratorConfig
 
 # S3 class instanciation.
