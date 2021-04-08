@@ -18,6 +18,7 @@ import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 import pixels.stac_generator.filters as pxfl
 import pixels.stac_training as stctr
+
 from pixels.exceptions import InvalidGeneratorConfig
 
 # S3 class instanciation.
@@ -41,7 +42,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         height=32,
         mode="3D_Model",
         prediction_catalog=False,
-        nan_value=-9999,
+        nan_value=None,
         mask_band=False,
         random_seed=None,
         num_classes=1,
@@ -53,6 +54,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         y_downsample=[],
         padding=0,
         padding_mode="edge",
+        x_nan_value=None,
+        y_nan_value=None,
     ):
         """
         Initial setup for the class.
@@ -88,6 +91,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.nan_value = nan_value
         self.mask_band = mask_band
         self._wrong_sizes_list = []
+        self.x_nan_value = x_nan_value
+        self.y_nan_value = y_nan_value
         self._set_definition()
         self._check_get_catalogs_indexing()
         # Check if batch size.
@@ -97,8 +102,26 @@ class DataGenerator_stac(keras.utils.Sequence):
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
         self._original_num_bands = self.num_bands
+        if not self.y_nan_value:
+            self.y_nan_value = self.nan_value
+        if not self.x_nan_value:
+            self.x_nan_value = self.nan_value
         if self.mask_band:
             self.num_bands = self.num_bands + 1
+        if self.mode == "Pixel_Model":
+            self.augmentation = 0
+            self.upsampling = False
+            self.padding = 0
+            self.expected_x_shape = (
+                self.batch_number * self.width * self.height,
+                self.timesteps,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number * self.width * self.height,
+                self.num_classes,
+            )
+
         if self.upsampling:
             self._orignal_width = self.width
             self._orignal_height = self.height
@@ -302,7 +325,8 @@ class DataGenerator_stac(keras.utils.Sequence):
 
     def get_data(self, x_paths, y_path, search_for_meta=False):
         """
-        From the paths list get the raster info.
+        From the paths list get the raster info. Sets the right timestep.
+        Order the timesteps based on a mask, removes extras, or padds when lacking.
 
         Parameters
         ----------
@@ -348,24 +372,23 @@ class DataGenerator_stac(keras.utils.Sequence):
                     return src.meta
                 src.close()
             # y_tensor.append(np.array(y_img))
-        if self.mode == "3D_Model":
-            if len(x_tensor) < self.timesteps:
-                x_tensor = np.vstack(
-                    (
-                        x_tensor,
-                        np.zeros(
-                            (
-                                self.timesteps - np.array(x_tensor).shape[0],
-                                *np.array(x_tensor).shape[1:],
-                            )
-                        ),
-                    )
+        if len(x_tensor) < self.timesteps:
+            x_tensor = np.vstack(
+                (
+                    x_tensor,
+                    np.zeros(
+                        (
+                            self.timesteps - np.array(x_tensor).shape[0],
+                            *np.array(x_tensor).shape[1:],
+                        )
+                    ),
                 )
-            x_tensor = pxfl._order_tensor_on_masks(
-                np.array(x_tensor), self.nan_value, number_images=self.timesteps
             )
-            x_tensor = np.array(x_tensor)[: self.timesteps]
-            y_tensor = np.array(y_tensor)
+        x_tensor = pxfl._order_tensor_on_masks(
+            np.array(x_tensor), self.x_nan_value, number_images=self.timesteps
+        )
+        x_tensor = np.array(x_tensor)[: self.timesteps]
+        y_tensor = np.array(y_tensor)
         return np.array(x_tensor), np.array(y_tensor)
 
     def get_data_from_index(self, index, search_for_meta=False):
@@ -408,48 +431,64 @@ class DataGenerator_stac(keras.utils.Sequence):
             except RasterioIOError:
                 logger.warning(f"Rasterio IO error, trying again. try number: {i}.")
 
-        # Check if the loaded images have the needed dimensions.
-        # Cut or add NaN values on surplus/missing pixels.
-        # Treat X, then test for Y, treat Y.
-        x_open_shape = (
-            self.timesteps,
-            self._original_num_bands,
-            self._orignal_width,
-            self._orignal_height,
-        )
-        # Remove extra pixels.
-        X = X[:, :, : self._orignal_width, : self._orignal_height]
-        # Fill missing pixels to the standard, with the NaN value of the object.
-        if X.shape != x_open_shape:
-            self._wrong_sizes_list.append(index)
-            X = self._fill_missing_dimensions(X, x_open_shape)
-            logger.warning(f"X dimensions not suitable in index {index}.")
-        # Upsample the X.
-        if self.upsampling:
+        if self.mode == "3D_Model":
+            # Check if the loaded images have the needed dimensions.
+            # Cut or add NaN values on surplus/missing pixels.
+            # Treat X, then test for Y, treat Y.
+            x_open_shape = (
+                self.timesteps,
+                self._original_num_bands,
+                self._orignal_width,
+                self._orignal_height,
+            )
+            # Remove extra pixels.
             X = X[:, :, : self._orignal_width, : self._orignal_height]
-            X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
-        # Remove extra pixels.
-        X = X[:, :, : self.width, : self.height]
-        # Y is not None treat Y.
-        if self.train:
-            y_open_shape = (self.width, self.height, self.num_classes)
-            Y = Y[: self.width, : self.height, :]
-            if Y.shape != y_open_shape:
+            # Fill missing pixels to the standard, with the NaN value of the object.
+            if X.shape != x_open_shape:
                 self._wrong_sizes_list.append(index)
-                Y = self._fill_missing_dimensions(Y, y_open_shape)
-                logger.warning(f"Y dimensions not suitable in index {index}.")
-            Y = Y[: self.width, : self.height, :]
-        # Add band for NaN mask.
-        if self.mask_band:
-            if not self.train:
-                mask_shp = list(X.shape)
-                mask_shp[1] = 1
-                mask_img = np.ones(tuple(mask_shp))
-            else:
-                mask_img = np.array([Y[:, :, 0]]) != self.nan_value
-                mask_img = np.repeat([mask_img], self.timesteps, axis=0)
-            mask_band = mask_img.astype("int")
-            X = np.hstack([X, mask_band])
+                X = self._fill_missing_dimensions(X, x_open_shape)
+                logger.warning(f"X dimensions not suitable in index {index}.")
+            # Upsample the X.
+            if self.upsampling:
+                X = X[:, :, : self._orignal_width, : self._orignal_height]
+                X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
+            # Remove extra pixels.
+            X = X[:, :, : self.width, : self.height]
+            # Y is not None treat Y.
+            if self.train:
+                y_open_shape = (self.width, self.height, self.num_classes)
+                Y = Y[: self.width, : self.height, :]
+                if Y.shape != y_open_shape:
+                    self._wrong_sizes_list.append(index)
+                    Y = self._fill_missing_dimensions(Y, y_open_shape)
+                    logger.warning(f"Y dimensions not suitable in index {index}.")
+                Y = Y[: self.width, : self.height, :]
+            # Add band for NaN mask.
+            if self.mask_band:
+                if not self.train:
+                    mask_shp = list(X.shape)
+                    mask_shp[1] = 1
+                    mask_img = np.ones(tuple(mask_shp))
+                else:
+                    mask_img = np.array([Y[:, :, 0]]) != self.nan_value
+                    mask_img = np.repeat([mask_img], self.timesteps, axis=0)
+                mask_band = mask_img.astype("int")
+                X = np.hstack([X, mask_band])
+        if self.mode == "Pixel_Model":
+            x_new_shape = (*X.shape[:-2], np.prod(X.shape[-2:]))
+            X = X.reshape(x_new_shape)
+            X = np.swapaxes(X, 1, 2)
+            X = np.swapaxes(X, 0, 1)
+            x_mask = X[:, 0, 0] != self.x_nan_value
+            X = X[x_mask]
+            if self.train:
+                y_new_shape = (np.prod(Y.shape[:2]), Y.shape[2])
+                Y = Y.reshape(y_new_shape)
+                Y = Y[x_mask]
+                y_mask = Y != self.y_nan_value
+                y_mask = y_mask[:, 0]
+                Y = Y[y_mask]
+                X = X[y_mask]
         return X, Y
 
     def get_prediction_from_index(self, index, search_for_meta=False):
@@ -521,20 +560,19 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         Generate one batch of data
         """
-        X = []
-        Y = []
-        x = np.ones(self.expected_x_shape[1:])
-        y = np.ones(self.expected_y_shape[1:])
+        final_batch_number = self.batch_number
         index_count = index
         for i in range(self.batch_number):
             if index_count >= len(self.id_list):
-                X.append(x)
-                Y.append(y)
+                final_batch_number = i
+                # X = np.concatenate([X,x])
+                # Y = np.concatenate([Y,y])
                 continue
             try:
                 x, y = self.get_data_from_index(index_count)
             except:
                 x, y = self.get_data_from_index(index_count + 1)
+
             # Add padding.
             if self.padding > 0:
                 x = np.pad(
@@ -550,21 +588,31 @@ class DataGenerator_stac(keras.utils.Sequence):
             # (Timesteps, bands, img) -> (Timesteps, img, Bands)
             # For channel last models: otherwise uncoment.
             # TODO: add the data_format mode based on model using.
-            x = np.swapaxes(x, 1, 2)
-            x = np.swapaxes(x, 2, 3)
-            X.append(x)
-            Y.append(y)
+            if self.mode == "3D_Model":
+                x = np.swapaxes(x, 1, 2)
+                x = np.array([np.swapaxes(x, 2, 3)])
+                y = np.array([y])
+            if i == 0:
+                X = x
+                Y = y
+            else:
+                X = np.vstack([X, x])
+                Y = np.vstack([Y, y])
+            # X.append(x)
+            # Y.append(y)
             index_count = index_count + len(self)
         if self.mode == "3D_Model":
             X = np.array(X)
-            if X.shape != self.expected_x_shape:
+            expected_x_shape = (final_batch_number, *self.expected_x_shape[1:])
+            if X.shape != expected_x_shape:
                 self._wrong_sizes_list.append(index_count)
-                X = self._fill_missing_dimensions(X, self.expected_x_shape)
+                X = self._fill_missing_dimensions(X, expected_x_shape)
                 logger.warning(f"X dimensions not suitable in index {index_count}.")
             Y = np.array(Y)
-            if self.train and Y.shape != self.expected_y_shape:
+            expected_y_shape = (final_batch_number, *self.expected_y_shape[1:])
+            if self.train and Y.shape != expected_y_shape:
                 self._wrong_sizes_list.append(index_count)
-                Y = self._fill_missing_dimensions(Y, self.expected_y_shape)
+                Y = self._fill_missing_dimensions(Y, expected_y_shape)
                 logger.warning(f"Y dimensions not suitable in index {index_count}.")
             # Hacky way to ensure data, must change.
             if len(X.shape) < 4:
