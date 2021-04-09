@@ -377,6 +377,7 @@ def predict_function_batch(
         x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
         # If the generator output is bigger than model shape, do a jumping window.
+        big_square_width_result = None
         if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
             logger.warning(
                 f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
@@ -434,8 +435,12 @@ def predict_function_batch(
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
-        meta["width"] = big_square_width_result
-        meta["height"] = big_square_height_result
+        if big_square_width_result is None:
+            meta["width"] = model.output_shape[1]
+            meta["height"] = model.output_shape[2]
+        else:
+            meta["width"] = big_square_width_result
+            meta["height"] = big_square_height_result
         meta["count"] = 1
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
