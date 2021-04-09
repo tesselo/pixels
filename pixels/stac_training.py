@@ -409,6 +409,12 @@ def predict_function_batch(
                     aux_pred = prediction[
                         i : i + jumping_width, j : j + jumping_height, :
                     ]
+                    if aux_pred.shape != pred.shape:
+                        pred = pred[
+                            : aux_pred.shape[0],
+                            : aux_pred.shape[1],
+                            : aux_pred.shape[2],
+                        ]
                     mean_pred = np.nanmean([pred, aux_pred], axis=0)
                     prediction[
                         i : i + jumping_width, j : j + jumping_height
