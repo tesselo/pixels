@@ -393,7 +393,8 @@ def predict_function_batch(
             big_square_height_result = big_square_height - (dtgen.padding * 2)
             # Instanciate empty result matrix.
             prediction = np.full(
-                (big_square_width_result, big_square_height_result), np.nan
+                (big_square_width_result, big_square_height_result, dtgen.num_classes),
+                np.nan,
             )
             # Create a jumping window with the expected size.
             # For every window replace the values in the result matrix.
@@ -405,7 +406,9 @@ def predict_function_batch(
                     pred = model.predict(res)
                     # Merge all predicitons
                     pred = pred[0, :, :, :]
-                    aux_pred = prediction[i : i + jumping_width, j : j + jumping_height]
+                    aux_pred = prediction[
+                        i : i + jumping_width, j : j + jumping_height, :
+                    ]
                     mean_pred = np.nanmean([pred, aux_pred], axis=0)
                     prediction[
                         i : i + jumping_width, j : j + jumping_height
