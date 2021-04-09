@@ -383,12 +383,18 @@ def predict_function_batch(
             )
             # Get the data (X).
             data = dtgen[item]
-            width = model.input_shape[2] - (dtgen.padding * 2)
-            height = model.input_shape[3] - (dtgen.padding * 2)
-            big_square_width = dtgen.expected_x_shape[2] - (dtgen.padding * 2)
-            big_square_height = dtgen.expected_x_shape[3] - (dtgen.padding * 2)
+            width = model.input_shape[2]
+            height = model.input_shape[3]
+            jumping_width = width - (dtgen.padding * 2)
+            jumping_height = height - (dtgen.padding * 2)
+            big_square_width = dtgen.expected_x_shape[2]
+            big_square_height = dtgen.expected_x_shape[3]
             # Instanciate empty result matrix.
-            prediction = np.full((big_square_width, big_square_height), dtgen.nan_value)
+            prediction = np.full(
+                (big_square_width - (dtgen.padding * 2), big_square_height)
+                - (dtgen.padding * 2),
+                dtgen.nan_value,
+            )
             # Create a jumping window with the expected size.
             # For every window replace the values in the result matrix.
             for i in range(0, big_square_width, width):
@@ -399,9 +405,11 @@ def predict_function_batch(
                     pred = model.predict(res)
                     # Merge all predicitons
                     pred = pred[0, :, :, :]
-                    aux_pred = prediction[i : i + width, j : j + height]
+                    aux_pred = prediction[i : i + jumping_width, j : j + jumping_height]
                     mean_pred = np.nanmean([pred, aux_pred], axis=0)
-                    prediction[i : i + width, j : j + height] = mean_pred
+                    prediction[
+                        i : i + jumping_width, j : j + jumping_height
+                    ] = mean_pred
         else:
             prediction = model.predict(dtgen[item])
             # out_path_temp = out_path.replace("s3://", "tmp/")
@@ -411,10 +419,10 @@ def predict_function_batch(
             # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
             # Change this to allow batch on prediction.
             prediction = prediction[0, :, :, :]
-            prediction = prediction.swapaxes(1, 2)
-            prediction = prediction.swapaxes(0, 1)
-            if dtgen.num_classes > 1:
-                prediction = np.argmax(prediction, axis=0)
+        prediction = prediction.swapaxes(1, 2)
+        prediction = prediction.swapaxes(0, 1)
+        if dtgen.num_classes > 1:
+            prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
         meta["width"] = model.output_shape[1]
         meta["height"] = model.output_shape[2]
