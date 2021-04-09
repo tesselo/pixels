@@ -383,10 +383,10 @@ def predict_function_batch(
             )
             # Get the data (X).
             data = dtgen[item]
-            width = model.input_shape[2]
-            height = model.input_shape[3]
-            big_square_width = dtgen.expected_x_shape[2]
-            big_square_height = dtgen.expected_x_shape[3]
+            width = model.input_shape[2] - (dtgen.padding * 2)
+            height = model.input_shape[3] - (dtgen.padding * 2)
+            big_square_width = dtgen.expected_x_shape[2] - (dtgen.padding * 2)
+            big_square_height = dtgen.expected_x_shape[3] - (dtgen.padding * 2)
             # Instanciate empty result matrix.
             prediction = np.full((big_square_width, big_square_height), dtgen.nan_value)
             # Create a jumping window with the expected size.
