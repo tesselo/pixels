@@ -389,11 +389,11 @@ def predict_function_batch(
             jumping_height = height - (dtgen.padding * 2)
             big_square_width = dtgen.expected_x_shape[2]
             big_square_height = dtgen.expected_x_shape[3]
+            big_square_width_result = big_square_width - (dtgen.padding * 2)
+            big_square_height_result = big_square_height - (dtgen.padding * 2)
             # Instanciate empty result matrix.
             prediction = np.full(
-                (big_square_width - (dtgen.padding * 2), big_square_height)
-                - (dtgen.padding * 2),
-                np.nan,
+                (big_square_width_result, big_square_height_result), np.nan
             )
             # Create a jumping window with the expected size.
             # For every window replace the values in the result matrix.
@@ -425,8 +425,8 @@ def predict_function_batch(
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
-        meta["width"] = model.output_shape[1]
-        meta["height"] = model.output_shape[2]
+        meta["width"] = big_square_width_result
+        meta["height"] = big_square_height_result
         meta["count"] = 1
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
