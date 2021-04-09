@@ -393,7 +393,7 @@ def predict_function_batch(
             prediction = np.full(
                 (big_square_width - (dtgen.padding * 2), big_square_height)
                 - (dtgen.padding * 2),
-                dtgen.nan_value,
+                np.nan,
             )
             # Create a jumping window with the expected size.
             # For every window replace the values in the result matrix.
@@ -410,6 +410,7 @@ def predict_function_batch(
                     prediction[
                         i : i + jumping_width, j : j + jumping_height
                     ] = mean_pred
+            prediction[prediction != prediction] = dtgen.nan_value
         else:
             prediction = model.predict(dtgen[item])
             # out_path_temp = out_path.replace("s3://", "tmp/")
