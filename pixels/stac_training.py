@@ -266,7 +266,7 @@ def train_model_function(
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
-    results = model.evaluate(dpredgen)
+    results = model.evaluate(dpredgen, verbose=2)
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f)
     if model_config_uri.startswith("s3"):
