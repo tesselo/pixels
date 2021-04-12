@@ -229,7 +229,6 @@ def latest_pixel_stack(
 
         logger.info("Getting {} scenes for this stack.".format(len(response)))
 
-        limit = 5
         dates = [
             (
                 geojson,

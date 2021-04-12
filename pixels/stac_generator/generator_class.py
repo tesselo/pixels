@@ -188,14 +188,15 @@ class DataGenerator_stac(keras.utils.Sequence):
         count = 0
         # Build a list of indexes, choosing randomly.
         if self.random_seed:
-            np.random.seed(self.random_seed)
             if self.train:
+                np.random.seed(self.random_seed)
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
                     self._original_size,
                     replace=False,
                 )
             if self.train_split and self.train_split != 1:
+                np.random.seed(self.random_seed)
                 indexes = np.random.choice(
                     len(self.collection.get_child_links()),
                     int(len(self.collection.get_child_links()) * self.train_split),
@@ -205,10 +206,12 @@ class DataGenerator_stac(keras.utils.Sequence):
                     np.arange(len(self.collection.get_child_links())), indexes
                 )
                 if len(indexes) > self._original_size:
+                    np.random.seed(self.random_seed)
                     indexes = np.random.choice(
                         indexes, self._original_size, replace=False
                     )
                 elif len(indexes) < self._original_size:
+                    np.random.seed(self.random_seed)
                     new_ind = np.random.choice(
                         np.setdiff1d(np.arange(self._original_size), indexes),
                         self._original_size - len(indexes),

@@ -264,12 +264,9 @@ def train_model_function(
     gen_args["split"] = 1 - gen_args["split"]
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
-    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
-        gen_args["split"] = 0.1
-    if len(dtgen) * gen_args["split"] > 200:
-        gen_args["split"] = 200 / len(dtgen)
+    logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
-    results = model.evaluate(dpredgen)
+    results = model.evaluate(dpredgen, verbose=2)
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f)
     if model_config_uri.startswith("s3"):
@@ -434,8 +431,12 @@ def predict_function_batch(
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
         # TODO: verify input shape with rasterio
-        meta["width"] = big_square_width_result
-        meta["height"] = big_square_height_result
+        if big_square_width_result is None:
+            meta["width"] = model.output_shape[1]
+            meta["height"] = model.output_shape[2]
+        else:
+            meta["width"] = big_square_width_result
+            meta["height"] = big_square_height_result
         meta["count"] = 1
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
