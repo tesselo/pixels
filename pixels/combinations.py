@@ -9,7 +9,7 @@ bands.head()
 indexes = pd.DataFrame.from_dict(FORMULAS)
 indexes.head()
 
-# Add docstrings
+
 def get_index_bands(idx, satellite):
     """
     Get the appropriate bands combination for a vegetation index or a specific
@@ -30,8 +30,8 @@ def get_index_bands(idx, satellite):
             Returns dictionaries with bands names and numbers.
     """
     # Get bands names for index
-    idx_list = list(FORMULAS.values())[0]
-    bands_list = list(FORMULAS.values())[2]
+    idx_list = FORMULAS["idx"]
+    bands_list = FORMULAS["bands"]
     index_bands = dict(zip(idx_list, bands_list))
     bands_names = index_bands.get(idx)
     bands_dict = {}
