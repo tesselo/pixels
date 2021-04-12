@@ -374,7 +374,10 @@ def predict_function_batch(
         x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
         # If the generator output is bigger than model shape, do a jumping window.
-        big_square_width_result = None
+        big_square_width = dtgen.expected_x_shape[2]
+        big_square_height = dtgen.expected_x_shape[3]
+        big_square_width_result = big_square_width - (dtgen.padding * 2)
+        big_square_height_result = big_square_height - (dtgen.padding * 2)
         if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
             logger.warning(
                 f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
@@ -385,10 +388,6 @@ def predict_function_batch(
             height = model.input_shape[3]
             jumping_width = width - (dtgen.padding * 2)
             jumping_height = height - (dtgen.padding * 2)
-            big_square_width = dtgen.expected_x_shape[2]
-            big_square_height = dtgen.expected_x_shape[3]
-            big_square_width_result = big_square_width - (dtgen.padding * 2)
-            big_square_height_result = big_square_height - (dtgen.padding * 2)
             # Instanciate empty result matrix.
             prediction = np.full(
                 (big_square_width_result, big_square_height_result, dtgen.num_classes),
