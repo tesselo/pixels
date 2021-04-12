@@ -264,10 +264,7 @@ def train_model_function(
     gen_args["split"] = 1 - gen_args["split"]
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
-    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
-        gen_args["split"] = 0.1
-    if len(dtgen) * gen_args["split"] > 200:
-        gen_args["split"] = 200 / len(dtgen)
+    logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     results = model.evaluate(dpredgen)
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
