@@ -281,7 +281,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Modified numpy array.
 
         """
-        if not value:
+        if not value and value != 0:
             value = self.nan_value
         missing_shape = tuple(x1 - x2 for (x1, x2) in zip(expected_shape, tensor.shape))
         for dim in range(len(tensor.shape)):
@@ -487,7 +487,6 @@ class DataGenerator_stac(keras.utils.Sequence):
             X = np.swapaxes(X, 0, 1)
             x_mask = X[:, 0, 0] != self.x_nan_value
             X = X[x_mask]
-            print(Y.shape)
             if self.train:
                 y_new_shape = (np.prod(Y.shape[:2]), Y.shape[2])
                 Y = Y.reshape(y_new_shape)
@@ -495,7 +494,13 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_mask = Y != self.y_nan_value
                 y_mask = y_mask[:, 0]
                 Y = Y[y_mask]
+                y_expected_shape = (y_new_shape[0], self.num_classes)
+                if Y.shape != y_expected_shape:
+                    Y = self._fill_missing_dimensions(Y, y_expected_shape, value=0)
                 X = X[y_mask]
+                null_pixel_mask = np.sum(Y, axis=1) != 0
+                Y = Y[null_pixel_mask]
+                X = X[null_pixel_mask]
         return X, Y
 
     def get_prediction_from_index(self, index, search_for_meta=False):
