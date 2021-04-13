@@ -387,8 +387,8 @@ def predict_function_batch(
                 data = dtgen[item]
                 width = model.input_shape[2]
                 height = model.input_shape[3]
-                jumping_width = width - (dtgen.padding * 2)
-                jumping_height = height - (dtgen.padding * 2)
+                jumping_width = int((width - (dtgen.padding * 2)) / 2)
+                jumping_height = int((height - (dtgen.padding * 2)) / 2)
                 # Instanciate empty result matrix.
                 prediction = np.full(
                     (
