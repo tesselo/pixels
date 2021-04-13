@@ -373,71 +373,79 @@ def predict_function_batch(
         catalog_id = dtgen.id_list[item]
         x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
-        # If the generator output is bigger than model shape, do a jumping window.
-        big_square_width = dtgen.expected_x_shape[2]
-        big_square_height = dtgen.expected_x_shape[3]
-        big_square_width_result = big_square_width - (dtgen.padding * 2)
-        big_square_height_result = big_square_height - (dtgen.padding * 2)
-        if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
-            logger.warning(
-                f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
-            )
-            # Get the data (X).
-            data = dtgen[item]
-            width = model.input_shape[2]
-            height = model.input_shape[3]
-            jumping_width = width - (dtgen.padding * 2)
-            jumping_height = height - (dtgen.padding * 2)
-            # Instanciate empty result matrix.
-            prediction = np.full(
-                (big_square_width_result, big_square_height_result, dtgen.num_classes),
-                np.nan,
-            )
-            # Create a jumping window with the expected size.
-            # For every window replace the values in the result matrix.
-            for i in range(0, big_square_width, width):
-                for j in range(0, big_square_height, height):
-                    res = data[:, :, i : i + width, j : j + height, :]
-                    if res.shape[1:] != model.input_shape[1:]:
-                        res = data[:, :, -width:, -height:, :]
-                    pred = model.predict(res)
-                    # Merge all predicitons
-                    pred = pred[0, :, :, :]
-                    aux_pred = prediction[
-                        i : i + jumping_width, j : j + jumping_height, :
-                    ]
-                    if aux_pred.shape != pred.shape:
-                        pred = pred[
-                            : aux_pred.shape[0],
-                            : aux_pred.shape[1],
-                            : aux_pred.shape[2],
+        if dtgen.mode == "3D_Model":
+            # If the generator output is bigger than model shape, do a jumping window.
+            big_square_width = dtgen.expected_x_shape[2]
+            big_square_height = dtgen.expected_x_shape[3]
+            big_square_width_result = big_square_width - (dtgen.padding * 2)
+            big_square_height_result = big_square_height - (dtgen.padding * 2)
+            if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
+                logger.warning(
+                    f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
+                )
+                # Get the data (X).
+                data = dtgen[item]
+                width = model.input_shape[2]
+                height = model.input_shape[3]
+                jumping_width = width - (dtgen.padding * 2)
+                jumping_height = height - (dtgen.padding * 2)
+                # Instanciate empty result matrix.
+                prediction = np.full(
+                    (
+                        big_square_width_result,
+                        big_square_height_result,
+                        dtgen.num_classes,
+                    ),
+                    np.nan,
+                )
+                # Create a jumping window with the expected size.
+                # For every window replace the values in the result matrix.
+                for i in range(0, big_square_width, width):
+                    for j in range(0, big_square_height, height):
+                        res = data[:, :, i : i + width, j : j + height, :]
+                        if res.shape[1:] != model.input_shape[1:]:
+                            res = data[:, :, -width:, -height:, :]
+                        pred = model.predict(res)
+                        # Merge all predicitons
+                        pred = pred[0, :, :, :]
+                        aux_pred = prediction[
+                            i : i + jumping_width, j : j + jumping_height, :
                         ]
-                    mean_pred = np.nanmean([pred, aux_pred], axis=0)
-                    prediction[
-                        i : i + jumping_width, j : j + jumping_height
-                    ] = mean_pred
-            prediction[prediction != prediction] = dtgen.nan_value
-        else:
-            prediction = model.predict(dtgen[item])
-            # out_path_temp = out_path.replace("s3://", "tmp/")
-            # if not os.path.exists(os.path.dirname(out_path_temp)):
-            #     os.makedirs(os.path.dirname(out_path_temp))
-            # np.savez(f"{out_path_temp}.npz", prediction)
-            # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
-            # Change this to allow batch on prediction.
-            prediction = prediction[0, :, :, :]
+                        if aux_pred.shape != pred.shape:
+                            pred = pred[
+                                : aux_pred.shape[0],
+                                : aux_pred.shape[1],
+                                : aux_pred.shape[2],
+                            ]
+                        mean_pred = np.nanmean([pred, aux_pred], axis=0)
+                        prediction[
+                            i : i + jumping_width, j : j + jumping_height
+                        ] = mean_pred
+                prediction[prediction != prediction] = dtgen.nan_value
+            else:
+                prediction = model.predict(dtgen[item])
+                # out_path_temp = out_path.replace("s3://", "tmp/")
+                # if not os.path.exists(os.path.dirname(out_path_temp)):
+                #     os.makedirs(os.path.dirname(out_path_temp))
+                # np.savez(f"{out_path_temp}.npz", prediction)
+                # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
+                # Change this to allow batch on prediction.
+                prediction = prediction[0, :, :, :]
+            meta["width"] = big_square_width_result
+            meta["height"] = big_square_height_result
+
+        if dtgen.mode == "Pixel_Model":
+            data = dtgen[item]
+            # for pixel in data:
+            prediction = model.predict(data)
+            image_shape = (meta["height"], meta["width"], dtgen.num_classes)
+            prediction = prediction.reshape(image_shape)
+
+        meta["count"] = dtgen.num_classes
         prediction = prediction.swapaxes(1, 2)
         prediction = prediction.swapaxes(0, 1)
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
-        # TODO: verify input shape with rasterio
-        if big_square_width_result is None:
-            meta["width"] = model.output_shape[1]
-            meta["height"] = model.output_shape[2]
-        else:
-            meta["width"] = big_square_width_result
-            meta["height"] = big_square_height_result
-        meta["count"] = 1
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
             meta["transform"][0] / gen_args["upsampling"],

@@ -353,9 +353,13 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_img = src.read()
                 src.close()
             if self.num_classes > 1:
-                y_img = np.squeeze(
-                    np.swapaxes(keras.utils.to_categorical(y_img), 0, -1)
-                )
+                if self.y_nan_value == 0:
+                    y_img[y_img == 0] = self.num_classes + 3
+                    y_img = y_img - 1
+                y_img = keras.utils.to_categorical(np.squeeze(y_img))[
+                    :, :, : self.num_classes
+                ]
+                y_img = np.squeeze(np.swapaxes(y_img, 0, -1))
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
@@ -483,6 +487,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             X = np.swapaxes(X, 0, 1)
             x_mask = X[:, 0, 0] != self.x_nan_value
             X = X[x_mask]
+            print(Y.shape)
             if self.train:
                 y_new_shape = (np.prod(Y.shape[:2]), Y.shape[2])
                 Y = Y.reshape(y_new_shape)
