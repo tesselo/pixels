@@ -400,8 +400,8 @@ def predict_function_batch(
                 )
                 # Create a jumping window with the expected size.
                 # For every window replace the values in the result matrix.
-                for i in range(0, big_square_width, jumping_width/2):
-                    for j in range(0, big_square_height, jumping_height/2):
+                for i in range(0, big_square_width, jumping_width / 2):
+                    for j in range(0, big_square_height, jumping_height / 2):
                         res = data[:, :, i : i + width, j : j + height, :]
                         if res.shape[1:] != model.input_shape[1:]:
                             res = data[:, :, -width:, -height:, :]
