@@ -589,7 +589,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                         x, y = self.get_data_from_index(index_count + t + 1)
                         break
                     except:
-                        logger.warning(f"Try number {f}.")
+                        logger.warning(f"Try number {t}.")
             # Add padding.
             if self.padding > 0:
                 x = np.pad(
