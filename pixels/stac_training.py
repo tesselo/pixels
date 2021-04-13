@@ -387,8 +387,8 @@ def predict_function_batch(
                 data = dtgen[item]
                 width = model.input_shape[2]
                 height = model.input_shape[3]
-                jumping_width = int((width - (dtgen.padding * 2)) / 2)
-                jumping_height = int((height - (dtgen.padding * 2)) / 2)
+                jumping_width = width - (dtgen.padding * 2)
+                jumping_height = height - (dtgen.padding * 2)
                 # Instanciate empty result matrix.
                 prediction = np.full(
                     (
@@ -400,8 +400,8 @@ def predict_function_batch(
                 )
                 # Create a jumping window with the expected size.
                 # For every window replace the values in the result matrix.
-                for i in range(0, big_square_width, jumping_width):
-                    for j in range(0, big_square_height, jumping_height):
+                for i in range(0, big_square_width, jumping_width/2):
+                    for j in range(0, big_square_height, jumping_height/2):
                         res = data[:, :, i : i + width, j : j + height, :]
                         if res.shape[1:] != model.input_shape[1:]:
                             res = data[:, :, -width:, -height:, :]
