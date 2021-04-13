@@ -391,7 +391,11 @@ def predict_function_batch(
                 jumping_height = height - (dtgen.padding * 2)
                 # Instanciate empty result matrix.
                 prediction = np.full(
-                    (big_square_width_result, big_square_height_result, dtgen.num_classes),
+                    (
+                        big_square_width_result,
+                        big_square_height_result,
+                        dtgen.num_classes,
+                    ),
                     np.nan,
                 )
                 # Create a jumping window with the expected size.
@@ -432,7 +436,7 @@ def predict_function_batch(
 
         if dtgen.mode == "Pixel_Model":
             data = dtgen[item]
-            #for pixel in data:
+            # for pixel in data:
             prediction = model.predict(data)
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             prediction = prediction.reshape(image_shape)

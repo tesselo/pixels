@@ -356,10 +356,10 @@ class DataGenerator_stac(keras.utils.Sequence):
                 if self.y_nan_value == 0:
                     y_img[y_img == 0] = self.num_classes + 3
                     y_img = y_img - 1
-                y_img = keras.utils.to_categorical(np.squeeze(y_img))[:,:,:self.num_classes]
-                y_img = np.squeeze(
-                    np.swapaxes(y_img, 0, -1)
-                )
+                y_img = keras.utils.to_categorical(np.squeeze(y_img))[
+                    :, :, : self.num_classes
+                ]
+                y_img = np.squeeze(np.swapaxes(y_img, 0, -1))
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
