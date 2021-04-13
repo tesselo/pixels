@@ -400,8 +400,8 @@ def predict_function_batch(
                 )
                 # Create a jumping window with the expected size.
                 # For every window replace the values in the result matrix.
-                for i in range(0, big_square_width, width):
-                    for j in range(0, big_square_height, height):
+                for i in range(0, big_square_width, jumping_width):
+                    for j in range(0, big_square_height, jumping_height):
                         res = data[:, :, i : i + width, j : j + height, :]
                         if res.shape[1:] != model.input_shape[1:]:
                             res = data[:, :, -width:, -height:, :]
@@ -439,6 +439,7 @@ def predict_function_batch(
             # for pixel in data:
             prediction = model.predict(data)
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
+            # Check for nan values. TODO.
             prediction = prediction.reshape(image_shape)
 
         meta["count"] = dtgen.num_classes
