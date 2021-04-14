@@ -13,10 +13,10 @@ from pystac import STAC_IO
 from rasterio.errors import RasterioIOError
 from tensorflow import keras
 
-import pixels.generator.generator_augmentation_2D as aug
-import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
 import pixels.stac_generator.filters as pxfl
+import pixels.stac_generator.generator_augmentation_2D as aug
+import pixels.stac_generator.visualizer as vis
 import pixels.stac_training as stctr
 from pixels.exceptions import InvalidGeneratorConfig
 
@@ -281,7 +281,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Modified numpy array.
 
         """
-        if not value:
+        if not value and value != 0:
             value = self.nan_value
         missing_shape = tuple(x1 - x2 for (x1, x2) in zip(expected_shape, tensor.shape))
         for dim in range(len(tensor.shape)):
@@ -353,9 +353,13 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_img = src.read()
                 src.close()
             if self.num_classes > 1:
-                y_img = np.squeeze(
-                    np.swapaxes(keras.utils.to_categorical(y_img), 0, -1)
-                )
+                if self.y_nan_value == 0:
+                    y_img[y_img == 0] = self.num_classes + 3
+                    y_img = y_img - 1
+                y_img = keras.utils.to_categorical(np.squeeze(y_img))[
+                    :, :, : self.num_classes
+                ]
+                y_img = np.squeeze(np.swapaxes(y_img, 0, -1))
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
@@ -490,7 +494,13 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_mask = Y != self.y_nan_value
                 y_mask = y_mask[:, 0]
                 Y = Y[y_mask]
+                y_expected_shape = (y_new_shape[0], self.num_classes)
+                if Y.shape != y_expected_shape:
+                    Y = self._fill_missing_dimensions(Y, y_expected_shape, value=0)
                 X = X[y_mask]
+                null_pixel_mask = np.sum(Y, axis=1) != 0
+                Y = Y[null_pixel_mask]
+                X = X[null_pixel_mask]
         return X, Y
 
     def get_prediction_from_index(self, index, search_for_meta=False):
@@ -573,8 +583,13 @@ class DataGenerator_stac(keras.utils.Sequence):
             try:
                 x, y = self.get_data_from_index(index_count)
             except:
-                x, y = self.get_data_from_index(index_count + 1)
-
+                # Try again 5 times
+                for t in range(5):
+                    try:
+                        x, y = self.get_data_from_index(index_count + t + 1)
+                        break
+                    except:
+                        logger.warning(f"Try number {t}.")
             # Add padding.
             if self.padding > 0:
                 x = np.pad(
