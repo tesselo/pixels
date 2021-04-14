@@ -428,20 +428,18 @@ def predict_function_batch(
                                 res = data[:, :, -width:, -height:, :]
                         pred = model.predict(res)
                         # Merge all predicitons
+                        jump_pad_j_i = jump_pad
+                        jump_pad_j_f = jump_pad
+                        jump_pad_i_i = jump_pad
+                        jump_pad_i_f = jump_pad
                         if i == 0:
                             jump_pad_i_i = 0
-                        elif big_square_width - i < jump_width:
+                        if big_square_width - i < jump_width:
                             jump_pad_i_f = 0
-                        else:
-                            jump_pad_i_i = jump_pad
-                            jump_pad_i_f = jump_pad
                         if j == 0:
                             jump_pad_j_i = 0
-                        elif big_square_height - j < jump_height:
+                        if big_square_height - j < jump_height:
                             jump_pad_j_f = 0
-                        else:
-                            jump_pad_j_i = jump_pad
-                            jump_pad_j_f = jump_pad
 
                         pred = pred[
                             0,
