@@ -422,8 +422,8 @@ def predict_function_batch(
                             if big_square_width - i < jump_width:
                                 res = data[:, :, -width:, j : j + height, :]
                             if (
-                                big_square_height - j < jump_height
-                                and big_square_width - i < jump_width
+                                big_square_height - j < height
+                                and big_square_width - i < width
                             ):
                                 res = data[:, :, -width:, -height:, :]
                         pred = model.predict(res)
