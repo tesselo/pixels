@@ -19,6 +19,7 @@ def mock_search_data(
     level=None,
     limit=10,
     sort="sensing_time",
+    sensor=None,
 ):
     response = []
     for i in range(3):

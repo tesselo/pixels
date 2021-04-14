@@ -26,6 +26,7 @@ def latest_pixel(
     pool=False,
     maxcloud=None,
     level=None,
+    sensor=None,
 ):
     """
     Get the latest pixel for the input items over the input fetures.
@@ -70,7 +71,8 @@ def latest_pixel(
         The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
         or 'L2A'(Level-2A) that provides Bottom Of Atmosphere (BOA) reflectance images
         derived from associated Level-1C products. Ignored if platforms is not Sentinel 2.
-
+    sensor: str, optional
+        Sensor mode for Landsat 1-5. Must be one of be TM or MSS.
 
     Returns
     -------
@@ -98,6 +100,7 @@ def latest_pixel(
             platforms=platforms,
             maxcloud=maxcloud,
             level=level,
+            sensor=sensor,
         )
 
         if not items:
@@ -202,6 +205,7 @@ def latest_pixel_stack(
     maxcloud=None,
     pool_size=5,
     level=None,
+    sensor=None,
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -222,6 +226,7 @@ def latest_pixel_stack(
             platforms=platforms,
             maxcloud=maxcloud,
             level=level,
+            sensor=sensor,
         )
 
         if not response:
