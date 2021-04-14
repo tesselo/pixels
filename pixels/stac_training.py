@@ -450,7 +450,7 @@ def predict_function_batch(
                             :,
                         ]
                         aux_pred = prediction[
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_i,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                             :,
                         ]
