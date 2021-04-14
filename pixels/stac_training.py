@@ -379,6 +379,10 @@ def predict_function_batch(
             big_square_height = dtgen.expected_x_shape[3]
             big_square_width_result = big_square_width - (dtgen.padding * 2)
             big_square_height_result = big_square_height - (dtgen.padding * 2)
+            if "jumping_ratio" not in gen_args:
+                jumping_ratio = 1
+            else:
+                jumping_ratio = gen_args["jumping_ratio"]
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
                     f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
@@ -389,6 +393,12 @@ def predict_function_batch(
                 height = model.input_shape[3]
                 jumping_width = width - (dtgen.padding * 2)
                 jumping_height = height - (dtgen.padding * 2)
+                jump_width = int(jumping_width * jumping_ratio)
+                jump_height = int(jumping_height * jumping_ratio)
+                if "jump_pad" not in gen_args:
+                    jump_pad = 0
+                else:
+                    jump_pad = gen_args["jump_pad"]
                 # Instanciate empty result matrix.
                 prediction = np.full(
                     (
@@ -400,16 +410,31 @@ def predict_function_batch(
                 )
                 # Create a jumping window with the expected size.
                 # For every window replace the values in the result matrix.
-                for i in range(0, big_square_width, int(jumping_width / 2)):
-                    for j in range(0, big_square_height, int(jumping_height / 2)):
+                for i in range(0, big_square_width, jump_width):
+                    for j in range(0, big_square_height, jump_height):
                         res = data[:, :, i : i + width, j : j + height, :]
                         if res.shape[1:] != model.input_shape[1:]:
-                            res = data[:, :, -width:, -height:, :]
+                            if big_square_height - j < jump_height:
+                                res = data[:, :, i : i + width, -height:, :]
+                            if big_square_width - i < jump_width:
+                                res = data[:, :, -width:, j : j + height, :]
+                            if (
+                                big_square_height - j < jump_height
+                                and big_square_width - i < jump_width
+                            ):
+                                res = data[:, :, -width:, -height:, :]
                         pred = model.predict(res)
                         # Merge all predicitons
-                        pred = pred[0, :, :, :]
+                        pred = pred[
+                            0,
+                            jump_pad : pred.shape[1] - jump_pad,
+                            jump_pad : pred.shape[2] - jump_pad,
+                            :,
+                        ]
                         aux_pred = prediction[
-                            i : i + jumping_width, j : j + jumping_height, :
+                            i + jump_pad : i + jumping_width - jump_pad,
+                            j + jump_pad : j + jumping_height - jump_pad,
+                            :,
                         ]
                         if aux_pred.shape != pred.shape:
                             pred = pred[
@@ -454,133 +479,6 @@ def predict_function_batch(
             meta["transform"][2],
             meta["transform"][3],
             meta["transform"][4] / gen_args["upsampling"],
-            meta["transform"][5],
-        )
-        # Save the prediction tif.
-        out_path_tif = f"{out_path}.tif"
-        _save_and_write_tif(out_path_tif, prediction, meta)
-        # Build the corresponding pystac item.
-        try:
-            it = dtgen.get_items_paths(
-                dtgen.collection.get_child(catalog_id), search_for_item=True
-            )
-            # id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
-            id_raster = catalog_id
-            datetime_var = str(datetime.datetime.now().date())
-            datetime_var = parser.parse(datetime_var)
-            footprint = it.geometry
-            bbox = it.bbox
-            path_item = out_path_tif
-            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
-            href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
-            create_pystac_item(
-                id_raster,
-                footprint,
-                bbox,
-                datetime_var,
-                meta,
-                path_item,
-                aditional_links,
-                href_path,
-            )
-        except Exception as E:
-            logger.warning(f"Error in parsing data in predict_function_batch: {E}")
-
-
-def predict_function(
-    model_uri,
-    collection_uri,
-    generator_config_uri,
-):
-    """
-    From a trained model and the cnfigurations files build the predictions on
-    the given data. Save the predictions and pystac items representing them.
-
-    Parameters
-    ----------
-        model_uri : keras model h5
-            Trained model.
-        generator_config_uri : path to json file
-            File of dictonary containing the generator configuration.
-        collection_uri : str, path
-            Collection with the information from the input data.
-    """
-    # Load model.
-    if model_uri.startswith("s3"):
-        obj = stc.open_file_from_s3(model_uri)["Body"]
-        fid_ = io.BufferedReader(obj._raw_stream)
-        read_in_memory = fid_.read()
-        bio_ = io.BytesIO(read_in_memory)
-        f = h5py.File(bio_, "r")
-        # TODO: hardcoded custom loss function.
-        try:
-            model = tf.keras.models.load_model(f)
-        except:
-            model = tf.keras.models.load_model(
-                f, custom_objects={"loss": losses.nan_mean_squared_error_loss}
-            )
-    else:
-        try:
-            model = tf.keras.models.load_model(model_uri)
-        except:
-            model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": losses.nan_mean_squared_error_loss}
-            )
-    # Instanciate generator.
-    gen_args = _load_dictionary(generator_config_uri)
-    # Force generator to prediction.
-    gen_args["train"] = False
-    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
-    # Get parent folder for prediciton.
-    predict_path = os.path.dirname(generator_config_uri)
-    # Predict section (e.g. 500:550).
-    # Predict for every item (index).
-    for item in range(len(dtgen)):
-        out_path = os.path.join(predict_path, "predictions", f"item_{item}")
-        # Get metadata from index, and create paths.
-        meta = dtgen.get_item_metadata(item)
-        catalog_id = dtgen.id_list[item]
-        x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
-        x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
-        # If the generator output is bigger than model shape, do a jumping window.
-        if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
-            # Get the data (X).
-            data = dtgen[item]
-            width = model.input_shape[2]
-            height = model.input_shape[3]
-            # Instanciate empty result matrix.
-            prediction = np.full((width, height), np.nan)
-            # Create a jumping window with the expected size.
-            # For every window replace the values in the result matrix.
-            for i in range(0, dtgen.expected_x_shape[2], width):
-                for j in range(0, dtgen.expected_x_shape[3], height):
-                    res = data[:, :, i : i + width, j : j + height, :]
-                    if res.shape[1:] != model.input_shape[1:]:
-                        res = data[:, :, -width:, -height:, :]
-                    pred = model.predict(res)
-                    # Merge all predicitons
-                    pred = pred[0, :, :, :, 0]
-                    aux_pred = prediction[i : i + width, j : j + height]
-                    mean_pred = np.nanmean([pred, aux_pred], axis=0)
-                    prediction[i : i + width, j : j + height] = mean_pred
-        else:
-            prediction = model.predict(dtgen[item])
-            # out_path_temp = out_path.replace("s3://", "tmp/")
-            # if not os.path.exists(os.path.dirname(out_path_temp)):
-            #     os.makedirs(os.path.dirname(out_path_temp))
-            # np.savez(f"{out_path_temp}.npz", prediction)
-            # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
-            prediction = prediction[0, :, :, :, 0]
-        # TODO: verify input shape with rasterio
-        meta["width"] = model.input_shape[2]
-        meta["height"] = model.input_shape[3]
-        meta["count"] = 1
-        meta["transform"] = Affine(
-            1,
-            meta["transform"][1],
-            meta["transform"][2],
-            meta["transform"][3],
-            -1,
             meta["transform"][5],
         )
         # Save the prediction tif.
