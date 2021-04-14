@@ -417,9 +417,9 @@ def predict_function_batch(
                     for j in range(0, big_square_height, jump_height):
                         res = data[:, :, i : i + width, j : j + height, :]
                         if res.shape[1:] != model.input_shape[1:]:
-                            if big_square_height - j < jump_height:
+                            if big_square_height - j < height:
                                 res = data[:, :, i : i + width, -height:, :]
-                            if big_square_width - i < jump_width:
+                            if big_square_width - i < width:
                                 res = data[:, :, -width:, j : j + height, :]
                             if (
                                 big_square_height - j < height
