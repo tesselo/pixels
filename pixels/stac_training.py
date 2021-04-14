@@ -354,6 +354,17 @@ def predict_function_batch(
     # Force generator to prediction.
     gen_args["train"] = False
     gen_args["dtype"] = model.input.dtype.name
+    if "jumping_ratio" not in gen_args:
+        jumping_ratio = 1
+    else:
+        jumping_ratio = gen_args["jumping_ratio"]
+        gen_args.pop("jumping_ratio")
+    if "jump_pad" not in gen_args:
+        jump_pad = 0
+    else:
+        jump_pad = gen_args["jump_pad"]
+        gen_args.pop("jump_pad")
+
     dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
@@ -379,10 +390,6 @@ def predict_function_batch(
             big_square_height = dtgen.expected_x_shape[3]
             big_square_width_result = big_square_width - (dtgen.padding * 2)
             big_square_height_result = big_square_height - (dtgen.padding * 2)
-            if "jumping_ratio" not in gen_args:
-                jumping_ratio = 1
-            else:
-                jumping_ratio = gen_args["jumping_ratio"]
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
                     f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
@@ -395,10 +402,6 @@ def predict_function_batch(
                 jumping_height = height - (dtgen.padding * 2)
                 jump_width = int(jumping_width * jumping_ratio)
                 jump_height = int(jumping_height * jumping_ratio)
-                if "jump_pad" not in gen_args:
-                    jump_pad = 0
-                else:
-                    jump_pad = gen_args["jump_pad"]
                 # Instanciate empty result matrix.
                 prediction = np.full(
                     (
@@ -425,15 +428,30 @@ def predict_function_batch(
                                 res = data[:, :, -width:, -height:, :]
                         pred = model.predict(res)
                         # Merge all predicitons
+                        if i == 0:
+                            jump_pad_i_i = 0
+                        elif big_square_width - i < jump_width:
+                            jump_pad_i_f = 0
+                        else:
+                            jump_pad_i_i = jump_pad
+                            jump_pad_i_f = jump_pad
+                        if j == 0:
+                            jump_pad_j_i = 0
+                        elif big_square_height - j < jump_height:
+                            jump_pad_j_f = 0
+                        else:
+                            jump_pad_j_i = jump_pad
+                            jump_pad_j_f = jump_pad
+
                         pred = pred[
                             0,
-                            jump_pad : pred.shape[1] - jump_pad,
-                            jump_pad : pred.shape[2] - jump_pad,
+                            jump_pad_i_i : pred.shape[1] - jump_pad_i_f,
+                            jump_pad_j_i : pred.shape[2] - jump_pad_j_f,
                             :,
                         ]
                         aux_pred = prediction[
-                            i + jump_pad : i + jumping_width - jump_pad,
-                            j + jump_pad : j + jumping_height - jump_pad,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_i,
+                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                             :,
                         ]
                         if aux_pred.shape != pred.shape:
@@ -444,7 +462,8 @@ def predict_function_batch(
                             ]
                         mean_pred = np.nanmean([pred, aux_pred], axis=0)
                         prediction[
-                            i : i + jumping_width, j : j + jumping_height
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                         ] = mean_pred
                 prediction[prediction != prediction] = dtgen.nan_value
             else:
