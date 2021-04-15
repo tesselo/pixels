@@ -454,9 +454,9 @@ def predict_function_batch(
                         ]
                         if aux_pred.shape != pred.shape:
                             pred = pred[
-                                pred.shape[0]-aux_pred.shape[0]:,
-                                pred.shape[1]-aux_pred.shape[1]:,
-                                pred.shape[2]-aux_pred.shape[2]:,
+                                pred.shape[0] - aux_pred.shape[0] :,
+                                pred.shape[1] - aux_pred.shape[1] :,
+                                pred.shape[2] - aux_pred.shape[2] :,
                             ]
                         mean_pred = np.nanmean([pred, aux_pred], axis=0)
                         prediction[
