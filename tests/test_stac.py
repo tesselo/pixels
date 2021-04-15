@@ -171,7 +171,7 @@ class TestUtils(unittest.TestCase):
                 "end": "2020-02-01",
                 "interval": "all",
                 "maxcloud": 30,
-                "pool_size": 2,
+                "pool_size": 1,
                 "scale": 500,
                 "platforms": "LANDSAT_8",
             }
