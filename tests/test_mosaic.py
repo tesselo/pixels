@@ -1,7 +1,7 @@
 import datetime
 import os
 import unittest
-from unittest import mock, skip
+from unittest import mock
 
 import numpy
 
@@ -37,7 +37,21 @@ def mock_search_data(
                 },
             },
         )
-
+    # Append zero scene.
+    response.append(
+        {
+            "product_id": "S2A_MSIL2A_20200130T112311_{}".format(i),
+            "granule_id": "L2A_T29SMC_A024058_20200130T112435_{}".format(i),
+            "sensing_time": datetime.datetime(2020, 2, 1, 11, 30, 39, 918000),
+            "mgrs_tile": "29SMC",
+            "cloud_cover": 70.091273,
+            "base_url": "gs://data-sentinel-2/S2A_{}.SAFE".format(i),
+            "bands": {
+                "B01": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
+                "B02": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
+            },
+        },
+    )
     return response
 
 
@@ -101,17 +115,18 @@ class TestMosaic(unittest.TestCase):
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
 
-    @skip("This test currently runs forever on CI.")
     def test_latest_pixel_stack(self):
         # Test weekly latest pixel stack.
         creation_args, dates, stack = latest_pixel_stack(
             self.geojson,
             start="2020-01-01",
-            end="2020-02-01",
+            end="2020-02-02",
             scale=500,
+            interval="weeks",
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
+            pool_size=1,
         )
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
@@ -129,6 +144,7 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
+            pool_size=1,
         )
         self.assertEqual(dates, ["2020-01-20", "2020-01-21", "2020-01-22"])
         expected = [[[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]] * 3
