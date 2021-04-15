@@ -262,6 +262,10 @@ def train_model_function(
     # Evaluate model on test set.
     gen_args["train_split"] = gen_args["split"]
     gen_args["split"] = 1 - gen_args["split"]
+    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
+        gen_args["split"] = 0.1
+    if len(dtgen) * gen_args["split"] > 200:
+        gen_args["split"] = 200 / len(dtgen)
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
