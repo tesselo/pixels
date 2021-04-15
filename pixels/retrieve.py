@@ -1,5 +1,6 @@
 import logging
 
+import numpy
 import rasterio
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
@@ -57,7 +58,8 @@ def retrieve(
         The creation arguments metadata for the extracted pixel matrix. Can be
         used to write the extracted pixels to a file if desired.
     pixels : array
-        The extracted pixel array, with a shape (bands, height, width).
+        The extracted pixel array, with a shape (bands, height, width). The
+        pixels value is returned as None, if there is no data in the result.
     """
     logger.debug("Retrieving {}".format(source))
 
@@ -83,6 +85,8 @@ def retrieve(
         # If no band indices were provided, process all bands.
         if not bands:
             bands = range(1, src.count + 1)
+        elif isinstance(bands, int):
+            bands = [bands]
 
         # Prepare target raster transform from the geometry input.
         transform, width, height = compute_transform(geojson, scale)
@@ -150,6 +154,10 @@ def retrieve(
         # If only one band was requested, reshape result to 2D array.
         if len(bands) == 1:
             pixels = pixels[bands[0] - 1]
+
+        # Set empty results to None to save memory.
+        if numpy.all(pixels == NODATA_VALUE):
+            pixels = None
 
         # Return re-creation args and pixel data.
         return creation_args, pixels

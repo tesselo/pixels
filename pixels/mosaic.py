@@ -158,6 +158,10 @@ def latest_pixel(
             )
             continue
 
+        # Continue if this scene was empty.
+        if any([dat[1] is None for dat in data]):
+            continue
+
         # Create stack.
         if stack is None:
             # Set first return as stack.
@@ -189,7 +193,10 @@ def latest_pixel(
         for i in range(len(stack)):
             stack[i][mask] = NODATA_VALUE
 
-    return creation_args, first_end_date, numpy.array(stack)
+    if stack is not None:
+        stack = numpy.array(stack)
+
+    return creation_args, first_end_date, stack
 
 
 def latest_pixel_stack(
@@ -287,6 +294,10 @@ def latest_pixel_stack(
     else:
         for date in dates:
             result.append(latest_pixel(*date))
+
+    # Remove results that are empty.
+    result = [dat for dat in result if dat[2] is not None]
+    result = [dat for dat in result if not numpy.all(dat[2][0] == NODATA_VALUE)]
 
     # Convert to individual arrays.
     creation_args = result[0][0]
