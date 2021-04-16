@@ -18,6 +18,7 @@ import pixels.stac_generator.filters as pxfl
 import pixels.stac_generator.generator_augmentation_2D as aug
 import pixels.stac_generator.visualizer as vis
 import pixels.stac_training as stctr
+from pixels.const import NODATA_VALUE
 from pixels.exceptions import InvalidGeneratorConfig
 
 # S3 class instanciation.
@@ -373,6 +374,9 @@ class DataGenerator_stac(keras.utils.Sequence):
         for x_p in x_paths:
             with rasterio.open(x_p) as src:
                 x_img = np.array(src.read())
+                # Ignore this image if its all empty.
+                if np.all(x_img == NODATA_VALUE):
+                    continue
                 x_tensor.append(x_img)
                 if search_for_meta:
                     return src.meta
