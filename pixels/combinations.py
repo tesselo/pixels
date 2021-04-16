@@ -14,7 +14,11 @@ def get_index_bands(idx, satellite):
             'bathymetric','ndvi','ndmi','ndwi1','ndwi2','nhi','savi','gdvi','evi','nbr',
             'bai','chlorogreen'].
         satellite : str
-            The satellite platform.
+            The satellite platform from Landsat collection or Sentinel 2. The str or list
+            must contain one or a combinations of the of the following values: 'SENTINEL_2',
+            'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3', 'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or
+            'LANDSAT_8'. If ignored, it returns values from different platforms according to
+            the combination of the other parameters.
      Returns
     -------
         bands_dict : dict
