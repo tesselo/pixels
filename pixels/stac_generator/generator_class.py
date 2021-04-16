@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import zipfile
+from multiprocessing import Pool
 from urllib.parse import urlparse
 
 import boto3
@@ -18,12 +19,21 @@ import pixels.stac_generator.filters as pxfl
 import pixels.stac_generator.generator_augmentation_2D as aug
 import pixels.stac_generator.visualizer as vis
 import pixels.stac_training as stctr
-from pixels.const import NODATA_VALUE
 from pixels.exceptions import InvalidGeneratorConfig
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
+
+
+def read_item_raster(path):
+    """
+    Read all data from a raster file.
+    """
+    # Open raster.
+    with rasterio.open(path) as src:
+        # Read and return raster data.
+        return src.read()
 
 
 class DataGenerator_stac(keras.utils.Sequence):
@@ -370,18 +380,16 @@ class DataGenerator_stac(keras.utils.Sequence):
             # Change y raster from (num_bands, wdt, hgt) to (wdt, hgt, num_classes).
             y_tensor = y_tensor.swapaxes(0, 1)
             y_tensor = y_tensor.swapaxes(1, 2)
-        # Open all X images.
-        for x_p in x_paths:
-            with rasterio.open(x_p) as src:
-                x_img = np.array(src.read())
-                # Ignore this image if its all empty.
-                if np.all(x_img == NODATA_VALUE):
-                    continue
-                x_tensor.append(x_img)
-                if search_for_meta:
-                    return src.meta
-                src.close()
-            # y_tensor.append(np.array(y_img))
+
+        # Return only some metadata if requested.
+        if search_for_meta:
+            with rasterio.open(x_paths[0]) as src:
+                return src.meta
+
+        # Open all X images in parallel.
+        with Pool(min(len(x_paths), 12)) as p:
+            x_tensor = p.map(read_item_raster, x_paths)
+
         if len(x_tensor) < self.timesteps:
             x_tensor = np.vstack(
                 (
