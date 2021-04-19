@@ -20,6 +20,8 @@ from pixels.utils import write_raster
 ALLOWED_CUSTOM_LOSSES = [
     "nan_mean_squared_error_loss",
     "nan_root_mean_squared_error_loss",
+    "square_stretching_error_loss",
+    "stretching_error_loss",
 ]
 
 logger = logging.getLogger(__name__)
@@ -491,6 +493,7 @@ def predict_function_batch(
         meta["count"] = dtgen.num_classes
         prediction = prediction.swapaxes(1, 2)
         prediction = prediction.swapaxes(0, 1)
+
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
         # Compute target resolution using upscale factor.
