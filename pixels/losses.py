@@ -31,3 +31,29 @@ def nan_root_mean_squared_error_loss(nan_value=np.nan):
 
     # Return a function
     return loss
+
+
+def stretching_error_loss(nan_value=np.nan):
+    # Create a loss function
+    def loss(y_true, y_pred):
+        indices = tf.where(tf.not_equal(y_true, nan_value))
+        truth = tf.gather_nd(y_true, indices)
+        predictions = tf.gather_nd(y_pred, indices)
+        error = predictions - truth
+        return error * (truth + 1)
+
+    # Return a function
+    return loss
+
+
+def square_stretching_error_loss(nan_value=np.nan):
+    # Create a loss function
+    def loss(y_true, y_pred):
+        indices = tf.where(tf.not_equal(y_true, nan_value))
+        truth = tf.gather_nd(y_true, indices)
+        predictions = tf.gather_nd(y_pred, indices)
+        error = predictions - truth
+        return error * (truth + 1) * (truth + 1)
+
+    # Return a function
+    return loss

@@ -510,7 +510,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 if Y.shape != y_expected_shape:
                     Y = self._fill_missing_dimensions(Y, y_expected_shape, value=0)
                 X = X[y_mask]
-                null_pixel_mask = np.sum(Y, axis=1) != 0
+                null_pixel_mask = np.sum(Y, axis=1) != self.y_nan_value
                 Y = Y[null_pixel_mask]
                 X = X[null_pixel_mask]
         return X, Y
