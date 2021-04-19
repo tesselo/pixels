@@ -39,7 +39,7 @@ def stretching_error_loss(nan_value=np.nan):
         indices = tf.where(tf.not_equal(y_true, nan_value))
         truth = tf.gather_nd(y_true, indices)
         predictions = tf.gather_nd(y_pred, indices)
-        error = predictions - truth
+        error = abs(predictions - truth)
         return error * (truth + 1)
 
     # Return a function
@@ -52,7 +52,7 @@ def square_stretching_error_loss(nan_value=np.nan):
         indices = tf.where(tf.not_equal(y_true, nan_value))
         truth = tf.gather_nd(y_true, indices)
         predictions = tf.gather_nd(y_pred, indices)
-        error = predictions - truth
+        error = abs(predictions - truth)
         return error * (truth + 1) * (truth + 1)
 
     # Return a function
