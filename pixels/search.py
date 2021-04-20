@@ -105,7 +105,7 @@ def search_data(
             result and the respective links to download each band.
     """
     # Convert str in list.
-    if not isinstance(platforms, (list, tuple)):
+    if platforms is not None and not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
     # Getting bounds.
