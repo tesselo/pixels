@@ -2,6 +2,7 @@ import io
 import logging
 import math
 import os
+import pprint
 import zipfile
 from multiprocessing import Pool
 from urllib.parse import urlparse
@@ -19,7 +20,7 @@ import pixels.stac_generator.filters as pxfl
 import pixels.stac_generator.generator_augmentation_2D as aug
 import pixels.stac_generator.visualizer as vis
 import pixels.stac_training as stctr
-from pixels.exceptions import InvalidGeneratorConfig
+from pixels.exceptions import InconsistentGeneratorDataException, InvalidGeneratorConfig
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -103,11 +104,45 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._wrong_sizes_list = []
         self.x_nan_value = x_nan_value
         self.y_nan_value = y_nan_value
+        # Ensure Y nan_value is not 0.
+        if y_nan_value == 0:
+            raise InvalidGeneratorConfig("Y nan value must not be 0.")
+        if y_nan_value > 0 and y_nan_value < self.num_classes:
+            raise InvalidGeneratorConfig(
+                "Y nan value must not be within the num_classes range."
+            )
         self._set_definition()
         self._check_get_catalogs_indexing()
         # Check if batch size.
         if self.batch_number > 1 and not self.train:
             raise InvalidGeneratorConfig("Batch size needs to be 1 for prediction.")
+        # Log the entire config.
+        config = {
+            "path_collection": self.path_collection,
+            "split": self.split,
+            "train": self.train,
+            "upsampling": self.upsampling,
+            "timesteps": self.timesteps,
+            "width": self.width,
+            "height": self.height,
+            "mode": self.mode,
+            "prediction_catalog": self.prediction,
+            "nan_value": self.nan_value,
+            "mask_band": self.mask_band,
+            "random_seed": self.random_seed,
+            "num_classes": self.num_classes,
+            "batch_number": self.batch_number,
+            "train_split": self.train_split,
+            "num_bands": self.num_bands,
+            "augmentation": self.augmentation,
+            "dtype": self.dtype,
+            "y_downsample": self.y_downsample,
+            "padding": self.padding,
+            "padding_mode": self.padding_mode,
+            "x_nan_value": self.x_nan_value,
+            "y_nan_value": self.y_nan_value,
+        }
+        logger.info(f"Generator config: {pprint.pformat(config, indent=4)}")
 
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
@@ -363,16 +398,6 @@ class DataGenerator_stac(keras.utils.Sequence):
             with rasterio.open(y_raster_file) as src:
                 y_img = src.read()
                 src.close()
-            if self.num_classes > 1:
-                num_classes_for_conversion = self.num_classes
-                if self.y_nan_value == 0:
-                    y_img[y_img == 0] = self.num_classes + 3
-                    y_img = y_img - 1
-                    num_classes_for_conversion = self.num_classes + 3
-                y_img = keras.utils.to_categorical(
-                    np.squeeze(y_img), num_classes_for_conversion
-                )[:, :, : self.num_classes]
-                y_img = np.squeeze(np.swapaxes(y_img, 0, -1))
         except Exception as E:
             logger.warning(f"Generator error in get_data: {E}")
             y_img = None
@@ -451,6 +476,21 @@ class DataGenerator_stac(keras.utils.Sequence):
             except RasterioIOError:
                 logger.warning(f"Rasterio IO error, trying again. try number: {i}.")
 
+        # Ensure correct size of Y data in training mode.
+        if self.train:
+            # The Y open shape should always be 1D before converting to
+            # categorical.
+            y_target_shape = (self.width, self.height, 1)
+            # Limit the size to the maximum expected.
+            Y = Y[: self.width, : self.height, :]
+            # Fill the gaps with nodata if the array is too small.
+            if Y.shape != y_target_shape:
+                self._wrong_sizes_list.append(index)
+                Y = self._fill_missing_dimensions(Y, y_target_shape)
+                logger.warning(f"Y dimensions not suitable in index {index}.")
+            # Limit the size again to ensure final shape.
+            Y = Y[: self.width, : self.height, :]
+
         if self.mode == "3D_Model":
             # Check if the loaded images have the needed dimensions.
             # Cut or add NaN values on surplus/missing pixels.
@@ -474,15 +514,6 @@ class DataGenerator_stac(keras.utils.Sequence):
                 X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
             # Remove extra pixels.
             X = X[:, :, : self.width, : self.height]
-            # Y is not None treat Y.
-            if self.train:
-                y_open_shape = (self.width, self.height, self.num_classes)
-                Y = Y[: self.width, : self.height, :]
-                if Y.shape != y_open_shape:
-                    self._wrong_sizes_list.append(index)
-                    Y = self._fill_missing_dimensions(Y, y_open_shape)
-                    logger.warning(f"Y dimensions not suitable in index {index}.")
-                Y = Y[: self.width, : self.height, :]
             # Add band for NaN mask.
             if self.mask_band:
                 if not self.train:
@@ -494,27 +525,41 @@ class DataGenerator_stac(keras.utils.Sequence):
                     mask_img = np.repeat([mask_img], self.timesteps, axis=0)
                 mask_band = mask_img.astype("int")
                 X = np.hstack([X, mask_band])
+
         if self.mode == "Pixel_Model":
-            x_new_shape = (*X.shape[:-2], np.prod(X.shape[-2:]))
+            # Flatten the with and height into single pixel 1D. The X tensor at
+            # this point has shape (time, bands, width, height).
+            x_new_shape = (X.shape[0], X.shape[1], X.shape[2] * X.shape[3])
             X = X.reshape(x_new_shape)
+            # Bring pixel dimension to the front.
             X = np.swapaxes(X, 1, 2)
             X = np.swapaxes(X, 0, 1)
-            x_mask = X[:, 0, 0] != self.x_nan_value
-            X = X[x_mask]
+            # Compute drop mask based on X values. This
+            mask_1d = np.all(X != self.x_nan_value, axis=(1, 2))
+            # In training mode, reshape Y data as well.
             if self.train:
-                y_new_shape = (np.prod(Y.shape[:2]), Y.shape[2])
-                Y = Y.reshape(y_new_shape)
-                Y = Y[x_mask]
-                y_mask = Y != self.y_nan_value
-                y_mask = y_mask[:, 0]
-                Y = Y[y_mask]
-                y_expected_shape = (y_new_shape[0], self.num_classes)
-                if Y.shape != y_expected_shape:
-                    Y = self._fill_missing_dimensions(Y, y_expected_shape, value=0)
-                X = X[y_mask]
-                null_pixel_mask = np.sum(Y, axis=1) != self.y_nan_value
-                Y = Y[null_pixel_mask]
-                X = X[null_pixel_mask]
+                # Flatten 2D data to 1D.
+                Y = Y.ravel()
+                # Ensure X and Y have the same size.
+                if X.shape[0] != Y.shape[0]:
+                    raise InconsistentGeneratorDataException(
+                        f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
+                    )
+                # Add Y nodata values to mask array.
+                if self.y_nan_value:
+                    mask_1d = np.logical_and(mask_1d, Y != self.y_nan_value)
+            # Drop the nodata pixels both for X and Y using the combined mask.
+            X = X[mask_1d]
+            Y = Y[mask_1d]
+
+        # For multiclass problems, convert the Y data to categorical.
+        if self.num_classes > 1:
+            # Convert data to one-hot encoding. This assumes class DN numbers to
+            # be strictly sequential and starting with 0.
+            Y = keras.utils.to_categorical(Y, self.num_classes)
+            # Swap axes so that the class index axis is first.
+            Y = np.squeeze(np.swapaxes(Y, 0, -1))
+
         return X, Y
 
     def get_prediction_from_index(self, index, search_for_meta=False):
