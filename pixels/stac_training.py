@@ -489,13 +489,23 @@ def predict_function_batch(
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             # Check for nan values. TODO.
             prediction = prediction.reshape(image_shape)
+            # Ensure prediction has a writable type. For now, we assume there
+            # will not be more than 255 classes and use unit8. The default
+            # prediction type is Int64 which is not a valid format for gdal.
+            prediction = prediction.astype("uint8")
 
-        meta["count"] = dtgen.num_classes
+        # Fix number of bands to 1. This assumes multiclass output always is
+        # converted to a single band with the class numbers.
+        meta["count"] = 1
+
+        # Ensure the class axis is the first one.
         prediction = prediction.swapaxes(1, 2)
         prediction = prediction.swapaxes(0, 1)
 
+        # Apply argmax to reduce the one-hot model output into class numbers.
         if dtgen.num_classes > 1:
             prediction = np.argmax(prediction, axis=0)
+
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
             meta["transform"][0] / gen_args["upsampling"],
