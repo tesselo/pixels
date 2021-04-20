@@ -477,22 +477,21 @@ class DataGenerator_stac(keras.utils.Sequence):
             except RasterioIOError:
                 logger.warning(f"Rasterio IO error, trying again. try number: {i}.")
 
-        # Ensure correct size of Y data in training mode.
-        if self.train:
-            # The Y open shape should always be 1D before converting to
-            # categorical.
-            y_target_shape = (self.width, self.height, 1)
-            # Limit the size to the maximum expected.
-            Y = Y[: self.width, : self.height, :]
-            # Fill the gaps with nodata if the array is too small.
-            if Y.shape != y_target_shape:
-                self._wrong_sizes_list.append(index)
-                Y = self._fill_missing_dimensions(Y, y_target_shape)
-                logger.warning(f"Y dimensions not suitable in index {index}.")
-            # Limit the size again to ensure final shape.
-            Y = Y[: self.width, : self.height, :]
-
         if self.mode == "3D_Model":
+            # Ensure correct size of Y data in training mode.
+            if self.train:
+                # The Y open shape should always be 1D before converting to
+                # categorical.
+                y_target_shape = (self.width, self.height, 1)
+                # Limit the size to the maximum expected.
+                Y = Y[: self.width, : self.height, :]
+                # Fill the gaps with nodata if the array is too small.
+                if Y.shape != y_target_shape:
+                    self._wrong_sizes_list.append(index)
+                    Y = self._fill_missing_dimensions(Y, y_target_shape)
+                    logger.warning(f"Y dimensions not suitable in index {index}.")
+                # Limit the size again to ensure final shape.
+                Y = Y[: self.width, : self.height, :]
             # Check if the loaded images have the needed dimensions.
             # Cut or add NaN values on surplus/missing pixels.
             # Treat X, then test for Y, treat Y.
