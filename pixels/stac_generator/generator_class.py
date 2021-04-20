@@ -536,7 +536,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             X = np.swapaxes(X, 1, 2)
             X = np.swapaxes(X, 0, 1)
             # Compute drop mask based on X values. This
-            mask_1d = np.all(X != self.x_nan_value, axis=(1, 2))
+            mask_1d = np.any(X != self.x_nan_value, axis=(1, 2))
             # In training mode, reshape Y data as well.
             if self.train:
                 # Flatten 2D data to 1D.
