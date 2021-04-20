@@ -28,3 +28,11 @@ class InvalidGeneratorConfig(PixelsException):
     """
 
     pass
+
+
+class InconsistentGeneratorDataException(PixelsException):
+    """
+    The data available to the generator is inconsistent.
+    """
+
+    pass
