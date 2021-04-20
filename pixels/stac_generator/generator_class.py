@@ -364,10 +364,12 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_img = src.read()
                 src.close()
             if self.num_classes > 1:
+                num_classes_for_conversion = self.num_classes
                 if self.y_nan_value == 0:
                     y_img[y_img == 0] = self.num_classes + 3
                     y_img = y_img - 1
-                y_img = keras.utils.to_categorical(np.squeeze(y_img))[
+                    num_classes_for_conversion = self.num_classes + 3
+                y_img = keras.utils.to_categorical(np.squeeze(y_img), num_classes_for_conversion)[
                     :, :, : self.num_classes
                 ]
                 y_img = np.squeeze(np.swapaxes(y_img, 0, -1))
