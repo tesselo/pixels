@@ -558,8 +558,6 @@ class DataGenerator_stac(keras.utils.Sequence):
             # Convert data to one-hot encoding. This assumes class DN numbers to
             # be strictly sequential and starting with 0.
             Y = keras.utils.to_categorical(Y, self.num_classes)
-            # Swap axes so that the class index axis is first.
-            Y = np.squeeze(np.swapaxes(Y, 0, -1))
 
         return X, Y
 
