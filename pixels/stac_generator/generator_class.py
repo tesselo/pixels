@@ -549,9 +549,10 @@ class DataGenerator_stac(keras.utils.Sequence):
                 # Add Y nodata values to mask array.
                 if self.y_nan_value:
                     mask_1d = np.logical_and(mask_1d, Y != self.y_nan_value)
-            # Drop the nodata pixels both for X and Y using the combined mask.
+                # Drop the Y values using the combined mask.
+                Y = Y[mask_1d]
+            # Drop the X values using combined mask.
             X = X[mask_1d]
-            Y = Y[mask_1d]
 
         # For multiclass problems, convert the Y data to categorical.
         if self.num_classes > 1:
