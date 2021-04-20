@@ -104,13 +104,14 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._wrong_sizes_list = []
         self.x_nan_value = x_nan_value
         self.y_nan_value = y_nan_value
-        # Ensure Y nan_value is not 0.
-        if y_nan_value == 0:
-            raise InvalidGeneratorConfig("Y nan value must not be 0.")
-        if y_nan_value > 0 and y_nan_value < self.num_classes:
-            raise InvalidGeneratorConfig(
-                "Y nan value must not be within the num_classes range."
-            )
+        if y_nan_value:
+            # Ensure Y nan_value is not 0.
+            if y_nan_value == 0:
+                raise InvalidGeneratorConfig("Y nan value must not be 0.")
+            if y_nan_value > 0 and y_nan_value < self.num_classes:
+                raise InvalidGeneratorConfig(
+                    "Y nan value must not be within the num_classes range."
+                )
         self._set_definition()
         self._check_get_catalogs_indexing()
         # Check if batch size.
@@ -647,8 +648,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                     try:
                         x, y = self.get_data_from_index(index_count + t + 1)
                         break
-                    except:
-                        logger.warning(f"Try number {t}.")
+                    except Exception as E:
+                        logger.warning(f"Try number {t}. {E}")
             # Add padding.
             if self.padding > 0:
                 x = np.pad(
