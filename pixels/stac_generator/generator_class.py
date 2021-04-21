@@ -82,6 +82,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.catalogs_dict = {}
         self.random_seed = random_seed
         self.num_classes = num_classes
+        if num_classes > 255:
+            raise InvalidGeneratorConfig(
+                "Too many classes. The maximum number of classes is 255."
+            )
         self.batch_number = batch_number
         self.train_split = train_split
         self.train = train
