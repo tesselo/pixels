@@ -495,7 +495,7 @@ def predict_function_batch(
         meta["count"] = 1
 
         # Set the Y nodata value (defaults to none).
-        meta["nodata"] = self.y_nan_value
+        meta["nodata"] = gen_args["y_nan_value"]
 
         # Ensure the class axis is the first one.
         prediction = prediction.swapaxes(1, 2)
