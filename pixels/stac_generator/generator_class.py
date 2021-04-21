@@ -65,7 +65,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         y_downsample=[],
         padding=0,
         padding_mode="edge",
-        x_nan_value=None,
+        x_nan_value=0,
         y_nan_value=None,
     ):
         """
@@ -152,10 +152,8 @@ class DataGenerator_stac(keras.utils.Sequence):
     def _set_definition(self):
         # TODO: Read number of bands from somewhere.
         self._original_num_bands = self.num_bands
-        if not self.y_nan_value:
+        if self.y_nan_value is None:
             self.y_nan_value = self.nan_value
-        if not self.x_nan_value:
-            self.x_nan_value = self.nan_value
         if self.mask_band:
             self.num_bands = self.num_bands + 1
         if self.mode == "Pixel_Model":
