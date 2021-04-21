@@ -495,7 +495,7 @@ def predict_function_batch(
         meta["count"] = 1
 
         # Set the Y nodata value (defaults to none).
-        meta["nodata"] = gen_args["y_nan_value"]
+        meta["nodata"] = dtgen.y_nan_value
 
         # Ensure the class axis is the first one.
         prediction = prediction.swapaxes(1, 2)
@@ -511,11 +511,11 @@ def predict_function_batch(
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
-            meta["transform"][0] / gen_args["upsampling"],
+            meta["transform"][0] / dtgen.upsampling,
             meta["transform"][1],
             meta["transform"][2],
             meta["transform"][3],
-            meta["transform"][4] / gen_args["upsampling"],
+            meta["transform"][4] / dtgen.upsampling,
             meta["transform"][5],
         )
         # Save the prediction tif.
