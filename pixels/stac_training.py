@@ -494,6 +494,9 @@ def predict_function_batch(
         # converted to a single band with the class numbers.
         meta["count"] = 1
 
+        # Set the Y nodata value (defaults to none).
+        meta["nodata"] = self.y_nan_value
+
         # Ensure the class axis is the first one.
         prediction = prediction.swapaxes(1, 2)
         prediction = prediction.swapaxes(0, 1)
