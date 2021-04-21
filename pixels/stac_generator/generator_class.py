@@ -108,7 +108,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._wrong_sizes_list = []
         self.x_nan_value = x_nan_value
         self.y_nan_value = y_nan_value
-        if y_nan_value:
+        if y_nan_value is not None:
             # Ensure Y nan_value is not 0.
             if y_nan_value == 0:
                 raise InvalidGeneratorConfig("Y nan value must not be 0.")
