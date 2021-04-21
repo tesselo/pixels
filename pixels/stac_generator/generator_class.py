@@ -47,7 +47,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         path_collection,
         split=1,
         train=True,
-        upsampling=False,
+        upsampling=1,
         timesteps=12,
         width=32,
         height=32,
@@ -98,6 +98,10 @@ class DataGenerator_stac(keras.utils.Sequence):
         self._set_s3_variables(path_collection)
         self._set_collection(path_collection)
         self.upsampling = upsampling
+        if not isinstance(upsampling, int) or upsampling < 1:
+            raise InvalidGeneratorConfig(
+                f"Invalid upsampling parameter {upsampling}, should be an integer >= 1."
+            )
         self.timesteps = timesteps
         self.mode = mode
         self.width = width
@@ -158,7 +162,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             self.num_bands = self.num_bands + 1
         if self.mode == "Pixel_Model":
             self.augmentation = 0
-            self.upsampling = False
+            self.upsampling = 1
             self.padding = 0
             self.expected_x_shape = (
                 self.batch_number * self.width * self.height,
@@ -170,7 +174,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 self.num_classes,
             )
 
-        if self.upsampling:
+        if self.upsampling > 1:
             self._orignal_width = self.width
             self._orignal_height = self.height
             self.width = int(math.ceil(self.width * self.upsampling))
@@ -511,7 +515,7 @@ class DataGenerator_stac(keras.utils.Sequence):
                 X = self._fill_missing_dimensions(X, x_open_shape)
                 logger.warning(f"X dimensions not suitable in index {index}.")
             # Upsample the X.
-            if self.upsampling:
+            if self.upsampling > 1:
                 X = X[:, :, : self._orignal_width, : self._orignal_height]
                 X = aug.upscale_multiple_images(X, upscale_factor=self.upsampling)
             # Remove extra pixels.
