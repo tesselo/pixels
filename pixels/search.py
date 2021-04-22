@@ -96,8 +96,9 @@ def search_data(
             Specifies the number of records to be returned in the search result.
         sort : str, optional
             Defines the ordering of the results. By default, sensing time is used, ordering
-            the images from the most recent date to the oldest.Another option to order the
-            results is the cloud cover that must follow the "cloud_cover" pattern.
+            the images from the most recent date to the oldest. Another option to order the
+            results is the cloud cover which are ordered from the least cloudy to the
+            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
     Returns
     -------
         result : list
@@ -132,7 +133,8 @@ def search_data(
     if is_level_valid(level, platforms):
         query += " AND granule_id LIKE '{}%'".format(level)
     if sort is not None:
-        query += " ORDER BY {} DESC".format(sort)
+        sort_order = "ASC" if sort == "cloud_cover" else "DESC"
+        query += " ORDER BY {} {}".format(sort, sort_order)
     if limit is not None:
         query += " LIMIT {};".format(limit)
 
