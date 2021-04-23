@@ -291,9 +291,7 @@ def latest_pixel_stack(
             missing = [
                 band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
             ]
-            print(bands)
             bands = list(bands) + missing
-            print(bands)
             # Create input list with date ranges.
             dates = [
                 (
