@@ -7,12 +7,15 @@ from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
 from pixels.const import LANDSAT_1_LAUNCH_DATE, NODATA_VALUE
+from pixels.exceptions import PixelsException
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
 logger = logging.getLogger(__name__)
+
+BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
 
 
 def latest_pixel(
@@ -213,6 +216,7 @@ def latest_pixel_stack(
     pool_size=5,
     level=None,
     sensor=None,
+    mode="latest",
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -256,24 +260,66 @@ def latest_pixel_stack(
             )
             for item in response
         ]
+        funk = latest_pixel
     else:
-        # Construct array of latest pixel calls with varying dates.
-        dates = [
-            (
-                geojson,
-                step[1],
-                scale,
-                bands,
-                platforms,
-                limit,
-                clip,
-                retrieve_pool,
-                maxcloud,
-                level,
-            )
-            for step in timeseries_steps(start, end, interval)
-        ]
-        logger.info("Getting {} {} for this stack.".format(len(dates), interval))
+        if mode == "latest":
+            # Construct array of latest pixel calls with varying dates.
+            dates = [
+                (
+                    geojson,
+                    step[1],
+                    scale,
+                    bands,
+                    platforms,
+                    limit,
+                    clip,
+                    retrieve_pool,
+                    maxcloud,
+                    level,
+                )
+                for step in timeseries_steps(start, end, interval)
+            ]
+            funk = latest_pixel
+        elif mode == "composite":
+            platform = "SENTINEL_2"
+            shadow_threshold = 0.1
+            light_clouds = True
+            sort = "cloud_cover"
+            finish_early_cloud_cover_percentage = 0.05
+            bands = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
+            # Extend bands to necessary parts.
+            missing = [
+                band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
+            ]
+            print(bands)
+            bands = list(bands) + missing
+            print(bands)
+            # Create input list with date ranges.
+            dates = [
+                (
+                    geojson,
+                    step[0],
+                    step[1],
+                    scale,
+                    bands,
+                    limit,
+                    clip,
+                    retrieve_pool,
+                    platform,
+                    maxcloud,
+                    shadow_threshold,
+                    light_clouds,
+                    level,
+                    sort,
+                    finish_early_cloud_cover_percentage,
+                )
+                for step in timeseries_steps(start, end, interval)
+            ]
+            funk = composite
+
+        logger.info(
+            "Getting {} {} {} images for this stack.".format(len(dates), interval, mode)
+        )
 
     # Get pixels.
     pool_size = min(len(dates), pool_size)
@@ -282,10 +328,10 @@ def latest_pixel_stack(
     result = []
     if pool_size > 1:
         with Pool(pool_size) as p:
-            result = p.starmap(latest_pixel, dates)
+            result = p.starmap(funk, dates)
     else:
         for date in dates:
-            result.append(latest_pixel(*date))
+            result.append(funk(*date))
 
     # Remove results that are empty.
     result = [dat for dat in result if dat[2] is not None]
@@ -310,21 +356,31 @@ def composite(
     pool=False,
     platform="SENTINEL_2",
     maxcloud=None,
-    shadow_threshold=0.4,
+    shadow_threshold=0.1,
     light_clouds=True,
+    level="L2A",
+    sort="cloud_cover",
+    finish_early_cloud_cover_percentage=0.05,
 ):
     """
     Get the composite over the input features.
     """
     logger.info("Compositing pixels from {} to {}".format(start, end))
+    # Currently limit to S2 and L2A.
+    if platform != "SENTINEL_2" or level != "L2A":
+        raise PixelsException(
+            "For composites platform and level must be Sentinel-2 L2A."
+        )
 
     # Check band list.
-    BANDS_REQUIRED = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
-    missing = [band for band in BANDS_REQUIRED if band not in bands]
+    BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
+    missing = [band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
     if missing:
         raise ValueError("Missing {} bands for composite.".format(missing))
 
-    required_band_indices = [bands.index(band) for band in BANDS_REQUIRED]
+    required_band_indices = [
+        bands.index(band) for band in BANDS_REQUIRED_FOR_COMPOSITES
+    ]
 
     # Search scenes.
     items = search_data(
@@ -334,6 +390,8 @@ def composite(
         limit=limit,
         platforms=["SENTINEL_2"],
         maxcloud=maxcloud,
+        level=level,
+        sort="cloud_cover",
     )
 
     if not items:
@@ -342,7 +400,10 @@ def composite(
     stack = None
     creation_args = None
     mask = None
+    first_end_date = None
     for item in items:
+        if first_end_date is None:
+            first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
         band_list = [
             (item["bands"][band], geojson, scale, False, False, False, None)
@@ -359,6 +420,9 @@ def composite(
         # Get creation args from first result.
         if creation_args is None:
             creation_args = data[0][0]
+        # Continue if this image was all nodata (retrieve returns None).
+        if any([dat[1] is None for dat in data]):
+            continue
         # Add scene to stack.
         layer = numpy.array([dat[1] for dat in data])
         # Compute cloud mask for new layer.
@@ -389,8 +453,8 @@ def composite(
             "Remaining masked count {} %".format(int(100 * numpy.sum(mask) / mask.size))
         )
         # If no cloudy pixels are left, stop getting more data.
-        if numpy.sum(mask) / mask.size < 0.01:
+        if numpy.sum(mask) / mask.size <= finish_early_cloud_cover_percentage:
             logger.debug("Finalized compositing early.")
             break
 
-    return creation_args, numpy.array(stack)
+    return creation_args, first_end_date, numpy.array(stack)

@@ -34,6 +34,17 @@ def mock_search_data(
                 "bands": {
                     "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B02": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B03": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B04": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B05": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B06": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B07": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B08": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B8A": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B09": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                 },
             },
         )
@@ -49,6 +60,17 @@ def mock_search_data(
             "bands": {
                 "B01": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
                 "B02": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
+                "B03": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B04": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B05": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B06": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B07": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B08": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B8A": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B09": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
             },
         },
     )
@@ -131,7 +153,7 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
-        expected = [[[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]] * 4
+        expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 4
         numpy.testing.assert_array_equal(stack, expected)
 
         # Test all latest pixel.
@@ -147,7 +169,27 @@ class TestMosaic(unittest.TestCase):
             pool_size=1,
         )
         self.assertEqual(dates, ["2020-01-20", "2020-01-21", "2020-01-22"])
-        expected = [[[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]] * 3
+        expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 3
+        numpy.testing.assert_array_equal(stack, expected)
+
+    def test_latest_pixel_stack_composite(self):
+        # Test weekly latest pixel stack.
+        creation_args, dates, stack = latest_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=500,
+            interval="weeks",
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+            pool_size=1,
+            mode="composite",
+        )
+        self.assertEqual(
+            dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
+        )
+        expected = [[[[2956, 2996], [7003, 7043]]] * 7] * 4
         numpy.testing.assert_array_equal(stack, expected)
 
     def test_algebra(self):
