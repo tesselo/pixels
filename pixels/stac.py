@@ -528,7 +528,6 @@ def validate_pixels_config(
     platforms=None,
     limit=None,
     mode="latest_pixel",
-    platform="SENTINEL_2",
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -556,8 +555,6 @@ def validate_pixels_config(
             Limit the number of images per search.
         mode: str, optional
             Mode of latest pixel collection (latest_pixel or composite).
-        platform: str, optional
-            Satellite platform to use.
     Returns
     -------
         config : dict
@@ -582,7 +579,7 @@ def validate_pixels_config(
         "pool_size": pool_size,
         "level": level,
         "mode": mode,
-        "platform": platform,
+        "platforms": platforms,
     }
     if mode not in ["latest_pixel", "composite"]:
         raise PixelsException(f"Latest pixel mode {mode} is not valid.")

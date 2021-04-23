@@ -281,7 +281,7 @@ def latest_pixel_stack(
             ]
             funk = latest_pixel
         elif mode == "composite":
-            platform = "SENTINEL_2"
+            platforms = "SENTINEL_2"
             shadow_threshold = 0.1
             light_clouds = True
             sort = "cloud_cover"
@@ -305,13 +305,13 @@ def latest_pixel_stack(
                     limit,
                     clip,
                     retrieve_pool,
-                    platform,
                     maxcloud,
                     shadow_threshold,
                     light_clouds,
                     level,
                     sort,
                     finish_early_cloud_cover_percentage,
+                    platforms,
                 )
                 for step in timeseries_steps(start, end, interval)
             ]
@@ -354,22 +354,26 @@ def composite(
     limit=10,
     clip=False,
     pool=False,
-    platform="SENTINEL_2",
     maxcloud=None,
     shadow_threshold=0.1,
     light_clouds=True,
     level="L2A",
     sort="cloud_cover",
     finish_early_cloud_cover_percentage=0.05,
+    platforms="SENTINEL_2",
 ):
     """
     Get the composite over the input features.
     """
     logger.info("Compositing pixels from {} to {}".format(start, end))
+    # Check if is list or tuple
+    if not isinstance(platforms, (list, tuple)):
+        platforms = [platforms]
+
     # Currently limit to S2 and L2A.
-    if platform != "SENTINEL_2" or level != "L2A":
+    if len(platforms) > 1 or platforms[0] != "SENTINEL_2" or level != "L2A":
         raise PixelsException(
-            "For composites platform and level must be Sentinel-2 L2A."
+            "For composites platforms and level must be Sentinel-2 L2A."
         )
 
     # Check band list.
