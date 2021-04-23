@@ -30,6 +30,12 @@ isort .
 flake8
 ```
 
+## Testing the python package build
+Run the follwing command to build the package.
+```shell
+python setup.py sdist bdist_wheel
+```
+
 ## Create documentation
 Docstrings should be written for all public functions following the
 [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) docstring
