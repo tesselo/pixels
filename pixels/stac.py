@@ -527,6 +527,7 @@ def validate_pixels_config(
     level=None,
     platforms=None,
     limit=None,
+    mode="latest_pixel",
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -552,6 +553,8 @@ def validate_pixels_config(
             The platforms to use in this collection.
         limit: int, optional
             Limit the number of images per search.
+        mode: str, optional
+            Mode of latest pixel collection (latest_pixel or composite).
     Returns
     -------
         config : dict
@@ -575,7 +578,10 @@ def validate_pixels_config(
         "maxcloud": maxcloud,
         "pool_size": pool_size,
         "level": level,
+        "mode": mode,
     }
+    if mode not in ["latest_pixel", "composite"]:
+        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
     if platforms is not None:
         if not isinstance(platforms, (list, tuple)):
             platforms = [platforms]
