@@ -14,7 +14,7 @@ def pixels_mask(
     clouds=True,
     light_clouds=False,
     snow=True,
-    shadow_threshold=0.5,
+    shadow_threshold=0.1,
 ):
     """
     Central mask function, choose what to include.
