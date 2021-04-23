@@ -216,7 +216,7 @@ def latest_pixel_stack(
     pool_size=5,
     level=None,
     sensor=None,
-    mode="latest",
+    mode="latest_pixel",
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -262,7 +262,7 @@ def latest_pixel_stack(
         ]
         funk = latest_pixel
     else:
-        if mode == "latest":
+        if mode == "latest_pixel":
             # Construct array of latest pixel calls with varying dates.
             dates = [
                 (
