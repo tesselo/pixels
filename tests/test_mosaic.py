@@ -189,7 +189,7 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
-        expected = [[[[2956, 2996], [7003, 7043]]] * 7] * 4
+        expected = [[[[2956, 2996], [7003, 7043]]] * 8] * 4
         numpy.testing.assert_array_equal(stack, expected)
 
     def test_algebra(self):
