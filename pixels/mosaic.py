@@ -286,7 +286,6 @@ def latest_pixel_stack(
             light_clouds = True
             sort = "cloud_cover"
             finish_early_cloud_cover_percentage = 0.05
-            bands = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
             # Extend bands to necessary parts.
             missing = [
                 band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
