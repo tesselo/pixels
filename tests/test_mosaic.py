@@ -180,6 +180,7 @@ class TestMosaic(unittest.TestCase):
             end="2020-02-02",
             scale=500,
             interval="weeks",
+            interval_step=1,
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
@@ -191,6 +192,21 @@ class TestMosaic(unittest.TestCase):
         )
         expected = [[[[2956, 2996], [7003, 7043]]] * 8] * 4
         numpy.testing.assert_array_equal(stack, expected)
+        # Interval step 2 reduces number of layers to 2.
+        creation_args, dates, stack = latest_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=500,
+            interval="weeks",
+            interval_step=2,
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+            pool_size=1,
+            mode="composite",
+        )
+        self.assertEqual(dates, ["2020-01-20", "2020-01-20"])
 
     def test_algebra(self):
         # Test regular latest pixel.

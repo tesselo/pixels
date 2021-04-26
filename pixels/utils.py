@@ -171,7 +171,7 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
     return bbox
 
 
-def timeseries_steps(start, end, interval, intervals_per_step=1):
+def timeseries_steps(start, end, interval, interval_step=1):
     """
     Construct a series of timestep intervals.
 
@@ -191,6 +191,9 @@ def timeseries_steps(start, end, interval, intervals_per_step=1):
     interval : str
         A timestep interval. Needs to be interpretable by relativedelta. Valid
         values include "years", "months", "weeks", and "days".
+    interval_step : int, optional
+        The number of times the interval is counted as step. For instance, with
+        interval weeks and interval_step 2, two weeks are the step size.
 
     Returns
     -------
@@ -204,7 +207,7 @@ def timeseries_steps(start, end, interval, intervals_per_step=1):
     if isinstance(end, str):
         end = parser.parse(end)
     # Compute time delta.
-    delta = relativedelta(**{interval.lower(): int(intervals_per_step)})
+    delta = relativedelta(**{interval.lower(): int(interval_step)})
     one_day = relativedelta(days=1)
     # Create intermediate timestamps.
     here_start = start

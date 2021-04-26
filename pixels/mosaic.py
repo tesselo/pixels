@@ -208,6 +208,7 @@ def latest_pixel_stack(
     end,
     scale,
     interval="weeks",
+    interval_step=1,
     bands=None,
     platforms="SENTINEL_2",
     limit=100,
@@ -277,7 +278,7 @@ def latest_pixel_stack(
                     maxcloud,
                     level,
                 )
-                for step in timeseries_steps(start, end, interval)
+                for step in timeseries_steps(start, end, interval, interval_step)
             ]
             funk = latest_pixel
         elif mode == "composite":
@@ -310,7 +311,7 @@ def latest_pixel_stack(
                     finish_early_cloud_cover_percentage,
                     platforms,
                 )
-                for step in timeseries_steps(start, end, interval)
+                for step in timeseries_steps(start, end, interval, interval_step)
             ]
             funk = composite
 

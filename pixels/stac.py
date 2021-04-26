@@ -519,6 +519,7 @@ def validate_pixels_config(
     start="2020-01-01",
     end=None,
     interval="all",
+    interval_step=1,
     scale=10,
     clip=True,
     bands=("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"),
@@ -541,6 +542,7 @@ def validate_pixels_config(
         end : str, optional
             Date to end search on pixels.
         interval : str, optional
+        interval_step : int, optional
         scale : int, optional
         clip : boolean, optional
         bands : tuple, optional
@@ -572,6 +574,7 @@ def validate_pixels_config(
         "start": start,
         "end": end,
         "interval": interval,
+        "interval_step": interval_step,
         "scale": scale,
         "clip": clip,
         "bands": bands,
