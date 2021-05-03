@@ -558,13 +558,12 @@ class DataGenerator_stac(keras.utils.Sequence):
                 Y = Y[mask_1d]
             # Drop the X values using combined mask.
             X = X[mask_1d]
-
-        # For multiclass problems, convert the Y data to categorical.
-        if self.num_classes > 1:
-            # Convert data to one-hot encoding. This assumes class DN numbers to
-            # be strictly sequential and starting with 0.
-            Y = keras.utils.to_categorical(Y, self.num_classes)
-
+        if self.train:
+            # For multiclass problems, convert the Y data to categorical.
+            if self.num_classes > 1:
+                # Convert data to one-hot encoding. This assumes class DN numbers to
+                # be strictly sequential and starting with 0.
+                Y = keras.utils.to_categorical(Y, self.num_classes)
         return X, Y
 
     def get_prediction_from_index(self, index, search_for_meta=False):
