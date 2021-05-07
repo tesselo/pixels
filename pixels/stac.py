@@ -529,6 +529,8 @@ def validate_pixels_config(
     platforms=None,
     limit=None,
     mode="latest_pixel",
+    dynamic_dates_interval=None,
+    dynamic_dates_step=1,
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -557,6 +559,13 @@ def validate_pixels_config(
             Limit the number of images per search.
         mode: str, optional
             Mode of latest pixel collection (latest_pixel or composite).
+        dynamic_dates_interval: str, optional
+            If provided, the internal item dates are used as end date and this
+             interval is applied as the start date.
+        dynamic_dates_step: int, optional
+            To be used in combination with the dynamic_dates_interval. Defines
+            the number of times and interval is applied to go to the start date.
+            Defaults to 1.
     Returns
     -------
         config : dict
@@ -567,7 +576,23 @@ def validate_pixels_config(
     geojson = build_geometry_geojson(item)
     # If no end data is specify, fetch from item. Datetime to format 'YYYY-MM-DD'
     if not end:
-        end = item.datetime.isoformat()[:10]
+        end = item.datetime.date().isoformat()
+    # If requested, extract the dates from the item. Use the start and end date
+    # to determine the time range to be used.
+    if dynamic_dates_interval:
+        from dateutil.relativedelta import relativedelta
+
+        # Set end date from stac item.
+        end = item.datetime.date()
+        # Setup the time delta from start and end date input.
+        delta = relativedelta(
+            **{dynamic_dates_interval.lower(): int(dynamic_dates_step)}
+        )
+        # Set start date as the starting point
+        start = end - delta
+        # Convert both to string.
+        end = end.isoformat()
+        start = start.isoformat()
 
     config = {
         "geojson": geojson,
