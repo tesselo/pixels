@@ -1,0 +1,2 @@
+# Install rasterio without the binaries (use gdal from ubuntugis).
+rasterio==1.2.0 --install-option="--no-binary"

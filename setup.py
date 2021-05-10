@@ -13,8 +13,11 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-with open("requirements.txt", "r") as fh:
+with open("requirements.in", "r") as fh:
     install_requires = [req.strip() for req in fh.readlines()]
+
+with open("dev_requirements.in", "r") as fh:
+    tests_require = [req.strip() for req in fh.readlines()]
 
 
 setup(
@@ -30,4 +33,5 @@ setup(
     packages=find_packages(exclude=("tests", "batch", "scripts")),
     include_package_data=True,
     install_requires=install_requires,
+    tests_require=tests_require,
 )
