@@ -14,14 +14,8 @@ import rasterio
 from dateutil import parser
 from pystac import STAC_IO
 
-from pixels.const import (
-    PIXELS_COMPOSITE_MODE,
-    PIXELS_LATEST_PIXEL_MODE,
-    PIXELS_MODES,
-    PIXELS_S2_STACK_MODE,
-)
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.mosaic import composite, latest_pixel, latest_pixel_stack
+from pixels.mosaic import latest_pixel_stack
 from pixels.utils import write_raster
 
 # Get logger
@@ -620,44 +614,6 @@ def validate_pixels_config(
     return config
 
 
-def run_pixels(config, mode="s2_stack"):
-    """
-    Run pixels, based on a config file and a chosen mode.
-
-    Parameters
-    ----------
-        config : dict
-            Dictionary containing the parameters to pass on to pixels.
-        mode : str, optional
-            Mode to use pixel. Avaible modes:
-                's2_stack' : All avaible timesteps in timerange. -> latest_pixel_stack()
-                'latest': Lastest avaible scene in timerange. -> latest_pixel()
-                'composite' Composite from best pixels in timerange. -> composite()
-    Returns
-    -------
-        dates : list
-            List of string containing the dates.
-        results : list
-            List of arrays containing the images.
-        meta_data : dict
-            Dictionary containing the item's meta data.
-    """
-    if mode == PIXELS_S2_STACK_MODE:
-        result = latest_pixel_stack(**config)
-    elif mode == PIXELS_LATEST_PIXEL_MODE:
-        result = latest_pixel(**config)
-    elif mode == PIXELS_COMPOSITE_MODE:
-        result = composite(**config)
-    else:
-        raise ValueError(
-            "Found invalid pixel mode {}. Avaible modes: {}.".format(
-                mode, ", ".join(PIXELS_MODES)
-            )
-        )
-
-    return result
-
-
 def get_and_write_raster_from_item(item, x_folder, input_config):
     """
     Based on a pystac item get the images in timerange from item's bbox.
@@ -677,7 +633,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     # Build a configuration json for pixels.
     config = validate_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
-    meta, dates, results = run_pixels(config)
+    meta, dates, results = latest_pixel_stack(**config)
     if not meta:
         logger.warning(f"No images for {str(item.id)}")
         return
