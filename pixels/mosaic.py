@@ -185,18 +185,19 @@ def latest_pixel(
         if not numpy.any(mask):
             break
 
-    # Clip stack to geometry if requested.
-    if clip and creation_args:
-        mask = compute_mask(
-            geojson,
-            creation_args["height"],
-            creation_args["width"],
-            creation_args["transform"],
-        )
-        for i in range(len(stack)):
-            stack[i][mask] = NODATA_VALUE
-
+    # Final polishing of stack data.
     if stack is not None:
+        # Clip stack to geometry if requested.
+        if clip and creation_args:
+            mask = compute_mask(
+                geojson,
+                creation_args["height"],
+                creation_args["width"],
+                creation_args["transform"],
+            )
+            for i in range(len(stack)):
+                stack[i][mask] = NODATA_VALUE
+        # Ensuri the stack is a numpy array.
         stack = numpy.array(stack)
 
     return creation_args, first_end_date, stack
@@ -458,5 +459,17 @@ def composite(
         if numpy.sum(mask) / mask.size <= finish_early_cloud_cover_percentage:
             logger.debug("Finalized compositing early.")
             break
+
+    # Clip stack to geometry if requested.
+    if stack is not None:
+        if clip and creation_args:
+            mask = compute_mask(
+                geojson,
+                creation_args["height"],
+                creation_args["width"],
+                creation_args["transform"],
+            )
+            for i in range(len(stack)):
+                stack[i][mask] = NODATA_VALUE
 
     return creation_args, first_end_date, numpy.array(stack)
