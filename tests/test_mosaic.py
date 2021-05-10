@@ -6,7 +6,7 @@ from unittest import mock
 import numpy
 
 from pixels.algebra import parser
-from pixels.mosaic import latest_pixel, latest_pixel_stack
+from pixels.mosaic import latest_pixel, pixel_stack
 
 
 def mock_search_data(
@@ -137,9 +137,9 @@ class TestMosaic(unittest.TestCase):
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
 
-    def test_latest_pixel_stack(self):
+    def test_pixel_stack(self):
         # Test weekly latest pixel stack.
-        creation_args, dates, stack = latest_pixel_stack(
+        creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
@@ -157,7 +157,7 @@ class TestMosaic(unittest.TestCase):
         numpy.testing.assert_array_equal(stack, expected)
 
         # Test all latest pixel.
-        creation_args, dates, stack = latest_pixel_stack(
+        creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-01",
@@ -172,9 +172,9 @@ class TestMosaic(unittest.TestCase):
         expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 3
         numpy.testing.assert_array_equal(stack, expected)
 
-    def test_latest_pixel_stack_composite(self):
+    def test_pixel_stack_composite(self):
         # Test weekly latest pixel stack.
-        creation_args, dates, stack = latest_pixel_stack(
+        creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
@@ -193,7 +193,7 @@ class TestMosaic(unittest.TestCase):
         expected = [[[[2956, 2996], [7003, 7043]]] * 8] * 4
         numpy.testing.assert_array_equal(stack, expected)
         # Interval step 2 reduces number of layers to 2.
-        creation_args, dates, stack = latest_pixel_stack(
+        creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
