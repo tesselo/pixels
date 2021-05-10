@@ -202,7 +202,7 @@ def latest_pixel(
     return creation_args, first_end_date, stack
 
 
-def latest_pixel_stack(
+def pixel_stack(
     geojson,
     start,
     end,
@@ -242,7 +242,7 @@ def latest_pixel_stack(
         )
 
         if not response:
-            raise ValueError("No scenes in search response. latest_pixel_stack")
+            raise ValueError("No scenes in search response. pixel_stack")
 
         logger.info("Getting {} scenes for this stack.".format(len(response)))
 

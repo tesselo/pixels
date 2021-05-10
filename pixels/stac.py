@@ -15,7 +15,7 @@ from dateutil import parser
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.mosaic import latest_pixel_stack
+from pixels.mosaic import pixel_stack
 from pixels.utils import write_raster
 
 # Get logger
@@ -633,7 +633,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     # Build a configuration json for pixels.
     config = validate_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
-    meta, dates, results = latest_pixel_stack(**config)
+    meta, dates, results = pixel_stack(**config)
     if not meta:
         logger.warning(f"No images for {str(item.id)}")
         return
