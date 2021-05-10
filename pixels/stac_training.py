@@ -286,7 +286,11 @@ def train_model_function(
     if catalog_dict_path.startswith("s3"):
         catalog_dict_path = catalog_dict_path.replace("s3://", "tmp/")
     if not os.path.exists(catalog_dict_path):
-        os.makedirs(os.path.dirname(catalog_dict_path))
+        try:
+            os.makedirs(os.path.dirname(catalog_dict_path))
+        except OSError:
+            # Directory already exists.
+            pass
     with open(catalog_dict_path, "w") as f:
         json.dump(catalog_dict, f)
     if catalog_uri.startswith("s3"):

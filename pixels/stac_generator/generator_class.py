@@ -289,7 +289,10 @@ class DataGenerator_stac(keras.utils.Sequence):
             count = count + 1
         self.source_y_path = self.collection.get_links("origin_files")[0].target
         if self.source_y_path.endswith("zip"):
-            source_y_data = pxstc.open_zip_from_s3(self.source_y_path)
+            if self.source_y_path.startswith("s3"):
+                source_y_data = pxstc.open_zip_from_s3(self.source_y_path)
+            else:
+                source_y_data = self.source_y_path
             self.file_in_zip = zipfile.ZipFile(source_y_data, "r")
 
     def __len__(self):
