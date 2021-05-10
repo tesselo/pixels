@@ -1,0 +1,313 @@
+import logging
+import math
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
+
+import boto3
+import numpy as np
+from tensorflow import keras
+
+import pixels.stac_generator.filters as pxfl
+import pixels.stac_generator.generator_augmentation_2D as aug
+import pixels.stac_generator.generator_utils as gen_ut
+import pixels.stac_training as stctr
+
+# S3 class instanciation.
+s3 = boto3.client("s3")
+logger = logging.getLogger(__name__)
+
+
+class DataGenerator_stac(keras.utils.Sequence):
+    """
+    Defining class for generator.
+    """
+
+    def __init__(
+        self,
+        path_collection_catalog="",
+        split=1,
+        random_seed=None,
+        train=True,
+        timesteps=12,
+        width=30,
+        height=30,
+        num_bands=10,
+        num_classes=1,
+        upsampling=1,
+        mode="3D_Model",
+        batch_number=1,
+        padding=0,
+        x_nan_value=0,
+        padding_mode="edge",
+        dtype=None,
+        augmentation=0,
+    ):
+        """
+        Initial setup for the class.
+
+        Parameters
+        ----------
+            path_collection_catalog : str
+                Path to the dictonary containing the training set.
+            split : float
+                Value between 0 and 1. Percentage of dataset to use.
+            random_seed : int
+                Numpy random seed. To randomize the dataset choice.
+            train : bool
+                Boolean setting for output. (True: X, Y | False: X)
+            timesteps : int
+                Number of timesteps to use.
+
+
+        """
+        self.path_collection_catalog = path_collection_catalog
+        self.split = split
+        self.random_seed = random_seed
+        self.train = train
+        self.batch_number = batch_number
+        self._set_collection()
+        self.timesteps = timesteps
+        self.mode = mode
+        self.width = width
+        self.height = height
+        self.num_bands = num_bands
+        self.num_classes = num_classes
+        self.upsampling = upsampling
+        self.mode = mode
+        self.padding = padding
+        self.x_nan_value = x_nan_value
+        self.padding_mode = padding_mode
+        self.dtype = dtype
+        self.augmentation = augmentation
+        self._set_definition()
+
+    def _set_collection(self):
+        """
+        Seting class id list based on existing catalog dictionary.
+        """
+        # Open the indexing dictionary.
+        self.collection_catalog = stctr._load_dictionary(self.path_collection_catalog)
+        # The ids are the names of each image collection.
+        self._original_id_list = list(self.collection_catalog.keys())
+        self.id_list = self._original_id_list
+        len(self)
+        # Spliting the dataset.
+        if self.random_seed and self.split < 1:
+            np.random.seed(self.random_seed)
+            self.id_list = np.random.choice(self.id_list, self.length, replace=False)
+        elif self.split < 1:
+            self.id_list = self.id_list[: self.length]
+
+    def __len__(self):
+        # Original size of dataset, all the images collections avaible.
+        self._original_size = len(self._original_id_list)
+        # This is the lenght of ids to use.
+        self.length = math.ceil(self._original_size * self.split)
+        # The return value is the actual generator size, the number of times it
+        # can be called.
+        return math.ceil(self.length / self.batch_number)
+
+    def _set_definition(self):
+        self.x_open_shape = (self.timesteps, self.num_bands, self.width, self.height)
+        self.y_width = self.width * self.upsampling
+        self.y_height = self.height * self.upsampling
+        self.y_open_shape = (self.num_classes, self.y_width, self.y_height)
+        self.x_width = self.y_width + (self.padding * 2)
+        self.x_height = self.y_height + (self.padding * 2)
+        if self.mode != "Pixel_Model":
+            self.expected_x_shape = (
+                self.batch_number,
+                self.timesteps,
+                self.x_width,
+                self.x_height,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number,
+                self.y_width,
+                self.y_height,
+                self.num_classes,
+            )
+
+    def get_data(self, index):
+        """
+        Get the img and meta data based on the index paths.
+        If it is a training set, returns X and Y. If not only returns X.
+
+        Parameters
+        ----------
+            index : int
+                Index value on id_list to fetch the data.
+
+        Returns
+        -------
+            x_imgs : numpy tensor
+                Array with loaded X images(Timesteps, num_bands, width, height).
+            y_img : numpy tensor
+                Array with loaded Y images(num_classes, width, height).
+            x_meta: array of dictonaries
+                Array containg all the X metadata dictionaries.
+            y_meta: dictonary
+                Dictionary with Y metada.
+        """
+        # Get the collected id from the index list and its catalog from the
+        # index dictionary.
+        x_id = self.id_list[index]
+        catalog = self.collection_catalog[x_id]
+        x_paths = catalog["x_paths"]
+        # TODO: Check if it is the best way to multiprocessing rabbit hole.
+        with ThreadPoolExecutor(max_workers=min(len(x_paths), 12)) as executor:
+            x_tensor = []
+            futures = []
+            for x_path in x_paths:
+                futures.append(executor.submit(gen_ut.read_raster_file, x_path))
+            # Process completed tasks.
+            for future in futures:
+                result = future.result()
+                x_tensor.append(result)
+        #        # Open all X images in parallel.
+        #        with Pool(min(len(x_paths), 12)) as p:
+        #            x_tensor = p.map(gen_ut.read_raster_file, x_paths)
+        # Get the imgs list and the meta list.
+        x_imgs = np.array(x_tensor, dtype="object")[:, 0]
+        # Ensure all images are numpy arrays.
+        x_imgs = [np.array(x) for x in x_imgs]
+        x_meta = np.array(x_tensor, dtype="object")[:, 1]
+        # Same process for y data.
+        if self.train:
+            y_path = catalog["y_path"]
+            y_img, y_meta = gen_ut.read_raster_file(y_path)
+            return np.array(x_imgs), np.array(y_img), x_meta, y_meta
+        # Current shapes:
+        # X -> (Timesteps, num_bands, width, height)
+        # Y -> (num_classes, width, height)
+        return np.array(x_imgs), x_meta
+
+    def get_meta(self, index):
+        x_id = self.id_list[index]
+        catalog = self.collection_catalog[x_id]
+        x_paths = catalog["x_paths"]
+        x_meta = gen_ut.read_raster_meta(x_paths[0])
+        if self.train:
+            y_path = catalog["y_path"]
+            y_meta = gen_ut.read_raster_meta(y_path)
+            return x_meta, y_meta
+        return x_meta
+
+    def get_images(self, index):
+        if self.train:
+            x_imgs, y_img, x_meta, y_meta = self.get_data(index)
+        else:
+            x_imgs, x_meta = self.get_data(index)
+            y_img = None
+        return x_imgs, y_img
+
+    def process_data(self, x_tensor, y_tensor=None):
+        """
+        Processing of data on 3D and 2D modes.
+        """
+        # Make padded timesteps, with nan_value.
+        if len(x_tensor) < self.timesteps:
+            x_tensor = np.vstack(
+                (
+                    x_tensor,
+                    np.zeros(
+                        (
+                            self.timesteps - np.array(x_tensor).shape[0],
+                            *np.array(x_tensor).shape[1:],
+                        )
+                    ),
+                )
+            )
+        # Choose and order timesteps by level of nan_value density.
+        x_tensor = pxfl._order_tensor_on_masks(
+            np.array(x_tensor), self.x_nan_value, number_images=self.timesteps
+        )
+        # Ensure X img size.
+        x_tensor = x_tensor[
+            : self.timesteps, : self.num_bands, : self.width, : self.height
+        ]
+        # Fill missing pixels to the standard, with the NaN value of the object.
+        if x_tensor.shape != self.x_open_shape:
+            x_tensor = gen_ut.fill_missing_dimensions(x_tensor, self.x_open_shape)
+        # Upsample the X.
+        if self.upsampling > 1:
+            x_tensor = aug.upscale_multiple_images(
+                x_tensor, upscale_factor=self.upsampling
+            )
+        # Add padding.
+        if self.padding > 0:
+            x_tensor = np.pad(
+                x_tensor,
+                (
+                    (0, 0),
+                    (0, 0),
+                    (self.padding, self.padding),
+                    (self.padding, self.padding),
+                ),
+                mode=self.padding_mode,
+            )
+        # Ensure correct size of Y data in training mode.
+        if self.train:
+            # Limit the size to the maximum expected.
+            y_tensor = y_tensor[: self.num_classes, : self.y_width, : self.y_height]
+            # Fill the gaps with nodata if the array is too small.
+            if y_tensor.shape != self.y_open_shape:
+                y_tensor = gen_ut.fill_missing_dimensions(y_tensor, self.y_open_shape)
+        return x_tensor, y_tensor
+
+    def _get_and_process(self, index):
+        x_imgs, y_img = self.get_images(index)
+        # X -> (Timesteps, num_bands, width, height)
+        # Y -> (num_classes, width, height)
+        if self.mode == "3D_Model":
+            # This gets the data to be used in image models.
+            x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
+        # Change the shape order to :
+        # X -> (Timesteps, width, height, num_bands)
+        # Y -> (width, height, num_classes, )
+        x_tensor = np.swapaxes(x_tensor, 1, 2)
+        x_tensor = np.swapaxes(x_tensor, 2, 3)
+        if self.train:
+            y_tensor = np.swapaxes(y_tensor, 0, 1)
+            y_tensor = np.swapaxes(y_tensor, 1, 2)
+        return x_tensor, y_tensor
+
+    def __getitem__(self, index):
+        """
+        Generate batch of data
+        """
+        # Build a list of indexes to grab.
+        list_indexes = [
+            (f * len(self)) + index
+            for f in np.arange(self.batch_number)
+            if ((f * len(self)) + index) < self._original_size
+        ]
+        # Do all batches in parallel.
+        with Pool(self.batch_number) as p:
+            tensor = p.map(self._get_and_process, list_indexes)
+        if self.train:
+            X = np.array(tensor, dtype="object")[:, 0]
+            Y = np.array(tensor, dtype="object")[:, 1]
+            Y = np.array([np.array(y) for y in Y])
+        else:
+            X = tensor
+        X = np.array([np.array(x) for x in X])
+
+        # Enforce a dtype.
+        if self.dtype:
+            X = X.astype(self.dtype)
+            if self.train:
+                Y = Y.astype(self.dtype)
+        # Augment data, for more detail see do_augmentation() on gen_ut.
+        if self.augmentation > 0:
+            X, Y = gen_ut.do_augmentation(
+                X,
+                Y,
+                augmentation_index=gen_ut.augmentation,
+                batch_size=self.batch_number,
+            )
+        # Return X only (not train) or X and Y (train).
+        if not self.train:
+            return X
+        return X, Y
