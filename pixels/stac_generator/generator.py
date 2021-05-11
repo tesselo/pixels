@@ -313,6 +313,8 @@ class DataGenerator(keras.utils.Sequence):
             # Convert data to one-hot encoding. This assumes class DN numbers to
             # be strictly sequential and starting with 0.
             y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
+        if not self.train:
+            return x_tensor
         return x_tensor, y_tensor
 
     def __getitem__(self, index):
@@ -328,14 +330,13 @@ class DataGenerator(keras.utils.Sequence):
         # Do all batches in parallel.
         with Pool(self.batch_number) as p:
             tensor = p.map(self._get_and_process, list_indexes)
+        # Break down the tuple n(X, Y) into X and Y.
         if self.train:
-            X = np.array(tensor, dtype="object")[:, 0]
-            Y = np.array(tensor, dtype="object")[:, 1]
-            Y = np.array([np.array(y) for y in Y])
+            X = [np.array(x[0]) for x in tensor]
+            Y = np.array([np.array(y[1]) for y in tensor])
         else:
             X = tensor
         X = np.array([np.array(x) for x in X])
-
         # Enforce a dtype.
         if self.dtype:
             X = X.astype(self.dtype)
