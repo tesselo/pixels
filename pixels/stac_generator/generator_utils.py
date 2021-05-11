@@ -114,25 +114,25 @@ def read_raster_meta(path_raster):
         """
         if isinstance(augmentation_index, int):
             augmentation_index = np.arange(augmentation_index) + 1
-        batchX = np.array([])
-        batchY = np.array([])
+        batch_X = np.array([])
+        batch_Y = np.array([])
         for batch in range(batch_size):
-            augmentedX = np.array([X[batch]])
-            augmentedY = np.array([y[batch]])
+            augmented_X = np.array([X[batch]])
+            augmented_Y = np.array([y[batch]])
             for i in augmentation_index:
-                augX, augY = aug.augmentation(
+                aug_X, aug_Y = aug.augmentation(
                     np.array([X[batch]]),
                     np.array([y[batch]]),
                     sizex=sizex,
                     sizey=sizey,
                     augmentation_index=i,
                 )
-                augmentedX = np.concatenate([augmentedX, augX])
-                augmentedY = np.concatenate([augmentedY, augY])
-            if not batchX.any():
-                batchX = augmentedX
-                batchY = augmentedY
+                augmented_X = np.concatenate([augmented_X, aug_X])
+                augmented_Y = np.concatenate([augmented_Y, aug_Y])
+            if not batch_X.any():
+                batch_X = augmented_X
+                batch_Y = augmented_Y
             else:
-                batchX = np.concatenate([batchX, augmentedX])
-                batchY = np.concatenate([batchY, augmentedY])
-        return np.array(batchX), np.array(batchY)
+                batch_X = np.concatenate([batch_X, augmented_X])
+                batch_Y = np.concatenate([batch_Y, augmented_Y])
+        return np.array(batch_X), np.array(batch_Y)

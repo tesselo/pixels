@@ -11,13 +11,14 @@ import pixels.stac_generator.filters as pxfl
 import pixels.stac_generator.generator_augmentation_2D as aug
 import pixels.stac_generator.generator_utils as gen_ut
 import pixels.stac_training as stctr
+from pixels.exceptions import InconsistentGeneratorDataException
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
 
 
-class DataGenerator_stac(keras.utils.Sequence):
+class DataGenerator(keras.utils.Sequence):
     """
     Defining class for generator.
     """
@@ -28,16 +29,17 @@ class DataGenerator_stac(keras.utils.Sequence):
         split=1,
         random_seed=None,
         train=True,
-        timesteps=12,
-        width=30,
-        height=30,
-        num_bands=10,
+        timesteps=None,
+        width=None,
+        height=None,
+        num_bands=None,
         num_classes=1,
         upsampling=1,
         mode="3D_Model",
         batch_number=1,
         padding=0,
         x_nan_value=0,
+        y_nan_value=None,
         padding_mode="edge",
         dtype=None,
         augmentation=0,
@@ -79,6 +81,8 @@ class DataGenerator_stac(keras.utils.Sequence):
         self.padding_mode = padding_mode
         self.dtype = dtype
         self.augmentation = augmentation
+        self.x_nan_value = x_nan_value
+        self.y_nan_value = y_nan_value
         self._set_definition()
 
     def _set_collection(self):
@@ -206,19 +210,6 @@ class DataGenerator_stac(keras.utils.Sequence):
         """
         Processing of data on 3D and 2D modes.
         """
-        # Make padded timesteps, with nan_value.
-        if len(x_tensor) < self.timesteps:
-            x_tensor = np.vstack(
-                (
-                    x_tensor,
-                    np.zeros(
-                        (
-                            self.timesteps - np.array(x_tensor).shape[0],
-                            *np.array(x_tensor).shape[1:],
-                        )
-                    ),
-                )
-            )
         # Choose and order timesteps by level of nan_value density.
         x_tensor = pxfl._order_tensor_on_masks(
             np.array(x_tensor), self.x_nan_value, number_images=self.timesteps
@@ -256,21 +247,72 @@ class DataGenerator_stac(keras.utils.Sequence):
                 y_tensor = gen_ut.fill_missing_dimensions(y_tensor, self.y_open_shape)
         return x_tensor, y_tensor
 
+    def process_pixels(self, X, Y=None):
+        """
+        Processing of data on Pixel mode.
+        """
+        # Flatten the with and height into single pixel 1D. The X tensor at
+        # this point has shape (time, bands, width, height).
+        x_new_shape = (X.shape[0], X.shape[1], X.shape[2] * X.shape[3])
+        X = X.reshape(x_new_shape)
+        # Bring pixel dimension to the front.
+        X = np.swapaxes(X, 1, 2)
+        X = np.swapaxes(X, 0, 1)
+        # Compute drop mask based on X values. This
+        mask_1d = np.any(X != self.x_nan_value, axis=(1, 2))
+        # In training mode, reshape Y data as well.
+        if self.train:
+            # Flatten 2D data to 1D.
+            Y = Y.ravel()
+            # Ensure X and Y have the same size.
+            if X.shape[0] != Y.shape[0]:
+                raise InconsistentGeneratorDataException(
+                    f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
+                )
+            # Add Y nodata values to mask array.
+            if self.y_nan_value:
+                mask_1d = np.logical_and(mask_1d, Y != self.y_nan_value)
+            # Drop the Y values using the combined mask.
+            Y = Y[mask_1d]
+        # Drop the X values using combined mask.
+        X = X[mask_1d]
+        return np.array(X), np.array(Y)
+
     def _get_and_process(self, index):
         x_imgs, y_img = self.get_images(index)
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
+        # Make padded timesteps, with nan_value.
+        if len(x_imgs) < self.timesteps:
+            x_imgs = np.vstack(
+                (
+                    x_imgs,
+                    np.zeros(
+                        (
+                            self.timesteps - np.array(x_imgs).shape[0],
+                            *np.array(x_imgs).shape[1:],
+                        )
+                    ),
+                )
+            )
         if self.mode == "3D_Model":
             # This gets the data to be used in image models.
             x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
-        # Change the shape order to :
-        # X -> (Timesteps, width, height, num_bands)
-        # Y -> (width, height, num_classes, )
-        x_tensor = np.swapaxes(x_tensor, 1, 2)
-        x_tensor = np.swapaxes(x_tensor, 2, 3)
-        if self.train:
-            y_tensor = np.swapaxes(y_tensor, 0, 1)
-            y_tensor = np.swapaxes(y_tensor, 1, 2)
+            # Change the shape order to :
+            # X -> (Timesteps, width, height, num_bands)
+            # Y -> (width, height, num_classes, )
+            x_tensor = np.swapaxes(x_tensor, 1, 2)
+            x_tensor = np.swapaxes(x_tensor, 2, 3)
+            if self.train:
+                y_tensor = np.swapaxes(y_tensor, 0, 1)
+                y_tensor = np.swapaxes(y_tensor, 1, 2)
+        if self.mode == "Pixel_Model":
+            x_tensor, y_tensor = self.process_pixels(x_imgs, Y=y_img)
+        # For multiclass problems, convert the Y data to categorical.
+        if self.num_classes > 1 and self.train:
+            # Convert data to one-hot encoding. This assumes class DN numbers to
+            # be strictly sequential and starting with 0.
+            y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
         return x_tensor, y_tensor
 
     def __getitem__(self, index):
