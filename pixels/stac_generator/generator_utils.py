@@ -135,4 +135,4 @@ def read_raster_meta(path_raster):
             else:
                 batch_X = np.concatenate([batch_X, augmented_X])
                 batch_Y = np.concatenate([batch_Y, augmented_Y])
-        return np.array(batch_X), np.array(batch_Y)
+        return batch_X, batch_Y

@@ -319,7 +319,31 @@ class DataGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         """
-        Generate batch of data
+        Generate batch of data.
+
+        Parameters
+        ----------
+            index : int
+                Index value on id_list to fetch the data.
+
+        Returns
+        -------
+            X : numpy tensor
+                Array with processed X images. Can choose 3 modes:
+                    3D_Model:
+                        (Batch_number, timesteps, width, height, num_bands).
+                    2D_Model:
+                        (Batch_number * timesteps, width, height, num_bands).
+                    Pixel_Model:
+                        (Batch_number * width * height, timesteps, num_bands).
+            Y : numpy tensor (optional)
+                Array with loaded Y images(num_classes, width, height).
+                    3D_Model:
+                        (Batch_number, width, height, num_classes).
+                    2D_Model:
+                        (Batch_number * timestep, width, height, num_classes).
+                    Pixel_Model:
+                        (Batch_number , width * height, num_classes).
         """
         # Build a list of indexes to grab.
         list_indexes = [
