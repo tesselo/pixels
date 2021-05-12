@@ -11,6 +11,7 @@ import boto3
 import numpy as np
 import pystac
 import rasterio
+import sentry_sdk
 from pystac import STAC_IO
 from rasterio.errors import RasterioIOError
 from tensorflow import keras
@@ -376,8 +377,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             y_item_path = x_catalog.get_links("corresponding_y")[0].target
             y_item = pystac.Item.from_file(y_item_path)
             y_path = y_item.assets[y_item.id].href
-        except Exception as E:
-            logger.warning(f"Generator error in get_items_paths: {E}")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.warning(f"Generator error in get_items_paths: {e}")
             y_path = None
         return x_paths, y_path
 
@@ -408,8 +410,9 @@ class DataGenerator_stac(keras.utils.Sequence):
             with rasterio.open(y_raster_file) as src:
                 y_img = src.read()
                 src.close()
-        except Exception as E:
-            logger.warning(f"Generator error in get_data: {E}")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.warning(f"Generator error in get_data: {e}")
             y_img = None
         x_tensor = []
         y_tensor = np.array(y_img)
@@ -465,7 +468,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                         .get_assets()[catalog_id]
                         .href
                     )
-                except:
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
                     pred_path = None
                 self.catalogs_dict[catalog_id]["prediction_path"] = pred_path
         # (Timesteps, bands, img)
@@ -483,7 +487,8 @@ class DataGenerator_stac(keras.utils.Sequence):
                     self.catalogs_dict[catalog_id]["y_path"],
                 )
                 break
-            except RasterioIOError:
+            except RasterioIOError as e:
+                sentry_sdk.capture_exception(e)
                 logger.warning(f"Rasterio IO error, trying again. try number: {i}.")
 
         if self.mode == "3D_Model":
@@ -648,14 +653,16 @@ class DataGenerator_stac(keras.utils.Sequence):
                 continue
             try:
                 x, y = self.get_data_from_index(index_count)
-            except:
+            except Exception as e1:
+                sentry_sdk.capture_exception(e1)
                 # Try again 5 times
                 for t in range(5):
                     try:
                         x, y = self.get_data_from_index(index_count + t + 1)
                         break
-                    except Exception as E:
-                        logger.warning(f"Try number {t}. {E}")
+                    except Exception as e2:
+                        sentry_sdk.capture_exception(e2)
+                        logger.warning(f"Try number {t}. {e2}")
             # Add padding.
             if self.padding > 0:
                 x = np.pad(

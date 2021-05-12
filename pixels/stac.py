@@ -11,6 +11,7 @@ import boto3
 import numpy as np
 import pystac
 import rasterio
+import sentry_sdk
 from dateutil import parser
 from pystac import STAC_IO
 
@@ -100,7 +101,8 @@ def open_file_from_s3(source_path):
     s3 = boto3.client("s3")
     try:
         data = s3.get_object(Bucket=bucket, Key=path)
-    except s3.exceptions.NoSuchKey:
+    except s3.exceptions.NoSuchKey as e:
+        sentry_sdk.capture_exception(e)
         logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
         data = None
     return data
@@ -226,7 +228,8 @@ def get_catalog_length(catalog_path):
     try:
         collection = pystac.Collection.from_file(catalog_path)
         size = len(collection.get_child_links())
-    except:
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         catalog = pystac.Catalog.from_file(catalog_path)
         size = len(catalog.get_item_links())
     return size
@@ -268,14 +271,15 @@ def parse_prediction_area(
 
     try:
         tiles = gp.read_file(source_path)
-    except Exception as E:
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         if source_path.startswith("s3"):
             STAC_IO.read_text_method = stac_s3_read_method
             STAC_IO.write_text_method = stac_s3_write_method
             data = open_file_from_s3(source_path)
             tiles = gp.read_file(data["Body"])
         else:
-            logger.warning(f"Error in parse_prediction_area: {E}")
+            logger.warning(f"Error in parse_prediction_area: {e}")
 
     id_name = os.path.split(source_path)[-1].replace(".geojson", "")
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -668,8 +672,9 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
         x_cat = parse_training_data(
             out_path, save_files=True, aditional_links=item.get_self_href()
         )
-    except Exception as E:
-        logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {E}")
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {e}")
     return x_cat
 
 
@@ -821,8 +826,9 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
             check = True
             try:
                 get_and_write_raster_from_item(item, x_folder, input_config)
-            except Exception as E:
-                logger.warning(f"Error in collect_from_catalog_subsection: {E}")
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                logger.warning(f"Error in collect_from_catalog_subsection: {e}")
         elif check is True:
             break
         count = count + 1
@@ -906,8 +912,9 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
             x_catalogs.append(
                 get_and_write_raster_from_item(item, x_folder, input_config)
             )
-        except Exception as E:
-            logger.warning(f"Error in get_and_write_raster_from_item: {E}")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.warning(f"Error in get_and_write_raster_from_item: {e}")
             continue
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")

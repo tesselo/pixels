@@ -3,6 +3,7 @@ import logging
 import math
 
 import rasterio
+import sentry_sdk
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
@@ -290,8 +291,9 @@ def write_raster(
             dst.write(data)
             try:
                 dst.build_overviews(factors, resampling)
-            except Exception as E:
-                logger.warning(f"Error in saving raster, building overviews: {E}")
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                logger.warning(f"Error in saving raster, building overviews: {e}")
     else:
         # Returns a memory file.
         output = io.BytesIO()
@@ -304,8 +306,9 @@ def write_raster(
                 # bigger than the factors.
                 try:
                     dst.build_overviews(factors, resampling)
-                except Exception as E:
-                    logger.warning(f"Error in saving raster, building overviews: {E}")
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+                    logger.warning(f"Error in saving raster, building overviews: {e}")
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
