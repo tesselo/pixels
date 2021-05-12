@@ -24,6 +24,7 @@ ALLOWED_CUSTOM_LOSSES = [
     "nan_root_mean_squared_error_loss",
     "square_stretching_error_loss",
     "stretching_error_loss",
+    "nan_categorical_crossentropy_loss",
 ]
 
 logger = logging.getLogger(__name__)

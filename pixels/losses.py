@@ -21,6 +21,18 @@ def nan_mean_squared_error_loss(nan_value=np.nan):
     return loss
 
 
+def nan_categorical_crossentropy_loss(nan_value=np.nan):
+    # Create a loss function
+    def loss(y_true, y_pred):
+        indices = tf.where(tf.not_equal(y_true, nan_value))
+        return tf.keras.losses.categorical_crossentropy(
+            tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
+        )
+
+    # Return a function
+    return loss
+
+
 def nan_root_mean_squared_error_loss(nan_value=np.nan):
     # Create a loss function
     def loss(y_true, y_pred):
