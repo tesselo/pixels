@@ -116,3 +116,6 @@ X_SimplePixelCase = np.array(
 )
 
 Y_SimplePixelCase = np.array([Y_Simple3DCase.ravel()])
+
+Y_Simple2DCase = np.repeat(Y_Simple3DCase, 3 ,axis=0)
+X_Simple2DCase = X_Simple3DCase[0]

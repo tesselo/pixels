@@ -96,19 +96,33 @@ class DataGenerator(keras.utils.Sequence):
             self.y_open_shape = (self.num_classes, self.y_width, self.y_height)
             self.x_width = self.y_width + (self.padding * 2)
             self.x_height = self.y_height + (self.padding * 2)
-            self.expected_x_shape = (
-                self.batch_number,
-                self.timesteps,
-                self.x_width,
-                self.x_height,
-                self.num_bands,
-            )
-            self.expected_y_shape = (
-                self.batch_number,
-                self.y_width,
-                self.y_height,
-                self.num_classes,
-            )
+            if self.mode == "3D_Model":
+                self.expected_x_shape = (
+                    self.batch_number,
+                    self.timesteps,
+                    self.x_width,
+                    self.x_height,
+                    self.num_bands,
+                )
+                self.expected_y_shape = (
+                    self.batch_number,
+                    self.y_width,
+                    self.y_height,
+                    self.num_classes,
+                )
+            if self.mode == "2D_Model":
+                self.expected_x_shape = (
+                    self.batch_number * self.timesteps,
+                    self.x_width,
+                    self.x_height,
+                    self.num_bands,
+                )
+                self.expected_y_shape = (
+                    self.batch_number * self.timesteps,
+                    self.y_width,
+                    self.y_height,
+                    self.num_classes,
+                )
 
     def parse_collection(self):
         """
@@ -296,7 +310,7 @@ class DataGenerator(keras.utils.Sequence):
         X = X[mask_1d]
         return np.array(X), np.array(Y)
 
-    def _get_and_process(self, index):
+    def get_and_process(self, index):
         x_imgs, y_img = self.get_data(index, only_images=True)
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
@@ -313,7 +327,7 @@ class DataGenerator(keras.utils.Sequence):
                     ),
                 )
             )
-        if self.mode == "3D_Model":
+        if self.mode == "3D_Model" or self.mode == "2D_Model":
             # This gets the data to be used in image models.
             x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
             # Change the shape order to :
@@ -333,6 +347,8 @@ class DataGenerator(keras.utils.Sequence):
             y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
         if not self.train:
             return x_tensor
+        if self.mode == "2D_Model":
+            y_tensor = np.repeat(np.array([y_tensor]), self.timesteps, axis=0)
         return x_tensor, y_tensor
 
     def __getitem__(self, index):
@@ -371,7 +387,7 @@ class DataGenerator(keras.utils.Sequence):
         ]
         # Do all batches in parallel.
         with Pool(self.batch_number) as p:
-            tensor = p.map(self._get_and_process, list_indexes)
+            tensor = p.map(self.get_and_process, list_indexes)
         # Break down the tuple n(X, Y) into X and Y.
         if self.train:
             X = [np.array(x[0]) for x in tensor]
@@ -379,6 +395,11 @@ class DataGenerator(keras.utils.Sequence):
         else:
             X = tensor
         X = np.array([np.array(x) for x in X])
+        # Since 2D mode is a special case of 3D, it just requires a ravel on
+        # 1st two dimensions.
+        if self.mode == "2D_Model":
+            X = X.reshape(self.expected_x_shape)
+            Y = Y.reshape(self.expected_y_shape)
         # Enforce a dtype.
         if self.dtype:
             X = X.astype(self.dtype)
