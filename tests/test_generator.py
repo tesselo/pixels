@@ -8,7 +8,7 @@ from tests import test_arrays
 
 class TestGenerator(unittest.TestCase):
     def setUp(self):
-        self.catalog_dict_path = "data/catalogs_dict.json"
+        self.catalog_dict_path = "tests/data/catalogs_dict.json"
 
     def test_simple_3D_case(self):
         gen_args = {
