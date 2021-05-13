@@ -2,11 +2,14 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+import sentry_sdk
 from matplotlib import cm
 from PIL import Image
 
 
-def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scaling=1000):
+def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=None, scaling=1000):
+    if RGB is None:
+        RGB = [8, 7, 6]
     num_Y = len(Y)
     dat = np.squeeze(Y)
     if len(X.shape) > 4:
@@ -72,7 +75,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                     (xoffset + 1) * img_l + xoffset * padding
                 ),
             ] = ydata[:, :, :3]
-        except:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             print("Failed")
             raise
 
@@ -111,7 +115,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                             (xoffset + 1) * img_l + xoffset * padding
                         ),
                     ] = preddata[:, :, :3]
-                except:
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
                     print("Failed")
                     raise
 
@@ -158,7 +163,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=[8, 7, 6], scalin
                     (xoffset + 1) * img_l + xoffset * padding
                 ),
             ] = rgb
-        except:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             print("Failed")
             raise
     img = Image.fromarray(target)

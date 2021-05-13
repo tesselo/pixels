@@ -8,6 +8,7 @@ import os
 import h5py
 import numpy as np
 import pystac
+import sentry_sdk
 import tensorflow as tf
 from dateutil import parser
 from rasterio import Affine
@@ -140,7 +141,8 @@ def load_existing_model_from_file(
         model_uri = f
     try:
         model = tf.keras.models.load_model(model_uri)
-    except:
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         model = tf.keras.models.load_model(
             model_uri, custom_objects={"loss": get_custom_loss(loss_dict)(nan_value)}
         )
@@ -349,14 +351,16 @@ def predict_function_batch(
         # TODO: Change this!
         try:
             model = tf.keras.models.load_model(f)
-        except:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             model = tf.keras.models.load_model(
                 f, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
             )
     else:
         try:
             model = tf.keras.models.load_model(model_uri)
-        except:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             model = tf.keras.models.load_model(
                 model_uri, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
             )
@@ -549,5 +553,6 @@ def predict_function_batch(
                 aditional_links,
                 href_path,
             )
-        except Exception as E:
-            logger.warning(f"Error in parsing data in predict_function_batch: {E}")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.warning(f"Error in parsing data in predict_function_batch: {e}")

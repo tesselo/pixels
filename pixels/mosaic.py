@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
 
 import numpy
+import sentry_sdk
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
@@ -139,14 +140,16 @@ def latest_pixel(
                     for future in futures:
                         result = future.result()
                         data.append(result)
-            except RasterioIOError:
+            except RasterioIOError as e:
+                sentry_sdk.capture_exception(e)
                 logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
                 failed_retrieve = True
         else:
             for band in band_list:
                 try:
                     result = retrieve(*band)
-                except RasterioIOError:
+                except RasterioIOError as e:
+                    sentry_sdk.capture_exception(e)
                     logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
                     failed_retrieve = True
                     break

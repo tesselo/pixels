@@ -6,6 +6,16 @@ import importlib
 import logging.config
 import sys
 
+import sentry_sdk
+
+sentry_sdk.init(
+    # Sentry DSN is not a secret, but it should be added to a broader
+    # configuration management policy and removed from here
+    "https://3d69110c01aa41f48f28cf047bfcbc91@o640190.ingest.sentry.io/5760850",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    traces_sample_rate=1.0,
+)
+
 # Logging configuration as dictionary.
 LOGGING_CONFIG = {
     "version": 1,
