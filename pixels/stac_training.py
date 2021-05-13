@@ -10,6 +10,7 @@ import numpy as np
 import pystac
 import sentry_sdk
 import tensorflow as tf
+import tensorflow_addons
 from dateutil import parser
 from rasterio import Affine
 
@@ -210,6 +211,20 @@ def train_model_function(
     # Instanciate generator.
     dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
     if not no_compile:
+        # Compile confusion matrix if requested.
+        if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
+            # Remove string version from metrics.
+            compile_args["metrics"].pop(
+                compile_args["metrics"].index("MultiLabelConfusionMatrix")
+            )
+            # Add complied version to metrics.
+            compile_args["metrics"].append(
+                tensorflow_addons.metrics.MultiLabelConfusionMatrix(
+                    num_classes=dtgen.num_classes
+                )
+            )
+
+        # Handle custom loss case.
         if not hasattr(tf.keras.losses, compile_args["loss"]):
             input = compile_args["loss"]
             # Validate input
