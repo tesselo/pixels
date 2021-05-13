@@ -93,7 +93,7 @@ class DataGenerator(keras.utils.Sequence):
             )
             self.y_width = self.width * self.upsampling
             self.y_height = self.height * self.upsampling
-            self.y_open_shape = (self.num_classes, self.y_width, self.y_height)
+            self.y_open_shape = (1, self.y_width, self.y_height)
             self.x_width = self.y_width + (self.padding * 2)
             self.x_height = self.y_height + (self.padding * 2)
             if self.mode == "3D_Model":
@@ -377,7 +377,7 @@ class DataGenerator(keras.utils.Sequence):
                     2D_Model:
                         (Batch_number * timestep, width, height, num_classes).
                     Pixel_Model:
-                        (Batch_number , width * height, num_classes).
+                        (Batch_number * width * height, num_classes).
         """
         # Build a list of indexes to grab.
         list_indexes = [
@@ -397,9 +397,9 @@ class DataGenerator(keras.utils.Sequence):
         X = np.array([np.array(x) for x in X])
         # Since 2D mode is a special case of 3D, it just requires a ravel on
         # 1st two dimensions.
-        if self.mode == "2D_Model":
-            X = X.reshape(self.expected_x_shape)
-            Y = Y.reshape(self.expected_y_shape)
+        if self.mode == "2D_Model" or self.mode=="Pixel_Model":
+            X = X.reshape((X.shape[0]*X.shape[1], *X.shape[2:]))
+            Y = Y.reshape((Y.shape[0]*Y.shape[1], *Y.shape[2:]))
         # Enforce a dtype.
         if self.dtype:
             X = X.astype(self.dtype)

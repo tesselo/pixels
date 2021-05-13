@@ -2,8 +2,15 @@
   "relative_paths": true,
   "pixels_id_0": {"x_paths": ["x_examples/pixels_id_0/2020_10_22.tif", "x_examples/pixels_id_0/2020_10_25.tif", "x_examples/pixels_id_0/2020_10_27.tif"],
     "y_path": "y_example/id_0.tif",
-    "stac_catalog": "x_examples/stac/catalog.json"},
+    "stac_catalog": "x_examples/stac/catalog.json",
+    "discrete_training": true},
   "pixels_id_1": {"x_paths": ["x_examples/pixels_id_0/2020_10_22.tif", "x_examples/pixels_id_0/2020_10_25.tif", "x_examples/pixels_id_0/2020_10_27.tif"],
       "y_path": "y_example/id_0_up2.tif",
-      "stac_catalog": "x_examples/stac/catalog_up2.json"}
+      "stac_catalog": "x_examples/stac/catalog_up2.json",
+      "discrete_training": true},
+  "pixels_id_2": {"x_paths": ["x_examples/pixels_id_0/2020_10_22.tif", "x_examples/pixels_id_0/2020_10_25.tif", "x_examples/pixels_id_0/2020_10_27.tif"],
+      "y_path": "y_example/id_0_multiclass.tif",
+      "stac_catalog": "x_examples/stac/catalog_multiclass.json",
+      "discrete_training": true}
+
     }
