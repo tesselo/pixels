@@ -397,9 +397,9 @@ class DataGenerator(keras.utils.Sequence):
         X = np.array([np.array(x) for x in X])
         # Since 2D mode is a special case of 3D, it just requires a ravel on
         # 1st two dimensions.
-        if self.mode == "2D_Model" or self.mode=="Pixel_Model":
-            X = X.reshape((X.shape[0]*X.shape[1], *X.shape[2:]))
-            Y = Y.reshape((Y.shape[0]*Y.shape[1], *Y.shape[2:]))
+        if self.mode == "2D_Model" or self.mode == "Pixel_Model":
+            X = X.reshape((X.shape[0] * X.shape[1], *X.shape[2:]))
+            Y = Y.reshape((Y.shape[0] * Y.shape[1], *Y.shape[2:]))
         # Enforce a dtype.
         if self.dtype:
             X = X.astype(self.dtype)
