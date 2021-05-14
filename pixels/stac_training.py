@@ -24,6 +24,7 @@ ALLOWED_CUSTOM_LOSSES = [
     "nan_root_mean_squared_error_loss",
     "square_stretching_error_loss",
     "stretching_error_loss",
+    "nan_categorical_crossentropy_loss",
 ]
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,10 @@ def _load_dictionary(path_file):
     else:
         with open(path_file, "r") as json_file:
             input_config = json_file.read()
-            dicti = ast.literal_eval(input_config)
+            try:
+                dicti = ast.literal_eval(input_config)
+            except:
+                dicti = json.loads(str(input_config))
     return dicti
 
 

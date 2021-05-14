@@ -8,6 +8,21 @@ Copyright 2020 Tesselo - Space Mosaic Lda. All rights reserved.
 ## Environment
 For batch jobs `AWS_S3_BUCKET` and `PIXELS_PROJECT_ID`.
 
+
+## Requirements
+For the Batch docker image, the requirements are different for two reasons:
+
+  1. Tensorflow is preinstalled on the docker image, as it has to match the
+     underlying architecture on batch processing. So tensorflow does not need
+     a separate install on the docker image, but it does on the dev environments.
+
+  2. Rasterio has depends on GDAL, which comes shipped with rasterio in a binary
+     format by default. In an environment where GDAL is already installed, this
+     is not necessary and not even desired, as the GDAL versions might be
+     different. So also here, on the Docker image, GDAL is preinstalled from apt
+     and rasterio needs to be installed without binaries. Outside docker images,
+     its necessary to install it with binaries.
+
 ## Config
 This is still under construction, but should represent all the options one can
 specify when running pixels.
