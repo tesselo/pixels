@@ -34,7 +34,11 @@ def write_temp_raster(
         "nodata": 0,
         "transform": rasterio.Affine(scale, skew, origin_x, skew, -scale, origin_y),
     }
-    data = numpy.arange(size ** 2, dtype="uint16").reshape((1, size, size))
+    data = (
+        numpy.array([0, 1, 2, 3] * int((size ** 2) / 4))
+        .reshape((1, size, size))
+        .astype("uint16")
+    )
     with rasterio.open(raster.name, "w", **creation_args) as dst:
         dst.update_tags(**tags)
         dst.write(data)
@@ -72,6 +76,7 @@ l8_data_mock = MagicMock(
 
 class TestUtils(unittest.TestCase):
     def setUp(self, origin_x=-1028560.0, origin_y=4689560.0):
+        self.maxDiff = None
         # Create 3 temp raster.
         size = 256
         origin_x = -1028560.0
@@ -132,6 +137,56 @@ class TestUtils(unittest.TestCase):
             ],
         }
 
+        self.item_example = {
+            "type": "Feature",
+            "stac_version": "1.0.0-beta.2",
+            "properties": {
+                "driver": "GTiff",
+                "dtype": "uint16",
+                "nodata": 0.0,
+                "width": 256,
+                "height": 256,
+                "count": 1,
+                "crs": {"init": "epsg:3857"},
+                "transform": [
+                    10.0,
+                    0.0,
+                    -1028560.0,
+                    0.0,
+                    -10.0,
+                    4689560.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ],
+                "proj:epsg": 3857,
+                "stac_extensions": ["projection"],
+                "stats": {"0": 16384, "1": 16384, "2": 16384, "3": 16384},
+                "datetime": "2021-01-01T00:00:00Z",
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [-1028560.0, 4687000.0],
+                        [-1028560.0, 4689560.0],
+                        [-1026000.0, 4689560.0],
+                        [-1026000.0, 4687000.0],
+                        [-1028560.0, 4687000.0],
+                    ]
+                ],
+            },
+            "links": [
+                {"rel": "root", "href": "../catalog.json", "type": "application/json"},
+                {
+                    "rel": "parent",
+                    "href": "../catalog.json",
+                    "type": "application/json",
+                },
+            ],
+            "bbox": [-1028560.0, 4687000.0, -1026000.0, 4689560.0],
+        }
+
     def tearDown(self):
         """
         Remove some temp files.
@@ -143,21 +198,33 @@ class TestUtils(unittest.TestCase):
                 os.remove(path)
 
     def test_parse_training_data(self):
-        catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
+        catalog = parse_training_data(
+            self.zip_file.name, True, reference_date="2020-01-01"
+        )
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
 
-        # Check content.
+        # Check content of catalog.
         with open(catalog.get_self_href(), "r") as myfile:
             data = myfile.read()
-            # parse file
             obj = json.loads(data)
-
         self.assertEqual(obj, self.catalog_example)
+
+        # Check content of first item.
+        item = [item for item in catalog.get_all_items()][0]
+        with open(item.get_self_href(), "r") as myfile:
+            data = myfile.read()
+            obj = json.loads(data)
+        # Pop the varying parts that are due to the random paths and IDs.
+        obj.pop("id")
+        obj.pop("assets")
+        self.assertEqual(obj, self.item_example)
 
     @patch("pixels.search.engine.execute", l8_data_mock)
     @patch("pixels.search.format_ls_band", l8_return)
     def test_collect_from_catalog_subsection(self):
-        catalog = parse_training_data(self.zip_file.name, reference_date="2020-01-01")
+        catalog = parse_training_data(
+            self.zip_file.name, True, reference_date="2020-01-01"
+        )
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
         target = tempfile.mkdtemp()
         with tempfile.NamedTemporaryFile(suffix=".json", dir=target) as fl:
