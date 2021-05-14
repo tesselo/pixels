@@ -1,7 +1,5 @@
-#FROM ubuntu:20.04
-#FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu110-ubuntu18.04
+# List of aws images https://github.com/aws/deep-learning-containers/blob/master/available_images.md
 FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu102-ubuntu18.04
-#List of aws images https://github.com/aws/deep-learning-containers/blob/master/available_images.md
 
 # Fetch-and-run setup.
 # https://aws.amazon.com/blogs/compute/creating-a-simple-fetch-and-run-aws-batch-job/
@@ -24,5 +22,4 @@ RUN apt-get -y update\
   && apt-get -y install zip gdal-bin libgdal-dev
 
 ADD requirements.txt requirements.txt
-ADD rasterio_requirements.txt rasterio_requirements.txt
-RUN pip install -r rasterio_requirements.txt -r requirements.txt
+RUN pip install -r requirements.txt
