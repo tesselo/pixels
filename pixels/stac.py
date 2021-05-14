@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import zipfile
+from collections import Counter
 from urllib.parse import urlparse
 
 import boto3
@@ -429,6 +430,7 @@ def parse_training_data(
     catalog = pystac.Catalog(id=id_name, description=description)
     logger.debug("Found {} source rasters.".format(len(raster_list)))
     # For every raster in the zip file create an item, add it to catalog.
+    global_stats = Counter()
     for path_item in raster_list:
         id_raster = os.path.split(path_item)[-1].replace(".tif", "")
         raster_file = path_item
@@ -468,6 +470,8 @@ def parse_training_data(
         out_meta["crs"] = out_meta["crs"].to_dict()
         if categorical:
             out_meta["stats"] = stats
+            # Add item statistics to global stats counter.
+            global_stats.update(stats)
 
         # Create stac item.
         item = pystac.Item(
@@ -491,6 +495,14 @@ def parse_training_data(
         item.validate()
         # Add item to catalog.
         catalog.add_item(item)
+    # Store final statistics on catalog.
+    if categorical:
+        # Convert stats to class weights.
+        global_stats_total = sum(global_stats.values())
+        global_stats = {
+            key: val / global_stats_total for key, val in global_stats.items()
+        }
+        catalog.extra_fields["class_weight"] = global_stats
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
