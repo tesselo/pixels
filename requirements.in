@@ -4,7 +4,7 @@ mercantile==1.1.6
 pg8000==1.18.0
 pyparsing==2.4.7
 pystac==0.5.4
-rasterio==1.2.0
+rasterio==1.2.3
 sentry-sdk
 SQLAlchemy==1.4.0
 zappa==0.52.0
