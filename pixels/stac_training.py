@@ -268,7 +268,16 @@ def train_model_function(
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
-        json.dump(history.history, f)
+        # Get history data.
+        hist_data = history.history
+        # Convert confusion matrix elements in history from numpy array to
+        # lists. This is to ensure json serializability.
+        if "Multilabel_confusion_matrix" in hist_data:
+            hist_data["Multilabel_confusion_matrix"] = [
+                dat.tolist() for dat in hist_data["Multilabel_confusion_matrix"]
+            ]
+        # Write data.
+        json.dump(hist_data, f)
 
     # Store the model in bucket.
     if path_model.startswith("s3"):
