@@ -24,7 +24,7 @@ from pixels.utils import write_raster
 logger = logging.getLogger(__name__)
 
 
-def get_bbox_and_footprint(raster_uri):
+def get_bbox_and_footprint_and_stats(raster_uri, categorical):
     """
     Get bounding box and footprint from raster.
 
@@ -32,6 +32,8 @@ def get_bbox_and_footprint(raster_uri):
     ----------
     raster_uri : str or bytes_io
         The raster file location or bytes_io.
+    categorical: boolean, optional
+        If True, compute statistics of the pixel data for class weighting.
 
     Returns
     -------
@@ -43,6 +45,8 @@ def get_bbox_and_footprint(raster_uri):
         Datetime from image.
     out_meta : rasterio meta type
         Metadata from raster.
+    stats: dict or None
+        Statistics of the data, counts by unique value.
     """
     with rasterio.open(raster_uri) as ds:
         # Get bounds.
@@ -65,7 +69,15 @@ def get_bbox_and_footprint(raster_uri):
         # Try getting the datetime in the raster metadata. Set to None if not
         # found.
         datetime_var = ds.tags().get("datetime", None)
-        return bbox, footprint, datetime_var, ds.meta
+        # Compute unique counts if requested.
+        stats = None
+        if categorical:
+            unique_values, uniue_counts = np.unique(ds.read(), return_counts=True)
+            stats = {
+                int(key): int(val) for key, val in zip(unique_values, uniue_counts)
+            }
+
+        return bbox, footprint, datetime_var, ds.meta, stats
 
 
 def check_file_in_s3(uri):
@@ -346,6 +358,7 @@ def parse_prediction_area(
 
 def parse_training_data(
     source_path,
+    categorical,
     save_files=False,
     description="",
     reference_date=None,
@@ -361,6 +374,9 @@ def parse_training_data(
     ----------
         source_path : str
             Path to the zip file or folder containing the rasters.
+        categorical: boolean
+            If True, the data is considered to be categorical, and statistics
+            by class are computed for weighting.
         save_files : bool, optional
             Set True to save files from catalog and items.
         description : str, optional
@@ -426,7 +442,13 @@ def parse_training_data(
             path_item = "zip://{}!/{}".format(source_path, path_item)
             raster_file = path_item
         # Extract metadata from raster.
-        bbox, footprint, datetime_var, out_meta = get_bbox_and_footprint(raster_file)
+        (
+            bbox,
+            footprint,
+            datetime_var,
+            out_meta,
+            stats,
+        ) = get_bbox_and_footprint_and_stats(raster_file, categorical)
 
         # Ensure datetime var is set properly.
         if datetime_var is None:
@@ -444,7 +466,9 @@ def parse_training_data(
         # Make transform and crs json serializable.
         out_meta["transform"] = tuple(out_meta["transform"])
         out_meta["crs"] = out_meta["crs"].to_dict()
-        # out_meta["crs"] = out_meta["crs"].to_epsg()
+        if categorical:
+            out_meta["stats"] = stats
+
         # Create stac item.
         item = pystac.Item(
             id=id_raster,
@@ -670,7 +694,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     try:
         x_cat = parse_training_data(
-            out_path, save_files=True, aditional_links=item.get_self_href()
+            out_path, False, save_files=True, aditional_links=item.get_self_href()
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -949,7 +973,7 @@ def create_and_collect(source_path, config_file):
     # Build stac catalog from input data.
     logger.info("Building stac files for input data.")
     y_catalog = parse_training_data(
-        source_path, save_files=True, reference_date="2020-12-31"
+        source_path, False, save_files=True, reference_date="2020-12-31"
     )
     logger.info("Collecting data using pixels.")
     # Build the X catalogs.
