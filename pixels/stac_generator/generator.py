@@ -404,7 +404,8 @@ class DataGenerator(keras.utils.Sequence):
         # 1st two dimensions.
         if self.mode == "2D_Model" or self.mode == "Pixel_Model":
             X = np.vstack(X)
-            Y = np.vstack(Y)
+            if self.train:
+                Y = np.vstack(Y)
         # Enforce a dtype.
         if self.dtype:
             X = X.astype(self.dtype)
