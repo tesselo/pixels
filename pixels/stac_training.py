@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import os
+import pathlib
 
 import h5py
 import numpy as np
@@ -265,6 +266,36 @@ def train_model_function(
         mode="auto",
         save_freq="epoch",
     )
+
+    # Load the class weigths from the Y catalog if requested. Class weights can
+    # be passed as a dictionary with the class weights. In this case these
+    # will be passed on and not altered. If the class weights key is present,
+    # the class weights will be extracted from the Y catalog.
+    if (
+        "class_weight" in fit_args
+        and fit_args["class_weight"]
+        and not isinstance(fit_args["class_weight"], dict)
+    ):
+        # Open x catalog.
+        x_catalog = _load_dictionary(catalog_uri)
+        # Get origin files zip link from dictonary.
+        origin_files = [
+            dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
+        ][0]["href"]
+        # Construct y catalog uri.
+        y_catalog_uri = pathlib.Path(origin_files).parent / "stac" / "catalog.json"
+        # Open y catalog.
+        y_catalog = _load_dictionary(str(y_catalog_uri))
+        # Get stats from y catalog.
+        if "class_weight" in y_catalog:
+            # Ensure class weights have integer keys.
+            class_weight = {
+                int(key): val for key, val in y_catalog["class_weight"].items()
+            }
+            fit_args["class_weight"] = class_weight
+        else:
+            fit_args["class_weight"] = None
+
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:

@@ -129,6 +129,7 @@ class TestUtils(unittest.TestCase):
             "id": id_name,
             "stac_version": pystac.version.get_stac_version(),
             "description": "",
+            "class_weight": {"0": 0.25, "1": 0.25, "2": 0.25, "3": 0.25},
             "links": [
                 {"rel": "root", "href": "./catalog.json", "type": "application/json"},
                 {"rel": "item", "href": href_1, "type": "application/json"},
