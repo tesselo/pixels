@@ -309,6 +309,7 @@ class DataGenerator(keras.utils.Sequence):
                 mask_1d = np.logical_and(mask_1d, Y != self.y_nan_value)
             # Drop the Y values using the combined mask.
             Y = Y[mask_1d]
+            # Create dimension on last axis.
             Y = np.expand_dims(Y, axis=-1)
         # Drop the X values using combined mask.
         X = X[mask_1d]
