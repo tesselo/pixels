@@ -61,3 +61,22 @@ class TestGenerator(unittest.TestCase):
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_arrays.X_Simple2DCase)
         np.testing.assert_array_equal(y, test_arrays.Y_Simple2DCase)
+
+    def test_augmentation_3D(self):
+        gen_args = {
+            "path_collection_catalog": self.catalog_dict_path,
+            "split": 1,
+            "train": True,
+            "width": 3,
+            "height": 3,
+            "timesteps": 3,
+            "num_bands": 4,
+            "batch_number": 1,
+            "num_classes": 1,
+            "augmentation": 3,
+        }
+
+        dtgen = DataGenerator(**gen_args)
+        x, y = dtgen[0]
+        np.testing.assert_array_equal(x, test_arrays.X_Aug3D)
+        np.testing.assert_array_equal(y, test_arrays.Y_Aug3D)

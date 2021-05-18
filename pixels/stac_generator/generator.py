@@ -417,8 +417,11 @@ class DataGenerator(keras.utils.Sequence):
             X, Y = generator_utils.do_augmentation(
                 X,
                 Y,
-                augmentation_index=generator_utils.augmentation,
+                augmentation_index=self.augmentation,
                 batch_size=self.batch_number,
+                sizex=self.width,
+                sizey=self.height,
+                mode=self.mode,
             )
         # Return X only (not train) or X and Y (train).
         if not self.train:

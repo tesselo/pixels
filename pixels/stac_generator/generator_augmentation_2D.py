@@ -89,6 +89,8 @@ def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
     data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
     data_Y = np.squeeze(Y)
     data_X = np.squeeze(data_X)
+    if len(data_X.shape) < 4:
+        data_X = np.expand_dims(data_X, 0)
     timeseries_flip = []
     timeseries_flip0 = []
     timeseries_flip1 = []
