@@ -15,9 +15,9 @@ import sentry_sdk
 from dateutil import parser
 from pystac import STAC_IO
 
+from pixels import stac_training
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import pixel_stack
-from pixels.stac_training import _load_dictionary, save_dictionary
 from pixels.utils import write_raster
 
 # Get logger
@@ -717,7 +717,7 @@ def get_and_write_raster_from_item(
         }
     }
     # Write file and send to s3.
-    save_dictionary(
+    stac_training.save_dictionary(
         os.path.join(os.path.dirname(stac_catalog_path), "timerange_images_index.json"),
         catalog_dict,
     )
@@ -913,10 +913,10 @@ def create_x_catalog(x_folder, source_path=None):
     # Open all index catalogs and merge them.
     index_catalog = {}
     for cat in list_cats:
-        cat_dict = _load_dictionary(cat)
+        cat_dict = stac_training._load_dictionary(cat)
         index_catalog.update(cat_dict)
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
-    save_dictionary(cat_path, index_catalog)
+    stac_training.save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         x_catalogs.append(x_cat)
