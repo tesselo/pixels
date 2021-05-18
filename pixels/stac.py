@@ -730,7 +730,10 @@ def get_and_write_raster_from_item(
     }
     # Write file and send to s3.
     stac_training.save_dictionary(
-        os.path.join(os.path.dirname(stac_catalog_path), "timerange_images_index.json"),
+        os.path.join(
+            os.path.dirname(os.path.dirname(stac_catalog_path)),
+            "timerange_images_index.json",
+        ),
         catalog_dict,
     )
 
@@ -887,7 +890,9 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
                 get_and_write_raster_from_item(item, x_folder, input_config)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-                logger.warning(f"Error in collect_from_catalog_subsection: {e}")
+                logger.warning(
+                    f"Error in collect_from_catalog_subsection. Runing get_and_write_raster_from_item: {e}"
+                )
         elif check is True:
             break
         count = count + 1
