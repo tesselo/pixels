@@ -16,6 +16,7 @@ import sentry_sdk
 from dateutil import parser
 from pystac import STAC_IO
 
+from pixels import stac_training
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import pixel_stack
 from pixels.utils import write_raster
@@ -26,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_bbox_and_footprint_and_stats(raster_uri, categorical):
-    """
+    """with open(path, "r") as file:
+        file.write(json.dumps(catalog_dict))
     Get bounding box and footprint from raster.
 
     Parameters
@@ -565,6 +567,7 @@ def validate_pixels_config(
     mode="latest_pixel",
     dynamic_dates_interval=None,
     dynamic_dates_step=1,
+    discrete_training=True,
 ):
     """
     Based on a item build a config file to use on pixels.
@@ -654,7 +657,9 @@ def validate_pixels_config(
     return config
 
 
-def get_and_write_raster_from_item(item, x_folder, input_config):
+def get_and_write_raster_from_item(
+    item, x_folder, input_config, discrete_training=True
+):
     """
     Based on a pystac item get the images in timerange from item's bbox.
     Write them as a raster afterwards. Builds catalog from collected data.
@@ -682,6 +687,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     # called pixels.
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     out_paths_tmp = []
+    out_paths = []
     # Iterate over every timestep.
     for date, np_img in zip(dates, results):
         # If the given image is empty continue to next.
@@ -690,6 +696,7 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
             continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
+        out_paths.append(out_path_date)
         if out_path_date.startswith("s3"):
             out_path_date = out_path_date.replace("s3://", "tmp/")
             out_paths_tmp.append(out_path_date)
@@ -711,6 +718,22 @@ def get_and_write_raster_from_item(item, x_folder, input_config):
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {e}")
+    # Build a intermediate index catalog for the full one.
+    stac_catalog_path = str(x_cat.get_self_href())
+    catalog_dict = {
+        f"pixels_{str(item.id)}": {
+            "x_paths": out_paths,
+            "y_path": str(item.assets[item.id].href),
+            "stac_catalog": stac_catalog_path,
+            "discrete_training": discrete_training,
+        }
+    }
+    # Write file and send to s3.
+    stac_training.save_dictionary(
+        os.path.join(os.path.dirname(stac_catalog_path), "timerange_images_index.json"),
+        catalog_dict,
+    )
+
     return x_cat
 
 
@@ -881,6 +904,7 @@ def create_x_catalog(x_folder, source_path=None):
         source_path : str
             Path to source zip file or folder (Y input).
     """
+    # Build the custom catalog.
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")
     x_catalogs = []
@@ -888,11 +912,23 @@ def create_x_catalog(x_folder, source_path=None):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
         catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
+        list_cats = list_files_in_s3(
+            downloads_folder, filetype="timerange_images_index.json"
+        )
     else:
+        list_cats = glob.glob(
+            f"{downloads_folder}/**/timerange_images_index.json", recursive=True
+        )
         catalogs_path_list = glob.glob(
             f"{downloads_folder}/**/**/catalog.json", recursive=True
         )
-
+    # Open all index catalogs and merge them.
+    index_catalog = {}
+    for cat in list_cats:
+        cat_dict = stac_training._load_dictionary(cat)
+        index_catalog.update(cat_dict)
+    cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
+    stac_training.save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         x_catalogs.append(x_cat)
