@@ -46,6 +46,26 @@ def _load_dictionary(path_file):
     return dicti
 
 
+def save_dictionary(path, dict):
+    new_path = path
+    if path.startswith("s3"):
+        new_path = path.replace("s3://", "tmp/")
+    if not os.path.exists(new_path):
+        try:
+            os.makedirs(os.path.dirname(new_path))
+        except OSError:
+            # Directory already exists.
+            pass
+    with open(new_path, "w") as f:
+        json.dump(dict, f)
+    if path.startswith("s3"):
+        stc.upload_files_s3(
+            os.path.dirname(new_path),
+            file_type=os.path.split(path)[-1],
+            delete_folder=True,
+        )
+
+
 def _save_and_write_tif(out_path, img, meta):
     out_path_tif = out_path
     if out_path.startswith("s3"):
