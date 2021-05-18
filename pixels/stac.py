@@ -721,7 +721,7 @@ def get_and_write_raster_from_item(
     # Build a intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     catalog_dict = {
-        f"pixels_{str(item.id)}": {
+        f"pixels_id_{str(item.id)}": {
             "x_paths": out_paths,
             "y_path": str(item.assets[item.id].href),
             "stac_catalog": stac_catalog_path,
@@ -932,6 +932,7 @@ def create_x_catalog(x_folder, source_path=None):
     for cat in list_cats:
         cat_dict = stac_training._load_dictionary(cat)
         index_catalog.update(cat_dict)
+    cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
     stac_training.save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
