@@ -418,9 +418,9 @@ class DataGenerator(keras.utils.Sequence):
                 X,
                 Y,
                 augmentation_index=self.augmentation,
-                batch_size=self.batch_number,
-                sizex=self.width,
-                sizey=self.height,
+                batch_size=len(X),
+                sizex=self.x_width,
+                sizey=self.x_height,
                 mode=self.mode,
             )
         # Return X only (not train) or X and Y (train).

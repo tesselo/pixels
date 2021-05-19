@@ -31,8 +31,9 @@ class TestGenerator:
         ],
     )
     def test_simple_modes(self, mode, test_tuple):
-        self.gen_args["mode"] = mode
-        dtgen = DataGenerator(**self.gen_args)
+        gen_args = {**self.gen_args}
+        gen_args["mode"] = mode
+        dtgen = DataGenerator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
@@ -47,10 +48,27 @@ class TestGenerator:
         ],
     )
     def test_augmentation(self, mode, batch, test_tuple):
-        self.gen_args["augmentation"] = 3
-        self.gen_args["mode"] = mode
-        self.gen_args["batch_number"] = batch
-        dtgen = DataGenerator(**self.gen_args)
+        gen_args = {**self.gen_args}
+        gen_args["augmentation"] = 3
+        gen_args["mode"] = mode
+        gen_args["batch_number"] = batch
+        dtgen = DataGenerator(**gen_args)
         x, y = dtgen[0]
+        np.testing.assert_array_equal(x, test_tuple[0])
+        np.testing.assert_array_equal(y, test_tuple[1])
+
+    @pytest.mark.parametrize(
+        "mode, test_tuple",
+        [
+            ("3D_Model", (test_arrays.X_upsampling, test_arrays.Y_upsampling)),
+            ("2D_Model", (test_arrays.X_upsampling_2D, test_arrays.Y_upsampling_2D)),
+        ],
+    )
+    def test_upsampling(self, mode, test_tuple):
+        gen_args = {**self.gen_args}
+        gen_args["upsampling"] = 2
+        gen_args["mode"] = mode
+        dtgen = DataGenerator(**gen_args)
+        x, y = dtgen[1]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
