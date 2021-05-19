@@ -103,3 +103,69 @@ class TestGenerator:
         x, y = dtgen[2]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
+
+    @pytest.mark.parametrize(
+        "mode, num_bands, timesteps, padding, test_tuple",
+        [
+            (
+                "3D_Model",
+                5,
+                3,
+                0,
+                (test_arrays.X_3D_bands, test_arrays.Y_3D_bands),
+            ),
+            (
+                "2D_Model",
+                5,
+                3,
+                0,
+                (test_arrays.X_2D_bands, test_arrays.Y_2D_bands),
+            ),
+            (
+                "Pixel_Model",
+                5,
+                3,
+                0,
+                (test_arrays.X_Pixel_bands, test_arrays.Y_Pixel_bands),
+            ),
+            (
+                "3D_Model",
+                4,
+                4,
+                0,
+                (test_arrays.X_3D_timesteps, test_arrays.Y_3D_timesteps),
+            ),
+            (
+                "Pixel_Model",
+                4,
+                4,
+                0,
+                (test_arrays.X_Pixel_timesteps, test_arrays.Y_Pixel_timesteps),
+            ),
+            (
+                "3D_Model",
+                4,
+                3,
+                1,
+                (test_arrays.X_3D_padding, test_arrays.Y_3D_padding),
+            ),
+            (
+                "2D_Model",
+                4,
+                3,
+                1,
+                (test_arrays.X_2D_padding, test_arrays.Y_2D_padding),
+            ),
+        ],
+    )
+    def tests_on_option(self, mode, num_bands, timesteps, padding, test_tuple):
+        gen_args = {**self.gen_args}
+        gen_args["mode"] = mode
+        gen_args["num_bands"] = num_bands
+        gen_args["timesteps"] = timesteps
+        gen_args["padding"] = padding
+
+        dtgen = DataGenerator(**gen_args)
+        x, y = dtgen[0]
+        np.testing.assert_array_equal(x, test_tuple[0])
+        np.testing.assert_array_equal(y, test_tuple[1])
