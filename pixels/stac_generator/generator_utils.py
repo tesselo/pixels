@@ -89,7 +89,9 @@ def fill_missing_dimensions(tensor, expected_shape, value=None):
     return tensor
 
 
-def do_augmentation(X, y, sizex, sizey, augmentation_index=1, batch_size=1):
+def do_augmentation(
+    X, y, sizex, sizey, augmentation_index=1, batch_size=1, mode="3D_Model"
+):
     """
     Define how many augmentations to do, and build the correct input for the augmentation function
 
@@ -116,13 +118,16 @@ def do_augmentation(X, y, sizex, sizey, augmentation_index=1, batch_size=1):
         augmentation_index = np.arange(augmentation_index) + 1
     batch_X = np.array([])
     batch_Y = np.array([])
+    if mode == "2D_Model":
+        X = np.expand_dims(X, 1)
+        y = np.expand_dims(y, 1)
     for batch in range(batch_size):
-        augmented_X = np.array([X[batch]])
-        augmented_Y = np.array([y[batch]])
+        augmented_X = X[batch : batch + 1]
+        augmented_Y = y[batch : batch + 1]
         for i in augmentation_index:
             aug_X, aug_Y = aug.augmentation(
-                np.array([X[batch]]),
-                np.array([y[batch]]),
+                X[batch : batch + 1],
+                y[batch : batch + 1],
                 sizex=sizex,
                 sizey=sizey,
                 augmentation_index=i,
@@ -135,4 +140,7 @@ def do_augmentation(X, y, sizex, sizey, augmentation_index=1, batch_size=1):
         else:
             batch_X = np.concatenate([batch_X, augmented_X])
             batch_Y = np.concatenate([batch_Y, augmented_Y])
+    if mode == "2D_Model":
+        batch_X = np.vstack(batch_X)
+        batch_Y = np.vstack(batch_Y)
     return batch_X, batch_Y
