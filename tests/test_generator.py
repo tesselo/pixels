@@ -83,3 +83,23 @@ class TestGenerator:
         x, y = dtgen[1]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
+
+    @pytest.mark.parametrize(
+        "mode, test_tuple",
+        [
+            ("3D_Model", (test_arrays.X_3D_multiclass, test_arrays.Y_3D_multiclass)),
+            ("2D_Model", (test_arrays.X_2D_multiclass, test_arrays.Y_2D_multiclass)),
+            (
+                "Pixel_Model",
+                (test_arrays.X_Pixel_multiclass, test_arrays.Y_Pixel_multiclass),
+            ),
+        ],
+    )
+    def test_multiclass(self, mode, test_tuple):
+        gen_args = {**self.gen_args}
+        gen_args["num_classes"] = 3
+        gen_args["mode"] = mode
+        dtgen = DataGenerator(**gen_args)
+        x, y = dtgen[2]
+        np.testing.assert_array_equal(x, test_tuple[0])
+        np.testing.assert_array_equal(y, test_tuple[1])
