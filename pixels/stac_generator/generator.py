@@ -290,6 +290,9 @@ class DataGenerator(keras.utils.Sequence):
         # this point has shape (time, bands, width, height).
         x_new_shape = (X.shape[0], X.shape[1], X.shape[2] * X.shape[3])
         X = X.reshape(x_new_shape)
+        # Fill in missing dimensions.
+        x_new_shape = (self.timesteps, self.num_bands, x_new_shape[2])
+        X = generator_utils.fill_missing_dimensions(X, x_new_shape)
         # Bring pixel dimension to the front.
         X = np.swapaxes(X, 1, 2)
         X = np.swapaxes(X, 0, 1)
