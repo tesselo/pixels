@@ -1,143 +1,56 @@
-import unittest
-
 import numpy as np
+import pytest
 
 from pixels.stac_generator.generator import DataGenerator
 from tests import test_arrays
 
 
-class TestGenerator(unittest.TestCase):
-    def setUp(self):
-        self.catalog_dict_path = "tests/data/catalogs_dict.json"
+class TestGenerator:
+    catalog_dict_path = "tests/data/catalogs_dict.json"
+    gen_args = {
+        "path_collection_catalog": catalog_dict_path,
+        "split": 1,
+        "train": True,
+        "width": 3,
+        "height": 3,
+        "timesteps": 3,
+        "num_bands": 4,
+        "batch_number": 1,
+        "mode": "3D_Model",
+    }
 
-    def test_simple_3D_case(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 1,
-            "mode": "3D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
+    @pytest.mark.parametrize(
+        "mode, test_tuple",
+        [
+            ("3D_Model", (test_arrays.X_Simple3DCase, test_arrays.Y_Simple3DCase)),
+            (
+                "Pixel_Model",
+                (test_arrays.X_SimplePixelCase, test_arrays.Y_SimplePixelCase),
+            ),
+            ("2D_Model", (test_arrays.X_Simple2DCase, test_arrays.Y_Simple2DCase)),
+        ],
+    )
+    def test_simple_modes(self, mode, test_tuple):
+        self.gen_args["mode"] = mode
+        dtgen = DataGenerator(**self.gen_args)
         x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Simple3DCase)
-        np.testing.assert_array_equal(y, test_arrays.Y_Simple3DCase)
+        np.testing.assert_array_equal(x, test_tuple[0])
+        np.testing.assert_array_equal(y, test_tuple[1])
 
-    def test_simple_pixel_case(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 1,
-            "mode": "Pixel_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
+    @pytest.mark.parametrize(
+        "mode, batch, test_tuple",
+        [
+            ("3D_Model", 1, (test_arrays.X_Aug3D, test_arrays.Y_Aug3D)),
+            ("3D_Model", 2, (test_arrays.X_Aug3D_batch, test_arrays.Y_Aug3D_batch)),
+            ("2D_Model", 1, (test_arrays.X_Aug2D, test_arrays.Y_Aug3D)),
+            ("2D_Model", 2, (test_arrays.X_Aug2D_batch, test_arrays.Y_Aug2D_batch)),
+        ],
+    )
+    def test_augmentation(self, mode, batch, test_tuple):
+        self.gen_args["augmentation"] = 3
+        self.gen_args["mode"] = mode
+        self.gen_args["batch_number"] = batch
+        dtgen = DataGenerator(**self.gen_args)
         x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_SimplePixelCase)
-        np.testing.assert_array_equal(y, test_arrays.Y_SimplePixelCase)
-
-    def test_simple_2D_case(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 1,
-            "mode": "2D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
-        x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Simple2DCase)
-        np.testing.assert_array_equal(y, test_arrays.Y_Simple2DCase)
-
-    def test_augmentation_3D(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 1,
-            "num_classes": 1,
-            "augmentation": 3,
-            "mode": "3D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
-        x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Aug3D)
-        np.testing.assert_array_equal(y, test_arrays.Y_Aug3D)
-
-    def test_augmentation_2D(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 1,
-            "num_classes": 1,
-            "augmentation": 3,
-            "mode": "2D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
-        x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Aug2D)
-        np.testing.assert_array_equal(y, test_arrays.Y_Aug3D)
-
-    def test_augmentation_3D_batch(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 2,
-            "num_classes": 1,
-            "augmentation": 3,
-            "mode": "3D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
-        x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Aug3D_batch)
-        np.testing.assert_array_equal(y, test_arrays.Y_Aug3D_batch)
-
-    def test_augmentation_2D_batch(self):
-        gen_args = {
-            "path_collection_catalog": self.catalog_dict_path,
-            "split": 1,
-            "train": True,
-            "width": 3,
-            "height": 3,
-            "timesteps": 3,
-            "num_bands": 4,
-            "batch_number": 2,
-            "num_classes": 1,
-            "augmentation": 3,
-            "mode": "2D_Model",
-        }
-
-        dtgen = DataGenerator(**gen_args)
-        x, y = dtgen[0]
-        np.testing.assert_array_equal(x, test_arrays.X_Aug2D_batch)
-        np.testing.assert_array_equal(y, test_arrays.Y_Aug2D_batch)
+        np.testing.assert_array_equal(x, test_tuple[0])
+        np.testing.assert_array_equal(y, test_tuple[1])
