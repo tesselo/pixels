@@ -39,6 +39,7 @@ class DataGenerator(keras.utils.Sequence):
         padding=0,
         x_nan_value=0,
         y_nan_value=None,
+        nan_value=None,
         padding_mode="edge",
         dtype=None,
         augmentation=0,
@@ -72,6 +73,9 @@ class DataGenerator(keras.utils.Sequence):
         self.augmentation = augmentation
         self.x_nan_value = x_nan_value
         self.y_nan_value = y_nan_value
+        self.nan_value = nan_value
+        if not nan_value:
+            self.nan_value = y_nan_value
         self.train_split = train_split
 
         # Open and analyse collection.
