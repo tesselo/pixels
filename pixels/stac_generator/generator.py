@@ -38,6 +38,7 @@ class DataGenerator(keras.utils.Sequence):
         padding=0,
         x_nan_value=0,
         y_nan_value=None,
+        nan_value=None,
         padding_mode="edge",
         dtype=None,
         augmentation=0,
@@ -77,6 +78,9 @@ class DataGenerator(keras.utils.Sequence):
         self.y_nan_value = y_nan_value
         self.training_percentage = training_percentage
         self.usage_type = usage_type
+        self.nan_value = nan_value
+        if not nan_value:
+            self.nan_value = y_nan_value
 
         # Open and analyse collection.
         self.path_collection_catalog = path_collection_catalog
