@@ -42,6 +42,7 @@ class DataGenerator(keras.utils.Sequence):
         padding_mode="edge",
         dtype=None,
         augmentation=0,
+        train_split=None,
     ):
         """
         Initial setup for the class.
@@ -71,6 +72,7 @@ class DataGenerator(keras.utils.Sequence):
         self.augmentation = augmentation
         self.x_nan_value = x_nan_value
         self.y_nan_value = y_nan_value
+        self.train_split = train_split
 
         # Open and analyse collection.
         self.path_collection_catalog = path_collection_catalog
@@ -128,6 +130,10 @@ class DataGenerator(keras.utils.Sequence):
         """
         Seting class id list based on existing catalog dictionary.
         """
+        if self.train_split:
+            split = self.train_split
+        else:
+            split = self.split
         # Open the indexing dictionary.
         self.collection_catalog = stac_training._load_dictionary(
             self.path_collection_catalog
@@ -144,13 +150,17 @@ class DataGenerator(keras.utils.Sequence):
         # Original size of dataset, all the images collections avaible.
         self.original_size = len(self.original_id_list)
         # This is the lenght of ids to use.
-        self.length = math.ceil(self.original_size * self.split)
+        self.length = math.ceil(self.original_size * split)
         # Spliting the dataset.
         if self.random_seed and self.split < 1:
             np.random.seed(self.random_seed)
             self.id_list = np.random.choice(self.id_list, self.length, replace=False)
         elif self.split < 1:
             self.id_list = self.id_list[: self.length]
+        # Spliting the dataset to unused data.
+        if self.train_split and self.train_split != 1:
+            self.id_list = np.setdiff1d(self.original_id_list, self.id_list)
+            self.length = len(self.id_list)
 
     def __len__(self):
         # The return value is the actual generator size, the number of times it
