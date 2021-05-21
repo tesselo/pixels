@@ -10,13 +10,13 @@ class TestGenerator:
     gen_args = {
         "path_collection_catalog": catalog_dict_path,
         "split": 1,
-        "train": True,
         "width": 3,
         "height": 3,
         "timesteps": 3,
         "num_bands": 4,
         "batch_number": 1,
         "mode": "3D_Model",
+        "usage_type": "training",
     }
 
     @pytest.mark.parametrize(
