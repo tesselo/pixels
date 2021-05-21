@@ -16,8 +16,8 @@ from dateutil import parser
 from rasterio import Affine
 
 import pixels.stac as stc
-import pixels.stac_generator.generator_class as stcgen
 from pixels import losses
+from pixels.stac_generator import generator
 from pixels.utils import write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
@@ -233,8 +233,13 @@ def train_model_function(
         model = load_model_from_file(model_config_uri)
 
     gen_args["dtype"] = model.input.dtype.name
+    if "training_percentage" not in gen_args:
+        gen_args["training_percentage"] = gen_args["split"]
     # Instanciate generator.
-    dtgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
+    catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
+    gen_args["path_collection_catalog"] = catalog_path
+    gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
+    dtgen = generator.DataGenerator(**gen_args)
     if not no_compile:
         # Compile confusion matrix if requested.
         if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
@@ -315,7 +320,6 @@ def train_model_function(
             fit_args["class_weight"] = class_weight
         else:
             fit_args["class_weight"] = None
-
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
@@ -343,16 +347,14 @@ def train_model_function(
             model.save(h5fl)
 
     # Evaluate model on test set.
-    gen_args["train_split"] = gen_args["split"]
+    gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
     gen_args["split"] = 1 - gen_args["split"]
-    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
-        gen_args["split"] = 0.1
-    if len(dtgen) * gen_args["split"] > 200:
-        gen_args["split"] = 200 / len(dtgen)
+    if gen_args["split"] <= 0:
+        raise ValueError("Negative or 0 split is not allowed.")
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
-    dpredgen = stcgen.DataGenerator_stac(catalog_uri, **gen_args)
+    dpredgen = generator.DataGenerator(**gen_args)
     results = model.evaluate(dpredgen, verbose=2)
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f)
@@ -362,8 +364,8 @@ def train_model_function(
 
     # Save collection index dictionary.
     catalog_dict_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
-    catalog_dict = dtgen.catalogs_dict
-    catalog_dict.update(dpredgen.catalogs_dict)
+    catalog_dict = dtgen.collection_catalog
+    catalog_dict.update(dpredgen.collection_catalog)
     if catalog_dict_path.startswith("s3"):
         catalog_dict_path = catalog_dict_path.replace("s3://", "tmp/")
     if not os.path.exists(catalog_dict_path):
@@ -445,7 +447,7 @@ def predict_function_batch(
             )
     # Instanciate generator.
     # Force generator to prediction.
-    gen_args["train"] = False
+    gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
     if "jumping_ratio" not in gen_args:
         jumping_ratio = 1
@@ -458,7 +460,9 @@ def predict_function_batch(
         jump_pad = gen_args["jump_pad"]
         gen_args.pop("jump_pad")
 
-    dtgen = stcgen.DataGenerator_stac(collection_uri, **gen_args)
+    catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
+    gen_args["path_collection_catalog"] = catalog_path
+    dtgen = generator.DataGenerator(**gen_args)
     # Get parent folder for prediciton.
     predict_path = os.path.dirname(generator_config_uri)
     # Get jobs array.
@@ -473,9 +477,9 @@ def predict_function_batch(
     for item in item_range:
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
-        meta = dtgen.get_item_metadata(item)
+        meta = dtgen.get_meta(item)
         catalog_id = dtgen.id_list[item]
-        x_path = dtgen.catalogs_dict[catalog_id]["x_paths"][0]
+        x_path = dtgen.collection_catalog[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
         if dtgen.mode == "3D_Model":
             # If the generator output is bigger than model shape, do a jumping window.
@@ -610,10 +614,12 @@ def predict_function_batch(
         _save_and_write_tif(out_path_tif, prediction, meta)
         # Build the corresponding pystac item.
         try:
-            it = dtgen.get_items_paths(
-                dtgen.collection.get_child(catalog_id), search_for_item=True
+            cat = pystac.Catalog.from_file(
+                dtgen.collection_catalog[catalog_id]["stac_catalog"]
             )
-            # id_raster = os.path.split(out_path_tif)[-1].replace(".tif", "")
+            for itt in cat.get_items():
+                it = itt
+                break
             id_raster = catalog_id
             datetime_var = str(datetime.datetime.now().date())
             datetime_var = parser.parse(datetime_var)
