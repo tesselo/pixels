@@ -233,10 +233,12 @@ def train_model_function(
         model = load_model_from_file(model_config_uri)
 
     gen_args["dtype"] = model.input.dtype.name
+    if "training_percentage" not in gen_args:
+        gen_args["training_percentage"] = gen_args["split"]
     # Instanciate generator.
     catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
-    gen_args["usage_type"] = "training"
+    gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
     dtgen = generator.DataGenerator(**gen_args)
     if not no_compile:
         # Compile confusion matrix if requested.
@@ -345,11 +347,10 @@ def train_model_function(
             model.save(h5fl)
 
     # Evaluate model on test set.
-    gen_args["usage_type"] = "evaluation"
-    gen_args["training_percentage"] = gen_args["split"]
+    gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
     gen_args["split"] = 1 - gen_args["split"]
     if gen_args["split"] <= 0:
-        gen_args["split"] = 0.1
+        raise ValueError("Negative or 0 split is not allowed.")
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
@@ -446,7 +447,7 @@ def predict_function_batch(
             )
     # Instanciate generator.
     # Force generator to prediction.
-    gen_args["usage_type"] = "prediction"
+    gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
     if "jumping_ratio" not in gen_args:
         jumping_ratio = 1
