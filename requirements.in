@@ -7,4 +7,3 @@ pystac==0.5.4
 rasterio==1.2.3
 sentry-sdk
 SQLAlchemy==1.4.0
-zappa==0.52.0
