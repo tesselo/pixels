@@ -16,8 +16,8 @@ from dateutil import parser
 from rasterio import Affine
 
 import pixels.stac as stc
-from pixels.stac_generator import generator
 from pixels import losses
+from pixels.stac_generator import generator
 from pixels.utils import write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
@@ -234,8 +234,9 @@ def train_model_function(
 
     gen_args["dtype"] = model.input.dtype.name
     # Instanciate generator.
-    catalog_path = os.path.join(os.path.dirname(catalog_uri), 'catalogs_dict.json')
+    catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
+    gen_args["usage_type"] = "training"
     dtgen = generator.DataGenerator(**gen_args)
     if not no_compile:
         # Compile confusion matrix if requested.
@@ -344,12 +345,11 @@ def train_model_function(
             model.save(h5fl)
 
     # Evaluate model on test set.
-    gen_args["train_split"] = gen_args["split"]
+    gen_args["usage_type"] = "evaluation"
+    gen_args["training_percentage"] = gen_args["split"]
     gen_args["split"] = 1 - gen_args["split"]
-    if gen_args["split"] <= 0 or gen_args["split"] > 0.2:
+    if gen_args["split"] <= 0:
         gen_args["split"] = 0.1
-    if len(dtgen) * gen_args["split"] > 200:
-        gen_args["split"] = 200 / len(dtgen)
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
@@ -446,7 +446,7 @@ def predict_function_batch(
             )
     # Instanciate generator.
     # Force generator to prediction.
-    gen_args["train"] = False
+    gen_args["usage_type"] = "prediction"
     gen_args["dtype"] = model.input.dtype.name
     if "jumping_ratio" not in gen_args:
         jumping_ratio = 1
@@ -459,7 +459,7 @@ def predict_function_batch(
         jump_pad = gen_args["jump_pad"]
         gen_args.pop("jump_pad")
 
-    catalog_path = os.path.join(os.path.dirname(collection_uri), 'catalogs_dict.json')
+    catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
     dtgen = generator.DataGenerator(**gen_args)
     # Get parent folder for prediciton.
@@ -613,7 +613,9 @@ def predict_function_batch(
         _save_and_write_tif(out_path_tif, prediction, meta)
         # Build the corresponding pystac item.
         try:
-            cat = pystac.Catalog.from_file(dtgen.collection_catalog[catalog_id]["stac_catalog"])
+            cat = pystac.Catalog.from_file(
+                dtgen.collection_catalog[catalog_id]["stac_catalog"]
+            )
             for itt in cat.get_items():
                 it = itt
                 break
