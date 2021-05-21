@@ -167,9 +167,7 @@ class DataGenerator(keras.utils.Sequence):
         # Spliting the dataset.
         if self.random_seed:
             np.random.seed(self.random_seed)
-            self.id_list = np.random.choice(self.id_list, length, replace=False)
-        else:
-            self.id_list = self.original_id_list[:length]
+        self.id_list = np.random.choice(self.id_list, length, replace=False)
         self.length = len(self.id_list)
         # Spliting the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:

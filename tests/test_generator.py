@@ -17,6 +17,7 @@ class TestGenerator:
         "batch_number": 1,
         "mode": "3D_Model",
         "usage_type": "training",
+        "random_seed": 5,
     }
 
     @pytest.mark.parametrize(
