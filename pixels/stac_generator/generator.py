@@ -15,6 +15,9 @@ from pixels.stac_generator import filters, generator_augmentation_2D, generator_
 # S3 class instanciation.
 s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
+GENERATOR_MODE_TRAINING = "training"
+GENERATOR_MODE_PREDICTION = "prediction"
+GENERATOR_MODE_EVALUATION = "evaluation"
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -43,7 +46,7 @@ class DataGenerator(keras.utils.Sequence):
         dtype=None,
         augmentation=0,
         training_percentage=1,
-        usage_type="training",
+        usage_type=GENERATOR_MODE_TRAINING,
     ):
         """
         Initial setup for the class.
@@ -55,16 +58,13 @@ class DataGenerator(keras.utils.Sequence):
             split : float
                 Value between 0 and 1. Percentage of dataset to use.
             training_percentage: float
-                Percentage of dataset used for training.
+                Percentage of dataset used for training. Ignored in prediction.
             usage_type : str
                 One of [training, evaluation, prediction]
             random_seed : int
                 Numpy random seed. To randomize the dataset choice.
-            # train : bool
-            #     Boolean setting for output. (True: X, Y | False: X)
             timesteps : int
                 Number of timesteps to use.
-
 
         """
         self.split = split
@@ -136,13 +136,16 @@ class DataGenerator(keras.utils.Sequence):
 
     @property
     def train(self):
-        return self.usage_type == "training" or self.usage_type == "evaluation"
+        return (
+            self.usage_type == GENERATOR_MODE_TRAINING
+            or self.usage_type == GENERATOR_MODE_PREDICTION
+        )
 
     def parse_collection(self):
         """
         Seting class id list based on existing catalog dictionary.
         """
-        if self.usage_type == "training" or self.usage_type == "prediction":
+        if self.usage_type == GENERATOR_MODE_PREDICTION:
             self.training_percentage = self.split
         # Open the indexing dictionary.
         self.collection_catalog = stac_training._load_dictionary(
@@ -169,9 +172,11 @@ class DataGenerator(keras.utils.Sequence):
             self.id_list = self.original_id_list[:length]
         self.length = len(self.id_list)
         # Spliting the dataset to unused data.
-        if self.usage_type == "evaluation":
+        if self.usage_type == GENERATOR_MODE_EVALUATION:
             self.id_list = np.setdiff1d(self.original_id_list, self.id_list)
             length = math.ceil(self.original_size * self.split)
+            if length > len(self.id_list):
+                logger.warning("The requested length is bigger than the id list size.")
             self.id_list = self.id_list[:length]
             self.length = len(self.id_list)
 
