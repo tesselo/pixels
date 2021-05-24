@@ -8,9 +8,9 @@ import boto3
 import numpy as np
 from tensorflow import keras
 
-from pixels import stac_training
 from pixels.exceptions import InconsistentGeneratorDataException
 from pixels.stac_generator import filters, generator_augmentation_2D, generator_utils
+from pixels.stac_utils import _load_dictionary
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -148,9 +148,7 @@ class DataGenerator(keras.utils.Sequence):
         if self.usage_type == GENERATOR_MODE_PREDICTION:
             self.training_percentage = self.split
         # Open the indexing dictionary.
-        self.collection_catalog = stac_training._load_dictionary(
-            self.path_collection_catalog
-        )
+        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
         # The ids are the names of each image collection.
         self.original_id_list = list(self.collection_catalog.keys())
         # Check if path names are relative (to catalog dictionary) or absolute.

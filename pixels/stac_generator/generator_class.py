@@ -20,8 +20,8 @@ import pixels.stac as pxstc
 import pixels.stac_generator.filters as pxfl
 import pixels.stac_generator.generator_augmentation_2D as aug
 import pixels.stac_generator.visualizer as vis
-import pixels.stac_training as stctr
 from pixels.exceptions import InconsistentGeneratorDataException, InvalidGeneratorConfig
+from pixels.stac_utils import _load_dictionary
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -212,7 +212,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         else:
             dict_exists = os.path.exists(dict_path)
         if dict_exists:
-            self.catalogs_dict = stctr._load_dictionary(dict_path)
+            self.catalogs_dict = _load_dictionary(dict_path)
 
     def _set_s3_variables(self, path_collection):
         """
