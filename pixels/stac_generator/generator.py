@@ -138,7 +138,7 @@ class DataGenerator(keras.utils.Sequence):
     def train(self):
         return (
             self.usage_type == GENERATOR_MODE_TRAINING
-            or self.usage_type == GENERATOR_MODE_PREDICTION
+            or self.usage_type == GENERATOR_MODE_EVALUATION
         )
 
     def parse_collection(self):
