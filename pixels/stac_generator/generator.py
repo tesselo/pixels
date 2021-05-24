@@ -262,10 +262,6 @@ class DataGenerator(keras.utils.Sequence):
         """
         Processing of data on 3D and 2D modes.
         """
-        # Choose and order timesteps by level of nan_value density.
-        x_tensor = filters._order_tensor_on_masks(
-            np.array(x_tensor), self.x_nan_value, number_images=self.timesteps
-        )
         # Ensure X img size.
         x_tensor = x_tensor[
             : self.timesteps, : self.num_bands, : self.width, : self.height
@@ -360,6 +356,10 @@ class DataGenerator(keras.utils.Sequence):
                         ),
                     )
                 )
+        # Choose and order timesteps by level of nan_value density.
+        x_imgs = filters._order_tensor_on_masks(
+            np.array(x_imgs), self.x_nan_value, number_images=self.timesteps
+        )
         if self.mode == "3D_Model" or self.mode == "2D_Model":
             # This gets the data to be used in image models.
             x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
