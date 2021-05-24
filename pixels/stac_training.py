@@ -1,4 +1,3 @@
-import ast
 import datetime
 import io
 import json
@@ -18,6 +17,7 @@ from rasterio import Affine
 import pixels.stac as stc
 from pixels import losses
 from pixels.stac_generator import generator
+from pixels.stac_utils import _load_dictionary
 from pixels.utils import write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
@@ -29,42 +29,6 @@ ALLOWED_CUSTOM_LOSSES = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def _load_dictionary(path_file):
-    # Open config file and load as dict.
-    if path_file.startswith("s3"):
-        my_str = stc.open_file_from_s3(path_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        dicti = json.loads(new_str)
-    else:
-        with open(path_file, "r") as json_file:
-            input_config = json_file.read()
-            try:
-                dicti = ast.literal_eval(input_config)
-            except:
-                dicti = json.loads(str(input_config))
-    return dicti
-
-
-def save_dictionary(path, dict):
-    new_path = path
-    if path.startswith("s3"):
-        new_path = path.replace("s3://", "tmp/")
-    if not os.path.exists(new_path):
-        try:
-            os.makedirs(os.path.dirname(new_path))
-        except OSError:
-            # Directory already exists.
-            pass
-    with open(new_path, "w") as f:
-        json.dump(dict, f)
-    if path.startswith("s3"):
-        stc.upload_files_s3(
-            os.path.dirname(new_path),
-            file_type=os.path.split(path)[-1],
-            delete_folder=True,
-        )
 
 
 def _save_and_write_tif(out_path, img, meta):

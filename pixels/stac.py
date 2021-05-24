@@ -3,7 +3,6 @@ import io
 import json
 import logging
 import os
-import shutil
 import zipfile
 from collections import Counter
 from urllib.parse import urlparse
@@ -16,10 +15,16 @@ import sentry_sdk
 from dateutil import parser
 from pystac import STAC_IO
 
-from pixels import stac_training
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.mosaic import pixel_stack
-from pixels.stac_utils import stac_s3_read_method, stac_s3_write_method
+from pixels.stac_utils import (
+    _load_dictionary,
+    open_file_from_s3,
+    save_dictionary,
+    stac_s3_read_method,
+    stac_s3_write_method,
+    upload_files_s3,
+)
 from pixels.utils import write_raster
 
 # Get logger
@@ -110,20 +115,6 @@ def check_file_in_s3(uri):
     return key in list_obj
 
 
-def open_file_from_s3(source_path):
-    s3_path = source_path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    path = s3_path.replace(bucket + "/", "")
-    s3 = boto3.client("s3")
-    try:
-        data = s3.get_object(Bucket=bucket, Key=path)
-    except s3.exceptions.NoSuchKey as e:
-        sentry_sdk.capture_exception(e)
-        logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
-        data = None
-    return data
-
-
 def open_zip_from_s3(source_path):
     """
     Read a zip file in s3.
@@ -154,36 +145,6 @@ def upload_obj_s3(uri, obj):
         key = parsed.path[1:]
         s3 = boto3.client("s3")
         s3.put_object(Key=key, Bucket=bucket, Body=obj)
-
-
-def upload_files_s3(path, file_type=".json", delete_folder=True):
-    """
-    Upload files inside a folder to s3.
-    The s3 paths most be the same as the folder.
-
-    Parameters
-    ----------
-        path : str
-            Path to folder containing the files you wan to upload.
-        file_type : str, optional
-            Filetype to upload, set to json.
-    Returns
-    -------
-
-    """
-    file_list = glob.glob(path + "**/**/*" + file_type, recursive=True)
-    s3 = boto3.client("s3")
-    sta = "s3:/"
-    if not path.startswith("s3"):
-        sta = path.split("/")[0]
-        path = path.replace(sta, "s3:/")
-    s3_path = path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    for file in file_list:
-        key_path = file.replace(sta + "/" + bucket + "/", "")
-        s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
-    if delete_folder:
-        shutil.rmtree(sta)
 
 
 def list_files_in_s3(uri, filetype="tif"):
@@ -693,7 +654,7 @@ def get_and_write_raster_from_item(
         }
     }
     # Write file and send to s3.
-    stac_training.save_dictionary(
+    save_dictionary(
         os.path.join(
             os.path.dirname(os.path.dirname(stac_catalog_path)),
             "timerange_images_index.json",
@@ -894,11 +855,11 @@ def create_x_catalog(x_folder, source_path=None):
     # Open all index catalogs and merge them.
     index_catalog = {}
     for cat in list_cats:
-        cat_dict = stac_training._load_dictionary(cat)
+        cat_dict = _load_dictionary(cat)
         index_catalog.update(cat_dict)
     cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
-    stac_training.save_dictionary(cat_path, index_catalog)
+    save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         x_catalogs.append(x_cat)
