@@ -223,7 +223,8 @@ class DataGenerator(keras.utils.Sequence):
             # Process completed tasks.
             for future in futures:
                 result = future.result()
-                x_tensor.append(result)
+                if result is not None:
+                    x_tensor.append(result)
         # Get the imgs list and the meta list.
         x_imgs = np.array(x_tensor, dtype="object")[:, 0]
         # Ensure all images are numpy arrays.
