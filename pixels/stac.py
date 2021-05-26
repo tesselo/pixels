@@ -302,11 +302,13 @@ def parse_training_data(
     ----------
         source_path : str
             Path to the zip file or folder containing the rasters.
-        categorical: boolean
+        categorical: boolean or str
             If True, the data is considered to be categorical, and statistics
-            by class are computed for weighting.
-        save_files : bool, optional
-            Set True to save files from catalog and items.
+            by class are computed for weighting.  If passed as string, either
+            pass "True" or "False".
+        save_files : bool or str optional
+            Set True to save files from catalog and items. If passed as string,
+            either pass "True" or "False".
         description : str, optional
             Description to be used in the catalog.
         reference_date : str, optional
@@ -321,6 +323,13 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     logger.debug("Building stac catalog for {}.".format(source_path))
+
+    # If input is string, convert to boolean.
+    if isinstance(categorical, str):
+        categorical = categorical == "True"
+    if isinstance(save_files, str):
+        save_files = save_files == "True"
+
     if source_path.endswith("geojson") or source_path.endswith("gpkg"):
         return parse_prediction_area(
             source_path,
