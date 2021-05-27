@@ -3,7 +3,6 @@ import io
 import json
 import logging
 import os
-import pathlib
 
 import h5py
 import numpy as np
@@ -272,7 +271,9 @@ def train_model_function(
             dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
         ][0]["href"]
         # Construct y catalog uri.
-        y_catalog_uri = pathlib.Path(origin_files).parent / "stac" / "catalog.json"
+        y_catalog_uri = os.path.join(
+            os.path.dirname(origin_files), "stac", "catalog.json"
+        )
         # Open y catalog.
         y_catalog = _load_dictionary(str(y_catalog_uri))
         # Get stats from y catalog.
