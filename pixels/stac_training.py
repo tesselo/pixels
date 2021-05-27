@@ -281,6 +281,10 @@ def train_model_function(
             class_weight = {
                 int(key): val for key, val in y_catalog["class_weight"].items()
             }
+            # Remove nodata value from weights if present.
+            if dtgen.y_nan_value is not None:
+                class_weight.pop(dtgen.y_nan_value, None)
+            # Set the class weight fit argument.
             fit_args["class_weight"] = class_weight
         else:
             fit_args["class_weight"] = None
