@@ -450,7 +450,7 @@ def predict_function_batch(
         catalog_id = dtgen.id_list[item]
         x_path = dtgen.collection_catalog[catalog_id]["x_paths"][0]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
-        if dtgen.mode == "3D_Model":
+        if dtgen.mode == "3D_Model" or "2D_Model":
             # If the generator output is bigger than model shape, do a jumping window.
             big_square_width = dtgen.expected_x_shape[2]
             big_square_height = dtgen.expected_x_shape[3]
