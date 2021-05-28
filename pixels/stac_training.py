@@ -544,6 +544,7 @@ def predict_function_batch(
 
         if dtgen.mode == "2D_Model":
             prediction = model.predict(dtgen[item])
+            prediction = prediction[0, :, :, :]
 
         if dtgen.mode == "Pixel_Model":
             data = dtgen[item]
