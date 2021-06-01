@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 GENERATOR_MODE_TRAINING = "training"
 GENERATOR_MODE_PREDICTION = "prediction"
 GENERATOR_MODE_EVALUATION = "evaluation"
+GENERATOR_3D_MODEL = "3D_Model"
+GENERATOR_2D_MODEL = "2D_Model"
+GENERATOR_PIXEL_MODEL = "Pixel_Model"
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -36,7 +39,7 @@ class DataGenerator(keras.utils.Sequence):
         num_bands=None,
         num_classes=1,
         upsampling=1,
-        mode="3D_Model",
+        mode=GENERATOR_3D_MODEL,
         batch_number=1,
         padding=0,
         x_nan_value=0,
@@ -94,7 +97,7 @@ class DataGenerator(keras.utils.Sequence):
         self.width = width
         self.height = height
         self.padding = padding
-        if self.mode != "Pixel_Model":
+        if self.mode != GENERATOR_PIXEL_MODEL:
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,
@@ -106,7 +109,7 @@ class DataGenerator(keras.utils.Sequence):
             self.y_open_shape = (1, self.y_width, self.y_height)
             self.x_width = self.y_width + (self.padding * 2)
             self.x_height = self.y_height + (self.padding * 2)
-            if self.mode == "3D_Model":
+            if self.mode == GENERATOR_3D_MODEL:
                 self.expected_x_shape = (
                     self.batch_number,
                     self.timesteps,
@@ -120,7 +123,7 @@ class DataGenerator(keras.utils.Sequence):
                     self.y_height,
                     self.num_classes,
                 )
-            if self.mode == "2D_Model":
+            if self.mode == GENERATOR_2D_MODEL:
                 self.expected_x_shape = (
                     self.batch_number * self.timesteps,
                     self.x_width,
@@ -268,7 +271,7 @@ class DataGenerator(keras.utils.Sequence):
             : self.timesteps, : self.num_bands, : self.width, : self.height
         ]
         # Fill missing pixels to the standard, with the NaN value of the object.
-        if self.mode == "2D_Model":
+        if self.mode == GENERATOR_2D_MODEL:
             # In 2D mode we dont want to fill missing timesteps.
             self.x_open_shape = (x_tensor.shape[0], *self.x_open_shape[1:])
         if x_tensor.shape != self.x_open_shape:
@@ -344,7 +347,7 @@ class DataGenerator(keras.utils.Sequence):
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
         # Make padded timesteps, with nan_value.
-        if self.mode == "3D_Model" or self.mode == "Pixel_Model":
+        if self.mode in [GENERATOR_3D_MODEL, GENERATOR_PIXEL_MODEL]:
             if len(x_imgs) < self.timesteps:
                 x_imgs = np.vstack(
                     (
@@ -361,7 +364,7 @@ class DataGenerator(keras.utils.Sequence):
         x_imgs = filters._order_tensor_on_masks(
             np.array(x_imgs), self.x_nan_value, number_images=self.timesteps
         )
-        if self.mode == "3D_Model" or self.mode == "2D_Model":
+        if self.mode in [GENERATOR_3D_MODEL, GENERATOR_2D_MODEL]:
             # This gets the data to be used in image models.
             x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
             # Change the shape order to :
@@ -372,7 +375,7 @@ class DataGenerator(keras.utils.Sequence):
             if self.train:
                 y_tensor = np.swapaxes(y_tensor, 0, 1)
                 y_tensor = np.swapaxes(y_tensor, 1, 2)
-        if self.mode == "Pixel_Model":
+        if self.mode == GENERATOR_PIXEL_MODEL:
             x_tensor, y_tensor = self.process_pixels(x_imgs, Y=y_img)
         # For multiclass problems, convert the Y data to categorical.
         if self.num_classes > 1 and self.train:
@@ -381,7 +384,7 @@ class DataGenerator(keras.utils.Sequence):
             y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
         if not self.train:
             return x_tensor
-        if self.mode == "2D_Model":
+        if self.mode == GENERATOR_2D_MODEL:
             y_tensor = np.repeat(np.array([y_tensor]), x_tensor.shape[0], axis=0)
         return x_tensor, y_tensor
 
@@ -431,7 +434,7 @@ class DataGenerator(keras.utils.Sequence):
         X = np.array([np.array(x) for x in X])
         # Since 2D mode is a special case of 3D, it just requires a ravel on
         # 1st two dimensions.
-        if self.mode == "2D_Model" or self.mode == "Pixel_Model":
+        if self.mode in [GENERATOR_2D_MODEL, GENERATOR_PIXEL_MODEL]:
             X = np.vstack(X)
             if self.train:
                 Y = np.vstack(Y)

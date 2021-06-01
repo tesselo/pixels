@@ -455,9 +455,9 @@ def predict_function_batch(
             : dtgen.timesteps
         ]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
-        if dtgen.mode == "3D_Model" or dtgen.mode == "2D_Model":
+        if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
             # Index img number based on mode.
-            if dtgen.mode == "3D_Model":
+            if dtgen.mode == generator.GENERATOR_3D_MODEL:
                 width_index = 2
                 height_index = 3
             else:
@@ -468,7 +468,7 @@ def predict_function_batch(
             big_square_height = dtgen.expected_x_shape[height_index]
             big_square_width_result = big_square_width - (dtgen.padding * 2)
             big_square_height_result = big_square_height - (dtgen.padding * 2)
-
+            # TODO: make this moving window with 2D mode.
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
                     f"Shapes from Input data are different from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
@@ -546,17 +546,10 @@ def predict_function_batch(
                 prediction[prediction != prediction] = dtgen.nan_value
             else:
                 prediction = model.predict(dtgen[item])
-                # out_path_temp = out_path.replace("s3://", "tmp/")
-                # if not os.path.exists(os.path.dirname(out_path_temp)):
-                #     os.makedirs(os.path.dirname(out_path_temp))
-                # np.savez(f"{out_path_temp}.npz", prediction)
-                # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
-                # Change this to allow batch on prediction.
-                # prediction = prediction[0, :, :, :]
             meta["width"] = big_square_width_result
             meta["height"] = big_square_height_result
 
-        if dtgen.mode == "Pixel_Model":
+        if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             data = dtgen[item]
             # for pixel in data:
             prediction = model.predict(data)
@@ -598,7 +591,6 @@ def predict_function_batch(
             _save_and_write_tif(out_path_tif, prediction[0], meta)
         else:
             # Save multiple prediction images.
-            # TODO: save them with the date.
             for image_count in range(len(prediction)):
                 out_path_tif = f"{out_path}_{date_list[image_count]}.tif"
                 _save_and_write_tif(out_path_tif, prediction[image_count], meta)
