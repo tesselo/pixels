@@ -416,6 +416,7 @@ def predict_function_batch(
             )
     # Instanciate generator.
     # Force generator to prediction.
+    gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
     if "jumping_ratio" not in gen_args:
@@ -449,21 +450,34 @@ def predict_function_batch(
         meta = dtgen.get_meta(item)
         catalog_id = dtgen.id_list[item]
         x_path = dtgen.collection_catalog[catalog_id]["x_paths"][0]
+        date_list = dtgen.collection_catalog[catalog_id]["x_paths"]
+        date_list = [os.path.basename(date).replace(".tif", "") for date in date_list][
+            : dtgen.timesteps
+        ]
         x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
-        if dtgen.mode == "3D_Model":
+        if dtgen.mode == "3D_Model" or dtgen.mode == "2D_Model":
+            # Index img number based on mode.
+            if dtgen.mode == "3D_Model":
+                width_index = 2
+                height_index = 3
+            else:
+                width_index = 1
+                height_index = 2
             # If the generator output is bigger than model shape, do a jumping window.
-            big_square_width = dtgen.expected_x_shape[2]
-            big_square_height = dtgen.expected_x_shape[3]
+            big_square_width = dtgen.expected_x_shape[width_index]
+            big_square_height = dtgen.expected_x_shape[height_index]
             big_square_width_result = big_square_width - (dtgen.padding * 2)
             big_square_height_result = big_square_height - (dtgen.padding * 2)
+
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
-                    f"Shapes from Input data are differen from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
+                    f"Shapes from Input data are different from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."
                 )
                 # Get the data (X).
                 data = dtgen[item]
-                width = model.input_shape[2]
-                height = model.input_shape[3]
+                # num_imgs = len(data)
+                width = model.input_shape[width_index]
+                height = model.input_shape[height_index]
                 jumping_width = width - (dtgen.padding * 2)
                 jumping_height = height - (dtgen.padding * 2)
                 jump_width = int(jumping_width * jumping_ratio)
@@ -538,13 +552,9 @@ def predict_function_batch(
                 # np.savez(f"{out_path_temp}.npz", prediction)
                 # stc.upload_files_s3(os.path.dirname(out_path_temp), file_type='.npz')
                 # Change this to allow batch on prediction.
-                prediction = prediction[0, :, :, :]
+                # prediction = prediction[0, :, :, :]
             meta["width"] = big_square_width_result
             meta["height"] = big_square_height_result
-
-        if dtgen.mode == "2D_Model":
-            prediction = model.predict(dtgen[item])
-            prediction = prediction[0, :, :, :]
 
         if dtgen.mode == "Pixel_Model":
             data = dtgen[item]
@@ -552,7 +562,7 @@ def predict_function_batch(
             prediction = model.predict(data)
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             # Check for nan values. TODO.
-            prediction = prediction.reshape(image_shape)
+            prediction = np.array[prediction.reshape(image_shape)]
 
         # Fix number of bands to 1. This assumes multiclass output always is
         # converted to a single band with the class numbers.
@@ -562,12 +572,12 @@ def predict_function_batch(
         meta["nodata"] = dtgen.y_nan_value
 
         # Ensure the class axis is the first one.
+        prediction = prediction.swapaxes(2, 3)
         prediction = prediction.swapaxes(1, 2)
-        prediction = prediction.swapaxes(0, 1)
 
         # Apply argmax to reduce the one-hot model output into class numbers.
         if dtgen.num_classes > 1:
-            prediction = np.argmax(prediction, axis=0)
+            prediction = np.argmax(prediction, axis=1)
             # Ensure prediction has a writable type. For now, we assume there
             # will not be more than 255 classes and use unit8. The default
             # argmax type is Int64 which is not a valid format for gdal.
@@ -583,8 +593,17 @@ def predict_function_batch(
             meta["transform"][5],
         )
         # Save the prediction tif.
-        out_path_tif = f"{out_path}.tif"
-        _save_and_write_tif(out_path_tif, prediction, meta)
+        if len(prediction) == 1:
+            out_path_tif = f"{out_path}.tif"
+            _save_and_write_tif(out_path_tif, prediction[0], meta)
+        else:
+            # Save multiple prediction images.
+            # TODO: save them with the date.
+            for image_count in range(len(prediction)):
+                out_path_tif = f"{out_path}_{date_list[image_count]}.tif"
+                _save_and_write_tif(out_path_tif, prediction[image_count], meta)
+                image_count = image_count + 1
+
         # Build the corresponding pystac item.
         try:
             cat = pystac.Catalog.from_file(
