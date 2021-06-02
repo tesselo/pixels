@@ -28,7 +28,6 @@ upgrade_dependencies: dev_install
 	pip-compile --upgrade --output-file ./dev_requirements.txt dev_requirements.in
 
 upgrade_batch_dependencies: dev_install
-	pip-compile --upgrade --output-file ./batch/docker/rasterio_requirements.txt ./batch/docker/rasterio_requirements.in
 	pip-compile --upgrade --output-file ./batch/docker/tensorflow_requirements.txt ./batch/docker/tensorflow_requirements.in
 	pip-compile --upgrade --output-file ./batch/docker/requirements.txt ./batch/docker/requirements.in
 
