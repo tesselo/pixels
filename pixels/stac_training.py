@@ -196,6 +196,7 @@ def train_model_function(
         model = load_model_from_file(model_config_uri)
 
     gen_args["dtype"] = model.input.dtype.name
+    eval_split = gen_args.pop("eval_split", 0)
     if "training_percentage" not in gen_args:
         gen_args["training_percentage"] = gen_args["split"]
     # Instanciate generator.
@@ -317,7 +318,10 @@ def train_model_function(
 
     # Evaluate model on test set.
     gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
-    gen_args["split"] = 1 - gen_args["split"]
+    if eval_split == 0:
+        gen_args["split"] = 1 - gen_args["split"]
+    else:
+        gen_args["split"] = eval_split
     if gen_args["split"] <= 0:
         raise ValueError("Negative or 0 split is not allowed.")
     if "y_downsample" in gen_args:
@@ -475,7 +479,14 @@ def predict_function_batch(
                 )
                 # Get the data (X).
                 data = dtgen[item]
-                # num_imgs = len(data)
+                # 3D model shape: (N, T, h, w, b)
+                # 2D model shape: (N, h, w, b)
+                # In order to keep the same structure for both cases
+                # we make the 2D mode like a case of 3D with 1 timestep.
+                # For that we create a dimension.
+                if len(data.shape) < 5:
+                    data = np.expand_dims(data, axis=1)
+                num_imgs = len(data)
                 width = model.input_shape[width_index]
                 height = model.input_shape[height_index]
                 jumping_width = width - (dtgen.padding * 2)
@@ -485,6 +496,7 @@ def predict_function_batch(
                 # Instanciate empty result matrix.
                 prediction = np.full(
                     (
+                        num_imgs,
                         big_square_width_result,
                         big_square_height_result,
                         dtgen.num_classes,
@@ -506,6 +518,9 @@ def predict_function_batch(
                                 and big_square_width - i < width
                             ):
                                 res = data[:, :, -width:, -height:, :]
+                        # If 2D mode break aditional dimension.
+                        if dtgen.mode == generator.GENERATOR_2D_MODEL:
+                            res = res[:, 0]
                         pred = model.predict(res)
                         # Merge all predicitons
                         jump_pad_j_i = jump_pad
@@ -522,12 +537,13 @@ def predict_function_batch(
                             jump_pad_j_f = 0
 
                         pred = pred[
-                            0,
+                            :,
                             jump_pad_i_i : pred.shape[1] - jump_pad_i_f,
                             jump_pad_j_i : pred.shape[2] - jump_pad_j_f,
                             :,
                         ]
                         aux_pred = prediction[
+                            :,
                             i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                             :,
@@ -537,9 +553,11 @@ def predict_function_batch(
                                 pred.shape[0] - aux_pred.shape[0] :,
                                 pred.shape[1] - aux_pred.shape[1] :,
                                 pred.shape[2] - aux_pred.shape[2] :,
+                                pred.shape[3] - aux_pred.shape[3] :,
                             ]
                         mean_pred = np.nanmean([pred, aux_pred], axis=0)
                         prediction[
+                            :,
                             i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                         ] = mean_pred
