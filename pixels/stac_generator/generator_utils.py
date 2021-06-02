@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @backoff.on_exception(
     backoff.expo,
     rasterio.errors.RasterioIOError,
-    max_tries=8,
+    max_tries=4,
 )
 def read_raster_file(path_raster):
     if path_raster.startswith("zip:"):
