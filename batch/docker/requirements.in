@@ -21,3 +21,4 @@ h5py==2.10.0
 tensorflow-addons==0.12.1
 sentry-sdk
 rasterio==1.2.3
+backoff
