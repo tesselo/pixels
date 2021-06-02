@@ -2,6 +2,7 @@ import io
 import logging
 import zipfile
 
+import backoff
 import boto3
 import numpy as np
 import rasterio
@@ -14,26 +15,26 @@ s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
 
 
+@backoff.on_exception(
+    backoff.expo,
+    rasterio.errors.RasterioIOError,
+    max_tries=4,
+)
 def read_raster_file(path_raster):
-    try:
-        if path_raster.startswith("zip:"):
-            source_zip_path = path_raster.split("!/")[0]
-            file_inside_zip = path_raster.split("!/")[-1]
-            if source_zip_path.startswith("zip://s3"):
-                zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
-            zip_file = zipfile.ZipFile(zip_file, "r")
-            raster_file = zip_file.read(file_inside_zip)
-            raster_file = io.BytesIO(raster_file)
-        else:
-            raster_file = path_raster
-        with rasterio.open(raster_file) as src:
-            img = src.read()
-            meta = src.meta
-            src.close()
-    except Exception as E:
-        logger.warning(f"Generator error in read_raster_file: {E}")
-        img = None
-        meta = None
+    if path_raster.startswith("zip:"):
+        source_zip_path = path_raster.split("!/")[0]
+        file_inside_zip = path_raster.split("!/")[-1]
+        if source_zip_path.startswith("zip://s3"):
+            zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
+        zip_file = zipfile.ZipFile(zip_file, "r")
+        raster_file = zip_file.read(file_inside_zip)
+        raster_file = io.BytesIO(raster_file)
+    else:
+        raster_file = path_raster
+    with rasterio.open(raster_file) as src:
+        img = src.read()
+        meta = src.meta
+        src.close()
     return img, meta
 
 
