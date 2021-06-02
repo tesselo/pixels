@@ -196,10 +196,7 @@ def train_model_function(
         model = load_model_from_file(model_config_uri)
 
     gen_args["dtype"] = model.input.dtype.name
-    eval_split = 0
-    if "eval_split" in gen_args:
-        eval_split = gen_args["eval_split"]
-        gen_args.pop("eval_split")
+    eval_split = gen_args.pop("eval_split", 0)
     if "training_percentage" not in gen_args:
         gen_args["training_percentage"] = gen_args["split"]
     # Instanciate generator.
@@ -482,6 +479,11 @@ def predict_function_batch(
                 )
                 # Get the data (X).
                 data = dtgen[item]
+                # 3D model shape: (N, T, h, w, b)
+                # 2D model shape: (N, h, w, b)
+                # In order to keep the same structure for both cases
+                # we make the 2D mode like a case of 3D with 1 timestep.
+                # For that we create a dimension.
                 if len(data.shape) < 5:
                     data = np.expand_dims(data, axis=1)
                 num_imgs = len(data)
