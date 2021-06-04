@@ -138,6 +138,38 @@ def load_existing_model_from_file(
     return model
 
 
+class Custom_Callback_SaveModel_S3(tf.keras.callbacks.Callback):
+    """
+    Custom Callback function to save and upload to s3 models on epoch end.
+
+    Parameters
+    ----------
+        passed_epochs : int
+            Number of epochs already trained on the model.
+        path : string
+            Path to model folder.
+    """
+
+    def __init__(self, passed_epochs, path):
+        self.passed_epochs = passed_epochs
+        self.path = path
+
+    def on_epoch_end(self, epoch, logs=None):
+        epoch_number = epoch + self.passed_epochs + 1
+        path_model = os.path.join(self.path, f"model_epoch_{epoch_number}.hdf5")
+        # Store the model in bucket.
+        if path_model.startswith("s3"):
+            with io.BytesIO() as fl:
+                with h5py.File(fl, mode="w") as h5fl:
+                    self.model.save(h5fl)
+                    h5fl.flush()
+                    h5fl.close()
+                stc.upload_obj_s3(path_model, fl.getvalue())
+        else:
+            with h5py.File(path_model, mode="w") as h5fl:
+                self.model.save(h5fl)
+
+
 def train_model_function(
     catalog_uri,
     model_config_uri,
@@ -245,17 +277,6 @@ def train_model_function(
     if not os.path.exists(path_ep_md):
         os.makedirs(path_ep_md)
     # Train model.
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        os.path.join(
-            path_ep_md, f"model_{last_training_epochs}+" + "_{epoch:02d}.hdf5"
-        ),
-        monitor="loss",
-        verbose=1,
-        save_best_only=False,
-        mode="auto",
-        save_freq="epoch",
-    )
-
     # Load the class weigths from the Y catalog if requested. Class weights can
     # be passed as a dictionary with the class weights. In this case these
     # will be passed on and not altered. If the class weights key is present,
@@ -291,7 +312,17 @@ def train_model_function(
         else:
             fit_args["class_weight"] = None
     # Verbose level 2 prints one line per epoch to the log.
-    history = model.fit(dtgen, **fit_args, callbacks=[checkpoint], verbose=2)
+    history = model.fit(
+        dtgen,
+        **fit_args,
+        callbacks=[
+            Custom_Callback_SaveModel_S3(
+                passed_epochs=last_training_epochs,
+                path=os.path.dirname(model_config_uri),
+            )
+        ],
+        verbose=2,
+    )
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
         # Get history data.
         hist_data = history.history
