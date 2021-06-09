@@ -66,15 +66,18 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=None, scaling=100
         ydata = ydata[:img_c, :img_l]
         xoffset = (i) % width
         yoffset = math.floor((i) / width)
+        initial_y = (yoffset * img_l + yoffset * padding)
+        final_y = (
+            (yoffset + 1) * img_c + yoffset * padding
+        )
+
+        initial_x =(xoffset * img_c + xoffset * padding)
+        final_x = (
+            (xoffset + 1) * img_l + xoffset * padding
+        )
+
         try:
-            target[
-                (yoffset * img_c + yoffset * padding) : (
-                    (yoffset + 1) * img_l + yoffset * padding
-                ),
-                (xoffset * img_c + xoffset * padding) : (
-                    (xoffset + 1) * img_l + xoffset * padding
-                ),
-            ] = ydata[:, :, :3]
+            target[initial_y:final_y,initial_x:final_x,:] = ydata[:, :, :3]
         except Exception as e:
             sentry_sdk.capture_exception(e)
             print("Failed")
@@ -157,9 +160,9 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=None, scaling=100
         try:
             target[
                 (yoffset * img_c + yoffset * padding) : (
-                    (yoffset + 1) * img_l + yoffset * padding
+                    (yoffset + 1) * img_c + yoffset * padding
                 ),
-                (xoffset * img_c + xoffset * padding) : (
+                (xoffset * img_l + xoffset * padding) : (
                     (xoffset + 1) * img_l + xoffset * padding
                 ),
             ] = rgb

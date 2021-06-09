@@ -101,39 +101,39 @@ class DataGenerator(keras.utils.Sequence):
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,
-                self.width,
                 self.height,
+                self.width,
             )
             self.y_width = self.width * self.upsampling
             self.y_height = self.height * self.upsampling
-            self.y_open_shape = (1, self.y_width, self.y_height)
+            self.y_open_shape = (1, self.y_height, self.y_width)
             self.x_width = self.y_width + (self.padding * 2)
             self.x_height = self.y_height + (self.padding * 2)
             if self.mode == GENERATOR_3D_MODEL:
                 self.expected_x_shape = (
                     self.batch_number,
                     self.timesteps,
-                    self.x_width,
                     self.x_height,
+                    self.x_width,
                     self.num_bands,
                 )
                 self.expected_y_shape = (
                     self.batch_number,
-                    self.y_width,
                     self.y_height,
+                    self.y_width,
                     self.num_classes,
                 )
             if self.mode == GENERATOR_2D_MODEL:
                 self.expected_x_shape = (
                     self.batch_number * self.timesteps,
-                    self.x_width,
                     self.x_height,
+                    self.x_width,
                     self.num_bands,
                 )
                 self.expected_y_shape = (
                     self.batch_number * self.timesteps,
-                    self.y_width,
                     self.y_height,
+                    self.y_width,
                     self.num_classes,
                 )
 
@@ -268,7 +268,7 @@ class DataGenerator(keras.utils.Sequence):
         """
         # Ensure X img size.
         x_tensor = x_tensor[
-            : self.timesteps, : self.num_bands, : self.width, : self.height
+            : self.timesteps, : self.num_bands, : self.height, : self.width
         ]
         # Fill missing pixels to the standard, with the NaN value of the object.
         if self.mode == GENERATOR_2D_MODEL:
@@ -298,7 +298,7 @@ class DataGenerator(keras.utils.Sequence):
         # Ensure correct size of Y data in training mode.
         if self.train:
             # Limit the size to the maximum expected.
-            y_tensor = y_tensor[: self.num_classes, : self.y_width, : self.y_height]
+            y_tensor = y_tensor[: self.num_classes, : self.y_height, : self.y_width]
             # Fill the gaps with nodata if the array is too small.
             if y_tensor.shape != self.y_open_shape:
                 y_tensor = generator_utils.fill_missing_dimensions(
