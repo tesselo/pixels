@@ -15,6 +15,54 @@ s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
 
 
+def open_zip_from_s3(source_path):
+    """
+    Read a zip file in s3.
+
+    Parameters
+    ----------
+        source_path : str
+            Path to the zip file on s3 containing the rasters.
+
+    Returns
+    -------
+        data : BytesIO
+            Obejct from the zip file.
+    """
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
+    data = io.BytesIO(data)
+    return data
+
+
+def read_raster_inside_zip(file_inside_zip, source_zip_path):
+    if source_zip_path.startswith("zip://s3"):
+        zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
+    else:
+        zip_file = source_zip_path
+    zip_file = zipfile.ZipFile(zip_file, "r")
+    raster_file = zip_file.read(file_inside_zip)
+    raster_file = io.BytesIO(raster_file)
+    with rasterio.open(raster_file) as src:
+        img = src.read()
+        meta = src.meta
+        src.close()
+    return img, meta
+
+
+def read_raster_inside_opened_zip(file_inside_zip, zip_file):
+    raster_file = zip_file.read(file_inside_zip)
+    raster_file = io.BytesIO(raster_file)
+    with rasterio.open(raster_file) as src:
+        img = src.read()
+        meta = src.meta
+        src.close()
+    return img, meta
+
+
 @backoff.on_exception(
     backoff.fibo,
     rasterio.errors.RasterioIOError,
@@ -24,11 +72,7 @@ def read_raster_file(path_raster):
     if path_raster.startswith("zip:"):
         source_zip_path = path_raster.split("!/")[0]
         file_inside_zip = path_raster.split("!/")[-1]
-        if source_zip_path.startswith("zip://s3"):
-            zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
-        zip_file = zipfile.ZipFile(zip_file, "r")
-        raster_file = zip_file.read(file_inside_zip)
-        raster_file = io.BytesIO(raster_file)
+        return read_raster_inside_zip(file_inside_zip, source_zip_path)
     else:
         raster_file = path_raster
     with rasterio.open(raster_file) as src:

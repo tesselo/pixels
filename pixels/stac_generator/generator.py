@@ -1,7 +1,7 @@
 import logging
 import math
 import os
-from concurrent.futures import ThreadPoolExecutor
+import zipfile
 from multiprocessing import Pool
 
 import boto3
@@ -97,6 +97,7 @@ class DataGenerator(keras.utils.Sequence):
         self.width = width
         self.height = height
         self.padding = padding
+        self.y_zip = None
         if self.mode != GENERATOR_PIXEL_MODEL:
             self.x_open_shape = (
                 self.timesteps,
@@ -215,19 +216,9 @@ class DataGenerator(keras.utils.Sequence):
             parent_path = os.path.dirname(self.path_collection_catalog)
             x_paths = [os.path.join(parent_path, path) for path in x_paths]
             y_path = os.path.join(parent_path, y_path)
-        # TODO: Check if it is the best way to multiprocessing rabbit hole.
-        with ThreadPoolExecutor(max_workers=min(len(x_paths), 12)) as executor:
-            x_tensor = []
-            futures = []
-            for x_path in x_paths:
-                futures.append(
-                    executor.submit(generator_utils.read_raster_file, x_path)
-                )
-            # Process completed tasks.
-            for future in futures:
-                result = future.result()
-                if result is not None:
-                    x_tensor.append(result)
+        # Open all X images in parallel.
+        with Pool(min(len(x_paths), 12)) as p:
+            x_tensor = p.map(generator_utils.read_raster_file, x_paths)
         # Get the imgs list and the meta list.
         x_imgs = np.array(x_tensor, dtype="object")[:, 0]
         # Ensure all images are numpy arrays.
@@ -235,7 +226,23 @@ class DataGenerator(keras.utils.Sequence):
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
         # Same process for y data.
         if self.train:
-            y_img, y_meta = generator_utils.read_raster_file(y_path)
+            if y_path.startswith("zip:"):
+                if self.y_zip is None:
+                    # Open zip for y training:
+                    source_zip_path = y_path.split("!/")[0]
+                    if source_zip_path.startswith("zip://s3"):
+                        zip_file = generator_utils.open_zip_from_s3(
+                            source_zip_path.split("zip://")[-1]
+                        )
+                    else:
+                        zip_file = source_zip_path
+                    self.y_zip = zipfile.ZipFile(zip_file, "r")
+                file_inside_zip = y_path.split("!/")[-1]
+                y_img, y_meta = generator_utils.read_raster_inside_opened_zip(
+                    file_inside_zip, self.y_zip
+                )
+            else:
+                y_img, y_meta = generator_utils.read_raster_file(y_path)
             y_img = np.array(y_img)
             if only_images:
                 return x_imgs, y_img
@@ -422,9 +429,10 @@ class DataGenerator(keras.utils.Sequence):
             for f in np.arange(self.batch_number)
             if ((f * len(self)) + index) < self.original_size
         ]
-        # Do all batches in parallel.
-        with Pool(self.batch_number) as p:
-            tensor = p.map(self.get_and_process, list_indexes)
+        tensor = []
+        # Loop on batch number.
+        for ind in list_indexes:
+            tensor.append(self.get_and_process(ind))
         # Break down the tuple n(X, Y) into X and Y.
         if self.train:
             X = [np.array(x[0]) for x in tensor]
