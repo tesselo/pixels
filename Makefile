@@ -21,6 +21,7 @@ install:
 
 dev_install: install
 	pip install -r dev_requirements.txt
+	pre-commit install
 
 upgrade_dependencies: dev_install
 	pip install pip-tools
