@@ -1,0 +1,20 @@
+default_language_version:
+  python: python3.8
+
+repos:
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: '84c95766e679710d9a0fa910a1cd276c87be42c5'
+    hooks:
+      - id: flake8
+
+  - repo: https://github.com/ambv/black
+    rev: 21.5b0
+    hooks:
+      - id: black
+        args: [-tpy38, -q, --check]
+
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.1.1
+    hooks:
+      - id: isort
+        types: [python]
