@@ -493,11 +493,11 @@ def predict_function_batch(
         if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
             # Index img number based on mode.
             if dtgen.mode == generator.GENERATOR_3D_MODEL:
-                width_index = 2
-                height_index = 3
-            else:
-                width_index = 1
+                width_index = 3
                 height_index = 2
+            else:
+                width_index = 2
+                height_index = 1
             # If the generator output is bigger than model shape, do a jumping window.
             big_square_width = dtgen.expected_x_shape[width_index]
             big_square_height = dtgen.expected_x_shape[height_index]
@@ -538,17 +538,17 @@ def predict_function_batch(
                 # For every window replace the values in the result matrix.
                 for i in range(0, big_square_width, jump_width):
                     for j in range(0, big_square_height, jump_height):
-                        res = data[:, :, i : i + width, j : j + height, :]
+                        res = data[:, :, j : j + height, i : i + width, :]
                         if res.shape[1:] != model.input_shape[1:]:
                             if big_square_height - j < height:
-                                res = data[:, :, i : i + width, -height:, :]
+                                res = data[:, :, -height:, i : i + width, :]
                             if big_square_width - i < width:
-                                res = data[:, :, -width:, j : j + height, :]
+                                res = data[:, :, j : j + height, -width:, :]
                             if (
                                 big_square_height - j < height
                                 and big_square_width - i < width
                             ):
-                                res = data[:, :, -width:, -height:, :]
+                                res = data[:, :, -height:, -width:, :]
                         # If 2D mode break aditional dimension.
                         if dtgen.mode == generator.GENERATOR_2D_MODEL:
                             res = res[:, 0]
@@ -569,14 +569,14 @@ def predict_function_batch(
 
                         pred = pred[
                             :,
-                            jump_pad_i_i : pred.shape[1] - jump_pad_i_f,
-                            jump_pad_j_i : pred.shape[2] - jump_pad_j_f,
+                            jump_pad_j_i : pred.shape[1] - jump_pad_j_f,
+                            jump_pad_i_i : pred.shape[2] - jump_pad_i_f,
                             :,
                         ]
                         aux_pred = prediction[
                             :,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             :,
                         ]
                         if aux_pred.shape != pred.shape:
@@ -589,8 +589,8 @@ def predict_function_batch(
                         mean_pred = np.nanmean([pred, aux_pred], axis=0)
                         prediction[
                             :,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
                         ] = mean_pred
                 prediction[prediction != prediction] = dtgen.nan_value
             else:
@@ -612,7 +612,6 @@ def predict_function_batch(
 
         # Set the Y nodata value (defaults to none).
         meta["nodata"] = dtgen.y_nan_value
-
         # Ensure the class axis is the first one.
         prediction = prediction.swapaxes(2, 3)
         prediction = prediction.swapaxes(1, 2)
@@ -644,7 +643,6 @@ def predict_function_batch(
                 out_path_tif = f"{out_path}_{date_list[image_count]}.tif"
                 _save_and_write_tif(out_path_tif, prediction[image_count], meta)
                 image_count = image_count + 1
-
         # Build the corresponding pystac item.
         try:
             cat = pystac.Catalog.from_file(
