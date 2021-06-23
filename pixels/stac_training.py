@@ -595,7 +595,6 @@ def predict_function_batch(
                             :,
                         ]
                         pred_sum = np.ones(pred.shape)
-                        # mean_pred = np.nanmean([pred, aux_pred], axis=0)
                         # Summed the new pixel with the old.
                         summed_pred = np.nansum([pred, aux_pred], axis=0)
                         prediction[
