@@ -534,6 +534,7 @@ def predict_function_batch(
                     ),
                     np.nan,
                 )
+                pred_num_it = np.zeros(prediction.shape)
                 # Create a jumping window with the expected size.
                 # For every window replace the values in the result matrix.
                 for i in range(0, big_square_width, jump_width):
@@ -566,13 +567,14 @@ def predict_function_batch(
                             jump_pad_j_i = 0
                         if big_square_height - j < jump_height:
                             jump_pad_j_f = 0
-
+                        # Get only the array without the padding.
                         pred = pred[
                             :,
                             jump_pad_j_i : pred.shape[1] - jump_pad_j_f,
                             jump_pad_i_i : pred.shape[2] - jump_pad_i_f,
                             :,
                         ]
+                        # Get the image from the main prediction.
                         aux_pred = prediction[
                             :,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
@@ -586,13 +588,32 @@ def predict_function_batch(
                                 pred.shape[2] - aux_pred.shape[2] :,
                                 pred.shape[3] - aux_pred.shape[3] :,
                             ]
-                        mean_pred = np.nanmean([pred, aux_pred], axis=0)
+                        aux_sum = pred_num_it[
+                            :,
+                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            :,
+                        ]
+                        pred_sum = np.ones(pred.shape)
+                        # mean_pred = np.nanmean([pred, aux_pred], axis=0)
+                        # Summed the new pixel with the old.
+                        summed_pred = np.nansum([pred, aux_pred], axis=0)
                         prediction[
                             :,
                             j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
                             i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
-                        ] = mean_pred
+                        ] = summed_pred
+                        # Summed secction of iteration on each pixel.
+                        summed_iteration = np.sum([aux_sum, pred_sum], axis=0)
+                        pred_num_it[
+                            :,
+                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
+                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                        ] = summed_iteration
                 prediction[prediction != prediction] = dtgen.nan_value
+                pred_num_it[pred_num_it == 0] = 1
+                # Mean of all prediction based on pixel iteration.
+                prediction = prediction / pred_num_it
             else:
                 prediction = model.predict(dtgen[item])
             meta["width"] = big_square_width_result
