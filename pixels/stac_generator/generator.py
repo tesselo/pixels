@@ -210,7 +210,7 @@ class DataGenerator(keras.utils.Sequence):
         # index dictionary.
         x_id = self.id_list[index]
         catalog = self.collection_catalog[x_id]
-        x_paths = catalog["x_paths"]
+        x_paths = list(np.unique(catalog["x_paths"]))
         y_path = catalog["y_path"]
         if self.relative_paths:
             parent_path = os.path.dirname(self.path_collection_catalog)
