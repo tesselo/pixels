@@ -503,7 +503,7 @@ def predict_function_batch(
             big_square_height = dtgen.expected_x_shape[height_index]
             big_square_width_result = big_square_width - (dtgen.padding * 2)
             big_square_height_result = big_square_height - (dtgen.padding * 2)
-            # TODO: make this moving window with 2D mode.
+            # Moving window for prediction with bigger shapes than model.
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
                     f"Shapes from Input data are different from model. Input:{dtgen.expected_x_shape[1:]}, model:{model.input_shape[1:]}."

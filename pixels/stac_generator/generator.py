@@ -167,9 +167,14 @@ class DataGenerator(keras.utils.Sequence):
         # This is the lenght of ids to use.
         length = math.ceil(self.original_size * self.training_percentage)
         # Spliting the dataset.
+        # The spliting must be done in separate for random and not.
+        # Otherwise the resulting list when not random has a random order.
+        # And that makes it possible for overlaping ids in batch processes.
         if self.random_seed:
             np.random.seed(self.random_seed)
-        self.id_list = np.random.choice(self.id_list, length, replace=False)
+            self.id_list = np.random.choice(self.id_list, length, replace=False)
+        else:
+            self.id_list = self.id_list[:length]
         self.length = len(self.id_list)
         # Spliting the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:
