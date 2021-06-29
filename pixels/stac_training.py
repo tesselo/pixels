@@ -472,7 +472,7 @@ def predict_function_batch(
     predict_path = os.path.dirname(generator_config_uri)
     # Get jobs array.
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
-    item_list_max = (array_index + 1) * int(items_per_job)
+    item_list_max = (array_index + 1) * int(items_per_job) - 1
     if item_list_max > len(dtgen):
         item_list_max = len(dtgen)
     item_list_min = array_index * int(items_per_job)
