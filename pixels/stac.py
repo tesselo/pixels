@@ -654,6 +654,9 @@ def get_and_write_raster_from_item(
         logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {e}")
     # Build a intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
+    # Ensure no duplicates get on the dictionary.
+    # Only a temporary solution since this whole pipeline is to change.
+    out_paths = list(np.unique(out_paths))
     catalog_dict = {
         f"pixels_id_{str(item.id)}": {
             "x_paths": out_paths,
