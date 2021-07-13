@@ -1,18 +1,18 @@
 import io
-import logging
 import zipfile
 
 import backoff
 import boto3
 import numpy as np
 import rasterio
+import structlog
 
 import pixels.stac as pxstc
 import pixels.stac_generator.generator_augmentation_2D as aug
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def open_zip_from_s3(source_path):

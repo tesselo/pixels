@@ -1,9 +1,9 @@
 import io
-import logging
 import math
 
 import rasterio
 import sentry_sdk
+import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
@@ -12,7 +12,7 @@ from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def compute_transform(geojson, scale):

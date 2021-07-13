@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
 import json
-import logging
 import math
 import os
 
 import boto3
 import fiona
+import structlog
 
 AWS_BATCH_ARRAY_SIZE_LIMIT = 10000
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = structlog.get_logger(__name__)
 
 
 def push_training_collection(command, bucket, project_id, features_per_job=50):
@@ -29,7 +28,7 @@ def push_training_collection(command, bucket, project_id, features_per_job=50):
     )
     with fiona.open(geo_object["Body"]) as src:
         feature_count = len(src)
-    logging.info("Found {} features.".format(feature_count))
+    logger.info("Found {} features.".format(feature_count))
 
     # Determine batch array size.
     batch_array_size = math.ceil(feature_count / features_per_job)
@@ -95,7 +94,7 @@ def push_training_collection(command, bucket, project_id, features_per_job=50):
                 "command": ["predict.py"],
             }
         )
-    logging.info(job)
+    logger.info(job)
     # Push training collection job.
     batch = boto3.client("batch", region_name="eu-central-1")
     return batch.submit_job(**job)

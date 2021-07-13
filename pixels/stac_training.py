@@ -1,13 +1,13 @@
 import datetime
 import io
 import json
-import logging
 import os
 
 import h5py
 import numpy as np
 import pystac
 import sentry_sdk
+import structlog
 import tensorflow as tf
 import tensorflow_addons
 from dateutil import parser
@@ -27,7 +27,7 @@ ALLOWED_CUSTOM_LOSSES = [
     "nan_categorical_crossentropy_loss",
 ]
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def _save_and_write_tif(out_path, img, meta):

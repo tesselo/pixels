@@ -1,5 +1,4 @@
 import io
-import logging
 import math
 import os
 import pprint
@@ -12,6 +11,7 @@ import numpy as np
 import pystac
 import rasterio
 import sentry_sdk
+import structlog
 from pystac import STAC_IO
 from rasterio.errors import RasterioIOError
 from tensorflow import keras
@@ -23,9 +23,10 @@ import pixels.stac_generator.visualizer as vis
 from pixels.exceptions import InconsistentGeneratorDataException, InvalidGeneratorConfig
 from pixels.stac_utils import _load_dictionary
 
+logger = structlog.get_logger(__name__)
+
 # S3 class instanciation.
 s3 = boto3.client("s3")
-logger = logging.getLogger(__name__)
 
 
 def read_item_raster(path):
