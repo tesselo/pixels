@@ -1,7 +1,6 @@
 import glob
 import io
 import json
-import logging
 import os
 import zipfile
 from collections import Counter
@@ -12,6 +11,7 @@ import numpy as np
 import pystac
 import rasterio
 import sentry_sdk
+import structlog
 from dateutil import parser
 from pystac import STAC_IO
 
@@ -29,7 +29,7 @@ from pixels.utils import write_raster
 
 # Get logger
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def get_bbox_and_footprint_and_stats(raster_uri, categorical):

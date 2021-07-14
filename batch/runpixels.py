@@ -3,10 +3,11 @@
 Execute a function from the pixels package from the commandline.
 """
 import importlib
-import logging.config
+import logging
 import sys
 
 import sentry_sdk
+import structlog
 
 sentry_sdk.init(
     # Sentry DSN is not a secret, but it should be added to a broader
@@ -17,23 +18,37 @@ sentry_sdk.init(
 )
 
 # Logging configuration as dictionary.
+LOGGING_PROCESSORS = [
+    structlog.stdlib.filter_by_level,
+    structlog.processors.TimeStamper(fmt="iso"),
+    structlog.stdlib.add_logger_name,
+    structlog.stdlib.add_log_level,
+    structlog.stdlib.PositionalArgumentsFormatter(),
+    structlog.processors.StackInfoRenderer(),
+    structlog.processors.format_exc_info,
+    structlog.processors.UnicodeDecoder(),
+    structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+]
+
 LOGGING_CONFIG = {
     "version": 1,
     "formatters": {
-        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+        "json_formatter": {
+            "()": structlog.stdlib.ProcessorFormatter,
+            "processor": structlog.processors.JSONRenderer(),
+            "foreign_pre_chain": LOGGING_PROCESSORS,
+        },
     },
     "handlers": {
         "default": {
-            "level": "DEBUG",
-            "formatter": "standard",
             "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",  # Default is stderr
+            "formatter": "json_formatter",
         },
     },
     "loggers": {
         "": {  # root logger
             "handlers": ["default"],
-            "level": "ERROR",
+            "level": "WARNING",
             "propagate": False,
         },
         "pixels": {
@@ -44,11 +59,21 @@ LOGGING_CONFIG = {
         "runpixels": {"handlers": ["default"], "level": "INFO", "propagate": False},
     },
 }
-# Set logging config.
+
+# Set structlog logging config.
+structlog.configure(
+    processors=LOGGING_PROCESSORS + [structlog.processors.JSONRenderer()],
+    context_class=structlog.threadlocal.wrap_dict(dict),
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+# Set standard logging config.
 logging.config.dictConfig(LOGGING_CONFIG)
 
 # Get logger for the this module.
-logger = logging.getLogger("runpixels")
+logger = structlog.get_logger("runpixels")
 
 # List of modules and functions that can be specified in commandline input.
 ALLOWED_MODULES = ["pixels.stac", "pixels.stac_training"]

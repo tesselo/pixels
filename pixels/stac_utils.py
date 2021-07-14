@@ -1,7 +1,6 @@
 import ast
 import glob
 import json
-import logging
 import os
 import shutil
 from urllib.parse import urlparse
@@ -9,9 +8,10 @@ from urllib.parse import urlparse
 import boto3
 import pystac
 import sentry_sdk
+import structlog
 from pystac import STAC_IO
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def stac_s3_write_method(uri, txt):

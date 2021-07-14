@@ -1,4 +1,3 @@
-import logging
 import math
 import os
 import zipfile
@@ -6,15 +5,18 @@ from multiprocessing import Pool
 
 import boto3
 import numpy as np
+import structlog
 from tensorflow import keras
 
 from pixels.exceptions import InconsistentGeneratorDataException
 from pixels.stac_generator import filters, generator_augmentation_2D, generator_utils
 from pixels.stac_utils import _load_dictionary
 
+logger = structlog.get_logger(__name__)
+
 # S3 class instanciation.
 s3 = boto3.client("s3")
-logger = logging.getLogger(__name__)
+
 GENERATOR_MODE_TRAINING = "training"
 GENERATOR_MODE_PREDICTION = "prediction"
 GENERATOR_MODE_EVALUATION = "evaluation"

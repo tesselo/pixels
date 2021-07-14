@@ -1,9 +1,9 @@
-import logging
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
 
 import numpy
 import sentry_sdk
+import structlog
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
@@ -14,7 +14,7 @@ from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
 

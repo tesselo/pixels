@@ -1,15 +1,14 @@
 #!/usr/bin/env python3.7
 
 import json
-import logging
 import os
 import shutil
 import tempfile
 
 import boto3
 import fiona
-import numpy
 import numpy as np
+import structlog
 import tensorflow
 from rasterio import Affine
 from tensorflow.keras.models import load_model
@@ -23,12 +22,7 @@ tf_config.gpu_options.allow_growth = True
 session = tensorflow.compat.v1.InteractiveSession(config=tf_config)
 
 # Logging.
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logger = structlog.get_logger(__name__)
 
 s3 = boto3.client("s3")
 
@@ -68,7 +62,7 @@ with fiona.open(geo_object["Body"]) as src:
 range_min = array_index * features_per_job
 range_max = min((array_index + 1) * features_per_job, feature_count)
 index_range = range(range_min, range_max)
-logging.info("Predicting indices from {} to {}.".format(range_min, range_max))
+logger.info("Predicting indices from {} to {}.".format(range_min, range_max))
 
 for file_index in index_range:
     with tempfile.TemporaryDirectory() as dirpath:

@@ -1,6 +1,6 @@
-import logging
 import os
 
+import structlog
 from dateutil.parser import parse
 from sqlalchemy import create_engine
 
@@ -23,7 +23,7 @@ from pixels.const import (
 )
 from pixels.utils import compute_wgs83_bbox
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 DB_NAME = os.getenv("DB_NAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
