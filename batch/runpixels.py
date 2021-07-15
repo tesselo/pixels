@@ -3,7 +3,7 @@
 Execute a function from the pixels package from the commandline.
 """
 import importlib
-import logging
+import logging.config
 import sys
 
 import sentry_sdk
