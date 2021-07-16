@@ -36,7 +36,6 @@ LOGGING_CONFIG = {
         "json_formatter": {
             "()": structlog.stdlib.ProcessorFormatter,
             "processor": structlog.processors.JSONRenderer(),
-            "foreign_pre_chain": LOGGING_PROCESSORS,
         },
     },
     "handlers": {
