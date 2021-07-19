@@ -22,6 +22,7 @@ click-plugins==1.1.1
     # via rasterio
 click==7.1.2
     # via
+    #   -r requirements.in
     #   click-plugins
     #   cligj
     #   mercantile

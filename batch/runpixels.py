@@ -4,18 +4,20 @@ Execute a function from the pixels package from the commandline.
 """
 import importlib
 import logging.config
-import sys
+import os
 
+import click
 import sentry_sdk
 import structlog
 
-sentry_sdk.init(
-    # Sentry DSN is not a secret, but it should be added to a broader
-    # configuration management policy and removed from here
-    "https://3d69110c01aa41f48f28cf047bfcbc91@o640190.ingest.sentry.io/5760850",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    traces_sample_rate=1.0,
-)
+if "SENTRY_DSN" in os.environ:
+    sentry_sdk.init(
+        # Sentry DSN is not a secret, but it should be added to a broader
+        # configuration management policy and removed from here
+        os.environ.get("SENTRY_DSN"),
+        # Set traces_sample_rate to 1.0 to capture 100%
+        traces_sample_rate=1.0,
+    )
 
 # Logging configuration as dictionary.
 LOGGING_PROCESSORS = [
@@ -36,7 +38,6 @@ LOGGING_CONFIG = {
         "json_formatter": {
             "()": structlog.stdlib.ProcessorFormatter,
             "processor": structlog.processors.JSONRenderer(),
-            "foreign_pre_chain": LOGGING_PROCESSORS,
         },
     },
     "handlers": {
@@ -87,12 +88,15 @@ ALLOWED_FUNCTIONS = [
 ]
 
 
-def main():
+@click.command()
+@click.argument("args", nargs=-1)
+def main(args):
     """
     Import the requested function and run it with the provided input.
     """
+    # print(args)
     # Get input function name.
-    funk_path = sys.argv[1]
+    funk_path = args[0]
     # Get module for function.
     module_name = ".".join(funk_path.split(".")[:-1])
     logger.info("Module name {}.".format(module_name))
@@ -114,9 +118,9 @@ def main():
             )
         )
     funk = getattr(module, funk_name)
-    logger.info("Function args {}.".format(sys.argv[2:]))
+    logger.info("Function args {}.".format(args[1:]))
     # Run function with rest of arguments.
-    funk(*sys.argv[2:])
+    funk(args[1:])
 
 
 if __name__ == "__main__":

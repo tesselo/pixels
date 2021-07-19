@@ -13,6 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV GDAL_DISABLE_READDIR_ON_OPEN=YES
 ENV CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.jp2
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV SENTRY_DSN=https://3d69110c01aa41f48f28cf047bfcbc91@o640190.ingest.sentry.io/5760850
 
 # Apt dependencies.
 RUN apt-get -y update\
