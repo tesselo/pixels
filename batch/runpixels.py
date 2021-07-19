@@ -3,8 +3,9 @@
 Execute a function from the pixels package from the commandline.
 """
 import importlib
-import logging.config
+import logging
 import os
+import sys
 
 import click
 import sentry_sdk
@@ -19,51 +20,19 @@ if "SENTRY_DSN" in os.environ:
         traces_sample_rate=1.0,
     )
 
-# Logging configuration as dictionary.
-LOGGING_PROCESSORS = [
-    structlog.stdlib.filter_by_level,
-    structlog.processors.TimeStamper(fmt="iso"),
-    structlog.stdlib.add_logger_name,
-    structlog.stdlib.add_log_level,
-    structlog.stdlib.PositionalArgumentsFormatter(),
-    structlog.processors.StackInfoRenderer(),
-    structlog.processors.format_exc_info,
-    structlog.processors.UnicodeDecoder(),
-    structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-]
-
-LOGGING_CONFIG = {
-    "version": 1,
-    "formatters": {
-        "json_formatter": {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.processors.JSONRenderer(),
-        },
-    },
-    "handlers": {
-        "default": {
-            "class": "logging.StreamHandler",
-            "formatter": "json_formatter",
-        },
-    },
-    "loggers": {
-        "": {  # root logger
-            "handlers": ["default"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-        "pixels": {
-            "handlers": ["default"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "runpixels": {"handlers": ["default"], "level": "INFO", "propagate": False},
-    },
-}
-
 # Set structlog logging config.
 structlog.configure(
-    processors=LOGGING_PROCESSORS + [structlog.processors.JSONRenderer()],
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer(),
+    ],
     context_class=structlog.threadlocal.wrap_dict(dict),
     logger_factory=structlog.stdlib.LoggerFactory(),
     wrapper_class=structlog.stdlib.BoundLogger,
@@ -71,7 +40,7 @@ structlog.configure(
 )
 
 # Set standard logging config.
-logging.config.dictConfig(LOGGING_CONFIG)
+logging.basicConfig(format="%(message)s", stream=sys.stdout, level=logging.INFO)
 
 # Get logger for the this module.
 logger = structlog.get_logger("runpixels")
