@@ -120,7 +120,7 @@ def main(args):
     funk = getattr(module, funk_name)
     logger.info("Function args {}.".format(args[1:]))
     # Run function with rest of arguments.
-    funk(args[1:])
+    funk(*args[1:])
 
 
 if __name__ == "__main__":
