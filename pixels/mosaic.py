@@ -80,12 +80,12 @@ def latest_pixel(
 
     Returns
     -------
-    creation_args : dict
+    creation_args : dict or None
         The creation arguments metadata for the extracted pixel matrix. Can be
         used to write the extracted pixels to a file if desired.
-    first_end_date : date object
+    first_end_date : date object or None
         The date of the first scene used to create the output image.
-    stack : numpy array
+    stack : numpy array or None
         The extracted pixel stack, with shape (bands, height, width).
     """
     if not isinstance(platforms, (list, tuple)):
@@ -106,9 +106,15 @@ def latest_pixel(
             level=level,
             sensor=sensor,
         )
-
+        # Return early if no items could be found.
         if not items:
-            raise ValueError("No scenes in search response. Latest Pixel.")
+            logger.info(
+                "No scenes in search response.",
+                funk="latest_pixel",
+                search_date_end=end_date,
+                search_date_start=LANDSAT_1_LAUNCH_DATE,
+            )
+            return None, None, None
 
     # Assign variables to be populated during pixel collection.
     stack = None
@@ -246,7 +252,13 @@ def pixel_stack(
         )
 
         if not response:
-            raise ValueError("No scenes in search response. pixel_stack")
+            logger.info(
+                "No scenes in search response.",
+                funk="pixel_stack",
+                search_date_end=end,
+                search_date_start=start,
+            )
+            return None, None, None
 
         logger.info("Getting {} scenes for this stack.".format(len(response)))
 
@@ -339,6 +351,16 @@ def pixel_stack(
     result = [dat for dat in result if dat[2] is not None]
     result = [dat for dat in result if not numpy.all(dat[2][0] == NODATA_VALUE)]
 
+    # Return early if no results are left after cleaning.
+    if not result:
+        logger.info(
+            "No scenes in search response.",
+            funk="pixel_stack",
+            search_date_end=end,
+            search_date_start=start,
+        )
+        return None, None, None
+
     # Convert to individual arrays.
     creation_args = result[0][0]
     dates = [dat[1] for dat in result]
@@ -401,7 +423,13 @@ def composite(
     )
 
     if not items:
-        raise ValueError("No features in search response. composite")
+        logger.info(
+            "No scenes in search response.",
+            funk="composite",
+            search_date_end=end,
+            search_date_start=start,
+        )
+        return None, None, None
 
     stack = None
     creation_args = None
