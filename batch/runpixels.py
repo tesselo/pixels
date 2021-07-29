@@ -16,8 +16,8 @@ if "SENTRY_DSN" in os.environ:
         # Sentry DSN is not a secret, but it should be added to a broader
         # configuration management policy and removed from here
         os.environ.get("SENTRY_DSN"),
-        # Set traces_sample_rate to 1.0 to capture 100%
-        traces_sample_rate=1.0,
+        # Set traces_sample_rate to 0.1 to capture 10%
+        traces_sample_rate=0.1,
     )
 
 # Set structlog logging config.
