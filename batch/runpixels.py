@@ -10,6 +10,7 @@ import sys
 import click
 import sentry_sdk
 import structlog
+from structlog_sentry import SentryJsonProcessor
 
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(
@@ -31,6 +32,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
+        SentryJsonProcessor(level=logging.ERROR, tag_keys="__all__"),
         structlog.processors.JSONRenderer(),
     ],
     context_class=structlog.threadlocal.wrap_dict(dict),

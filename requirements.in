@@ -9,4 +9,5 @@ sentry-sdk
 SQLAlchemy==1.4.0
 backoff
 structlog
+structlog-sentry
 click

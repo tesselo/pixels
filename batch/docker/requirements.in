@@ -23,4 +23,5 @@ sentry-sdk
 rasterio==1.2.3
 backoff
 structlog
+structlog-sentry
 click
