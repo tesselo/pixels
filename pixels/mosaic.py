@@ -238,7 +238,11 @@ def pixel_stack(
 
     retrieve_pool = False
 
-    if interval == "all":
+    if mode == "all" or interval == "all":
+        # For all mode, the date range is constructed around each scene, and
+        # then latest pixel is used for each date. This way, latest pixel will
+        # only have one possible input every time.
+        funk = latest_pixel
         # Get all scenes of for this date range.
         response = search_data(
             geojson=geojson,
@@ -277,60 +281,57 @@ def pixel_stack(
             )
             for item in response
         ]
+    elif mode == "latest_pixel":
         funk = latest_pixel
-    else:
-        if mode == "latest_pixel":
-            # Construct array of latest pixel calls with varying dates.
-            dates = [
-                (
-                    geojson,
-                    step[1],
-                    scale,
-                    bands,
-                    platforms,
-                    limit,
-                    clip,
-                    retrieve_pool,
-                    maxcloud,
-                    level,
-                )
-                for step in timeseries_steps(start, end, interval, interval_step)
-            ]
-            funk = latest_pixel
-        elif mode == "composite":
-            platforms = "SENTINEL_2"
-            shadow_threshold = 0.1
-            light_clouds = True
-            sort = "cloud_cover"
-            finish_early_cloud_cover_percentage = 0.05
-            # Extend bands to necessary parts.
-            missing = [
-                band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
-            ]
-            bands = list(bands) + missing
-            # Create input list with date ranges.
-            dates = [
-                (
-                    geojson,
-                    step[0],
-                    step[1],
-                    scale,
-                    bands,
-                    limit,
-                    clip,
-                    retrieve_pool,
-                    maxcloud,
-                    shadow_threshold,
-                    light_clouds,
-                    level,
-                    sort,
-                    finish_early_cloud_cover_percentage,
-                    platforms,
-                )
-                for step in timeseries_steps(start, end, interval, interval_step)
-            ]
-            funk = composite
+        # Construct array of latest pixel calls with varying dates.
+        dates = [
+            (
+                geojson,
+                step[1],
+                scale,
+                bands,
+                platforms,
+                limit,
+                clip,
+                retrieve_pool,
+                maxcloud,
+                level,
+            )
+            for step in timeseries_steps(start, end, interval, interval_step)
+        ]
+    elif mode == "composite":
+        funk = composite
+        platforms = "SENTINEL_2"
+        shadow_threshold = 0.1
+        light_clouds = True
+        sort = "cloud_cover"
+        finish_early_cloud_cover_percentage = 0.05
+        # Extend bands to necessary parts.
+        missing = [band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
+        bands = list(bands) + missing
+        # Create input list with date ranges.
+        dates = [
+            (
+                geojson,
+                step[0],
+                step[1],
+                scale,
+                bands,
+                limit,
+                clip,
+                retrieve_pool,
+                maxcloud,
+                shadow_threshold,
+                light_clouds,
+                level,
+                sort,
+                finish_early_cloud_cover_percentage,
+                platforms,
+            )
+            for step in timeseries_steps(start, end, interval, interval_step)
+        ]
 
+    if mode != "all":
         logger.info(
             "Getting {} {} {} images for this stack.".format(len(dates), interval, mode)
         )
