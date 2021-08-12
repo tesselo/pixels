@@ -347,9 +347,14 @@ def pixel_stack(
         for date in dates:
             result.append(funk(*date))
 
-    # Remove results that are empty.
+    # Remove results that are none.
     result = [dat for dat in result if dat[2] is not None]
-    result = [dat for dat in result if not numpy.all(dat[2][0] == NODATA_VALUE)]
+    # Remove results that are all nodata.
+    result = [
+        dat
+        for dat in result
+        if dat[2].ndim and not numpy.all(dat[2][0] == NODATA_VALUE)
+    ]
 
     # Return early if no results are left after cleaning.
     if not result:
