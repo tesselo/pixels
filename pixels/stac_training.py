@@ -15,7 +15,7 @@ from rasterio import Affine
 
 import pixels.stac as stc
 from pixels import losses
-from pixels.stac_generator import generator
+from pixels.generator import generator
 from pixels.stac_utils import _load_dictionary
 from pixels.utils import write_raster
 

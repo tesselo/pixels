@@ -9,7 +9,7 @@ import structlog
 from tensorflow import keras
 
 from pixels.exceptions import InconsistentGeneratorDataException
-from pixels.stac_generator import filters, generator_augmentation_2D, generator_utils
+from pixels.generator import filters, generator_augmentation_2D, generator_utils
 from pixels.stac_utils import _load_dictionary
 
 logger = structlog.get_logger(__name__)

@@ -16,10 +16,10 @@ from pystac import STAC_IO
 from rasterio.errors import RasterioIOError
 from tensorflow import keras
 
+import pixels.generator.filters as pxfl
+import pixels.generator.generator_augmentation_2D as aug
+import pixels.generator.visualizer as vis
 import pixels.stac as pxstc
-import pixels.stac_generator.filters as pxfl
-import pixels.stac_generator.generator_augmentation_2D as aug
-import pixels.stac_generator.visualizer as vis
 from pixels.exceptions import InconsistentGeneratorDataException, InvalidGeneratorConfig
 from pixels.stac_utils import _load_dictionary
 
