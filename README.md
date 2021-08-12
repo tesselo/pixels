@@ -32,12 +32,12 @@ our worker backends. These workers will execute `batch.runpixels` module is run
 the pixels package on worker instances.
 
 The opening and saving of files from the storage backend on worker instances is
-managed by the `pixels.stac` module. The collecting of the imagery itself is
+managed by the `pixels.generator.stac` module. The collecting of the imagery itself is
 managed by the high level `pixels.mosaic.pixel_stack` function. This function
 creates a set of image slices for a set of inputs.
 
 The `pixel_stack` function operates based on a set of input parameters, which
-are loaded from a JSON configuration file in the `pixels.stac` module. This JSON
+are loaded from a JSON configuration file in the `pixels.generator.stac` module. This JSON
 config is normally provided by users through an API.
 
 ## Configuration parameter reference

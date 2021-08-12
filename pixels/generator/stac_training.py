@@ -13,10 +13,10 @@ import tensorflow_addons
 from dateutil import parser
 from rasterio import Affine
 
-import pixels.stac as stc
+import pixels.generator.stac as stc
 from pixels import losses
 from pixels.generator import generator
-from pixels.stac_utils import _load_dictionary
+from pixels.generator.stac_utils import _load_dictionary
 from pixels.utils import write_raster
 
 ALLOWED_CUSTOM_LOSSES = [

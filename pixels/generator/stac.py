@@ -17,8 +17,7 @@ from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.mosaic import pixel_stack
-from pixels.stac_utils import (
+from pixels.generator.stac_utils import (
     _load_dictionary,
     open_file_from_s3,
     save_dictionary,
@@ -26,6 +25,7 @@ from pixels.stac_utils import (
     stac_s3_write_method,
     upload_files_s3,
 )
+from pixels.mosaic import pixel_stack
 from pixels.utils import write_raster
 
 # Get logger
