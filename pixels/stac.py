@@ -765,6 +765,7 @@ def build_collection_from_pixels(
         title=collection_title,
         description=collection_description,
         extent=collection_extent,
+        license="proprietary",
     )
     collection.add_children(catalogs)
     collection.update_extent_from_items()
