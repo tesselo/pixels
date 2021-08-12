@@ -14,8 +14,7 @@ from dateutil import parser
 from rasterio import Affine
 
 import pixels.generator.stac as stc
-from pixels import losses
-from pixels.generator import generator
+from pixels.generator import generator, losses
 from pixels.generator.stac_utils import _load_dictionary
 from pixels.utils import write_raster
 
