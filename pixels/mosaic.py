@@ -7,7 +7,11 @@ import structlog
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
-from pixels.const import LANDSAT_1_LAUNCH_DATE, NODATA_VALUE
+from pixels.const import (
+    LANDSAT_1_LAUNCH_DATE,
+    NODATA_VALUE,
+    S2_BANDS_REQUIRED_FOR_COMPOSITES,
+)
 from pixels.exceptions import PixelsException
 from pixels.retrieve import retrieve
 from pixels.search import search_data
@@ -15,8 +19,6 @@ from pixels.utils import compute_mask, timeseries_steps
 
 # Get logger
 logger = structlog.get_logger(__name__)
-
-BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
 
 
 def latest_pixel(
@@ -307,7 +309,9 @@ def pixel_stack(
         sort = "cloud_cover"
         finish_early_cloud_cover_percentage = 0.05
         # Extend bands to necessary parts.
-        missing = [band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
+        missing = [
+            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
+        ]
         bands = list(bands) + missing
         # Create input list with date ranges.
         dates = [
@@ -407,13 +411,13 @@ def composite(
         )
 
     # Check band list.
-    BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
-    missing = [band for band in BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
+    S2_BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
+    missing = [band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
     if missing:
         raise ValueError("Missing {} bands for composite.".format(missing))
 
     required_band_indices = [
-        bands.index(band) for band in BANDS_REQUIRED_FOR_COMPOSITES
+        bands.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
     ]
 
     # Search scenes.
