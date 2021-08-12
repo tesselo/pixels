@@ -48,7 +48,7 @@ logging.basicConfig(format="%(message)s", stream=sys.stdout, level=logging.INFO)
 logger = structlog.get_logger("runpixels")
 
 # List of modules and functions that can be specified in commandline input.
-ALLOWED_MODULES = ["pixels.stac", "pixels.stac_training"]
+ALLOWED_MODULES = ["pixels.generator.stac", "pixels.generator.stac_training"]
 ALLOWED_FUNCTIONS = [
     "parse_training_data",
     "collect_from_catalog_subsection",

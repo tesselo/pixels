@@ -8,7 +8,7 @@ import rasterio
 import structlog
 
 import pixels.generator.generator_augmentation_2D as aug
-import pixels.stac as pxstc
+import pixels.generator.stac as pxstc
 
 # S3 class instanciation.
 s3 = boto3.client("s3")

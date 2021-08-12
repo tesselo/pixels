@@ -18,10 +18,10 @@ from tensorflow import keras
 
 import pixels.generator.filters as pxfl
 import pixels.generator.generator_augmentation_2D as aug
+import pixels.generator.stac as pxstc
 import pixels.generator.visualizer as vis
-import pixels.stac as pxstc
 from pixels.exceptions import InconsistentGeneratorDataException, InvalidGeneratorConfig
-from pixels.stac_utils import _load_dictionary
+from pixels.generator.stac_utils import _load_dictionary
 
 logger = structlog.get_logger(__name__)
 
