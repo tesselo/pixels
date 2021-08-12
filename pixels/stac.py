@@ -13,6 +13,7 @@ import rasterio
 import sentry_sdk
 import structlog
 from dateutil import parser
+from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
@@ -484,7 +485,7 @@ def build_geometry_geojson(item):
     return geojson
 
 
-def validate_pixels_config(
+def prepare_pixels_config(
     item,
     start="2020-01-01",
     end=None,
@@ -529,7 +530,7 @@ def validate_pixels_config(
         limit: int, optional
             Limit the number of images per search.
         mode: str, optional
-            Mode of latest pixel collection (latest_pixel or composite).
+            Mode of pixel collection (all, latest_pixel, or composite).
         dynamic_dates_interval: str, optional
             If provided, the internal item dates are used as end date and this
              interval is applied as the start date.
@@ -545,26 +546,32 @@ def validate_pixels_config(
     if item is str:
         item = pystac.read_file(item)
     geojson = build_geometry_geojson(item)
-    # If no end data is specify, fetch from item. Datetime to format 'YYYY-MM-DD'
-    if not end:
-        end = item.datetime.date().isoformat()
-    # If requested, extract the dates from the item. Use the start and end date
-    # to determine the time range to be used.
+    # If requested, use a fixed time range starting from the individual item
+    # datestamps.
     if dynamic_dates_interval:
-        from dateutil.relativedelta import relativedelta
-
-        # Set end date from stac item.
+        # Extract the end date from the stac item.
         end = item.datetime.date()
-        # Setup the time delta from start and end date input.
+        # Compute the time delta from the dynamic dates configuration.
         delta = relativedelta(
             **{dynamic_dates_interval.lower(): int(dynamic_dates_step)}
         )
-        # Set start date as the starting point
+        # Set start date as the item end date minus the dynamic date interval.
         start = end - delta
-        # Convert both to string.
+        # Convert both dates to string.
         end = end.isoformat()
         start = start.isoformat()
+    elif not end:
+        # If no end data is specified, use the date from the stac item.
+        end = item.datetime.date().isoformat()
+    # Check valid mode.
+    if mode not in ["all", "latest_pixel", "composite"]:
+        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
+    # Ensure platforms is a list. The input can be provided as a single string
+    # if only one platform is required.
+    if platforms is not None and not isinstance(platforms, (list, tuple)):
+        platforms = [platforms]
 
+    # Create new config dictionary.
     config = {
         "geojson": geojson,
         "start": start,
@@ -580,14 +587,10 @@ def validate_pixels_config(
         "mode": mode,
         "platforms": platforms,
     }
-    if mode not in ["latest_pixel", "composite"]:
-        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
-    if platforms is not None:
-        if not isinstance(platforms, (list, tuple)):
-            platforms = [platforms]
-        config["platforms"] = platforms
+
     if limit is not None:
         config["limit"] = limit
+
     return config
 
 
@@ -609,8 +612,8 @@ def get_and_write_raster_from_item(
         x_cat : str
             Catalog containg the collected info.
     """
-    # Build a configuration json for pixels.
-    config = validate_pixels_config(item, **input_config)
+    # Build a complete configuration json for pixels.
+    config = prepare_pixels_config(item, **input_config)
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = pixel_stack(**config)
     if not meta:
