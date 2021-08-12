@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pixels.stac_generator.generator import DataGenerator
+from pixels.generator.generator import DataGenerator
 from tests import test_arrays
 
 
