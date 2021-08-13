@@ -41,11 +41,11 @@ def get_catalog_length(catalog_path):
     if catalog_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
         STAC_IO.write_text_method = stac_s3_write_method
+    # Try opening link as collection. If this fails, try opening it as catalog.
     try:
         collection = pystac.Collection.from_file(catalog_path)
         size = len(collection.get_child_links())
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    except KeyError:
         catalog = pystac.Catalog.from_file(catalog_path)
         size = len(catalog.get_item_links())
     return size
