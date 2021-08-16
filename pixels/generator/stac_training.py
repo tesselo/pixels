@@ -623,7 +623,7 @@ def predict_function_batch(
             prediction = model.predict(data)
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             # Check for nan values. TODO.
-            prediction = np.array[prediction.reshape(image_shape)]
+            prediction = np.array(prediction.reshape(image_shape))
 
         # Fix number of bands to 1. This assumes multiclass output always is
         # converted to a single band with the class numbers.
