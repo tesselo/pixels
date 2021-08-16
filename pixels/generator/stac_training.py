@@ -619,10 +619,8 @@ def predict_function_batch(
 
         if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             data = dtgen[item]
-            # for pixel in data:
             prediction = model.predict(data)
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
-            # Check for nan values. TODO.
             prediction = np.array(prediction.reshape(image_shape))
 
         # Fix number of bands to 1. This assumes multiclass output always is
@@ -632,12 +630,22 @@ def predict_function_batch(
         # Set the Y nodata value (defaults to none).
         meta["nodata"] = dtgen.y_nan_value
         # Ensure the class axis is the first one.
-        prediction = prediction.swapaxes(2, 3)
-        prediction = prediction.swapaxes(1, 2)
+        if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
+            prediction = prediction.swapaxes(1, 2)
+            prediction = prediction.swapaxes(0, 1)
+        else:
+            prediction = prediction.swapaxes(2, 3)
+            prediction = prediction.swapaxes(1, 2)
 
         # Apply argmax to reduce the one-hot model output into class numbers.
         if dtgen.num_classes > 1:
-            prediction = np.argmax(prediction, axis=1)
+            # Pick axis for argmax calculation based on 1D vs 2D or 3D.
+            axis = 0 if generator.GENERATOR_PIXEL_MODEL else 1
+            prediction = np.argmax(prediction, axis=axis)
+            # Rasterio expects shape to have the band number first. So expand
+            # prediction shape from (height, width) to (1, height, width).
+            if generator.GENERATOR_PIXEL_MODEL:
+                prediction = prediction.reshape(*(1, *prediction.shape))
             # Ensure prediction has a writable type. For now, we assume there
             # will not be more than 255 classes and use unit8. The default
             # argmax type is Int64 which is not a valid format for gdal.
