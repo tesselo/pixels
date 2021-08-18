@@ -1,4 +1,3 @@
-import datetime
 import io
 import json
 import os
@@ -10,7 +9,6 @@ import sentry_sdk
 import structlog
 import tensorflow as tf
 import tensorflow_addons
-from dateutil import parser
 from rasterio import Affine
 
 import pixels.generator.stac as stc
@@ -670,32 +668,3 @@ def predict_function_batch(
                 out_path_tif = f"{out_path}_{date_list[image_count]}.tif"
                 _save_and_write_tif(out_path_tif, prediction[image_count], meta)
                 image_count = image_count + 1
-        # Build the corresponding pystac item.
-        try:
-            cat = pystac.Catalog.from_file(
-                dtgen.collection_catalog[catalog_id]["stac_catalog"]
-            )
-            for itt in cat.get_items():
-                it = itt
-                break
-            id_raster = catalog_id
-            datetime_var = str(datetime.datetime.now().date())
-            datetime_var = parser.parse(datetime_var)
-            footprint = it.geometry
-            bbox = it.bbox
-            path_item = out_path_tif
-            aditional_links = {"x_catalog": x_path, "model_used": model_uri}
-            href_path = os.path.join(predict_path, "stac", f"{id_raster}_item.json")
-            create_pystac_item(
-                id_raster,
-                footprint,
-                bbox,
-                datetime_var,
-                meta,
-                path_item,
-                aditional_links,
-                href_path,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.warning(f"Error in parsing data in predict_function_batch: {e}")

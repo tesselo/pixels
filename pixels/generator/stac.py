@@ -156,7 +156,8 @@ def list_files_in_s3(uri, filetype="tif"):
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
         theObjs = paginator.paginate(Bucket=bucket, Prefix=key)
-        mult_obj = [ob["Contents"] for ob in theObjs]
+        # Get list of objects if thre are any.
+        mult_obj = [ob["Contents"] for ob in theObjs if "Contents" in ob]
         list_obj = []
         for obj in mult_obj:
             ob = [
@@ -709,6 +710,10 @@ def build_catalog_from_items(
         items_list = list_files_in_s3(path_to_items, filetype="_item.json")
     else:
         items_list = glob.glob(f"{path_to_items}/*{filetype}", recursive=True)
+    # Abort here if there are no items to create a catalog.
+    if not items_list:
+        logger.warning(f"No items found to create catalog for {path_to_items}.")
+        return
     catalog = pystac.Catalog(id=id_name, description=description)
     for item_path in items_list:
         item = pystac.read_file(item_path)
