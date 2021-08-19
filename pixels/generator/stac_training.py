@@ -451,9 +451,14 @@ def predict_function_batch(
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
 
-    # Extract jumping ratio and jump pad from generator arguments.
+    # Extract generator arguments that are only for prediction and are not
+    # passed to generator. These arguments need to be handled differently in a
+    # future implementation. They are not really generator arguments but are
+    # passed to this section through the generator arguments dictionary.
     jumping_ratio = gen_args.pop("jumping_ratio", 1)
     jump_pad = gen_args.pop("jump_pad", 0)
+    extract_probabilities = gen_args.pop("extract_probabilities", False)
+    rescale_probabilities = gen_args.pop("rescale_probabilities", False)
 
     catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
@@ -607,12 +612,9 @@ def predict_function_batch(
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             prediction = np.array(prediction.reshape(image_shape))
 
-        # Fix number of bands to 1. This assumes multiclass output always is
-        # converted to a single band with the class numbers.
-        meta["count"] = 1
-
         # Set the Y nodata value (defaults to none).
         meta["nodata"] = dtgen.y_nan_value
+
         # Ensure the class axis is the first one.
         if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             prediction = prediction.swapaxes(1, 2)
@@ -621,8 +623,8 @@ def predict_function_batch(
             prediction = prediction.swapaxes(2, 3)
             prediction = prediction.swapaxes(1, 2)
 
-        # Apply argmax to reduce the one-hot model output into class numbers.
-        if dtgen.num_classes > 1:
+        if dtgen.num_classes > 1 and not extract_probabilities:
+            # Apply argmax to reduce the one-hot model output into class numbers.
             # Pick axis for argmax calculation based on 1D vs 2D or 3D.
             axis = 0 if generator.GENERATOR_PIXEL_MODEL else 1
             prediction = np.argmax(prediction, axis=axis)
@@ -639,6 +641,19 @@ def predict_function_batch(
             # will not be more than 255 classes and use unit8. The default
             # argmax type is Int64 which is not a valid format for gdal.
             prediction = prediction.astype("uint8")
+            meta["dtype"] = "uint8"
+
+        # If requested, rescale the probabilities to integers from 0 to 255.
+        # This keeps a reasonable precision and reduces the data size
+        # substancially.
+        if rescale_probabilities and (dtgen.num_classes == 1 or extract_probabilities):
+            prediction = np.rint(prediction * 255).astype("uint8")
+            # Override the nodata value and the datatype.
+            meta["nodata"] = None
+            meta["dtype"] = "uint8"
+
+        # Register the number of bands to write to the output file.
+        meta["count"] = len(prediction)
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
@@ -649,12 +664,5 @@ def predict_function_batch(
             meta["transform"][4] / dtgen.upsampling,
             meta["transform"][5],
         )
-        # Save the prediction tif.
-        if len(prediction) == 1:
-            out_path_tif = f"{out_path}.tif"
-            _save_and_write_tif(out_path_tif, prediction[0], meta)
-        else:
-            # Save multiple prediction images.
-            for image_count in range(len(prediction)):
-                out_path_tif = f"{out_path}_{image_count}.tif"
-                _save_and_write_tif(out_path_tif, prediction[image_count], meta)
+
+        _save_and_write_tif(f"{out_path}.tif", prediction, meta)
