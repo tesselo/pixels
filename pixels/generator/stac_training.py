@@ -481,12 +481,10 @@ def predict_function_batch(
         # Get metadata from index, and create paths.
         meta = dtgen.get_meta(item)
         catalog_id = dtgen.id_list[item]
-        x_path = dtgen.collection_catalog[catalog_id]["x_paths"][0]
         date_list = dtgen.collection_catalog[catalog_id]["x_paths"]
         date_list = [os.path.basename(date).replace(".tif", "") for date in date_list][
             : dtgen.timesteps
         ]
-        x_path = os.path.join(os.path.dirname(x_path), "stac", "catalog.json")
         if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
             # Index img number based on mode.
             if dtgen.mode == generator.GENERATOR_3D_MODEL:
