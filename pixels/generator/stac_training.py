@@ -473,11 +473,6 @@ def predict_function_batch(
         out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_meta(item)
-        catalog_id = dtgen.id_list[item]
-        date_list = dtgen.collection_catalog[catalog_id]["x_paths"]
-        date_list = [os.path.basename(date).replace(".tif", "") for date in date_list][
-            : dtgen.timesteps
-        ]
         if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
             # Index img number based on mode.
             if dtgen.mode == generator.GENERATOR_3D_MODEL:
@@ -661,6 +656,5 @@ def predict_function_batch(
         else:
             # Save multiple prediction images.
             for image_count in range(len(prediction)):
-                out_path_tif = f"{out_path}_{date_list[image_count]}.tif"
+                out_path_tif = f"{out_path}_{image_count}.tif"
                 _save_and_write_tif(out_path_tif, prediction[image_count], meta)
-                image_count = image_count + 1
