@@ -640,6 +640,11 @@ def predict_function_batch(
             # Pick axis for argmax calculation based on 1D vs 2D or 3D.
             axis = 0 if generator.GENERATOR_PIXEL_MODEL else 1
             prediction = np.argmax(prediction, axis=axis)
+            # Ensure the maximum number of classes is not surpassed.
+            if np.max(prediction) > 255:
+                raise ValueError(
+                    f"Model can not have more than 255 classes. Found {np.max(prediction)}."
+                )
             # Rasterio expects shape to have the band number first. So expand
             # prediction shape from (height, width) to (1, height, width).
             if generator.GENERATOR_PIXEL_MODEL:
