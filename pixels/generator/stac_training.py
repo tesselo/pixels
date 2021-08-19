@@ -620,8 +620,20 @@ def predict_function_batch(
             prediction = prediction.swapaxes(1, 2)
             prediction = prediction.swapaxes(0, 1)
         else:
-            prediction = prediction.swapaxes(2, 3)
-            prediction = prediction.swapaxes(1, 2)
+            # Drop the number of steps from generator.
+            prediction = prediction[0]
+            # The probability channels are last, bring them to the front.
+            if prediction.shape[-1] == dtgen.num_classes:
+                prediction = prediction.swapaxes(2, 3)
+                prediction = prediction.swapaxes(1, 2)
+
+        # Issue warning regarding shapes.
+        if dtgen.num_classes in (meta["height"], meta["width"]):
+            logger.warning(
+                "With or height equal to number of classes. "
+                "Could not automatically determine column order. "
+                "Assuming prediction probability channels last."
+            )
 
         if dtgen.num_classes > 1 and not extract_probabilities:
             # Apply argmax to reduce the one-hot model output into class numbers.
