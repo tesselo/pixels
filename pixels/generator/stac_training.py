@@ -446,21 +446,14 @@ def predict_function_batch(
             model = tf.keras.models.load_model(
                 model_uri, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
             )
-    # Instanciate generator.
-    # Force generator to prediction.
+    # Instanciate generator, forcing generator to prediction mode.
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
-    if "jumping_ratio" not in gen_args:
-        jumping_ratio = 1
-    else:
-        jumping_ratio = gen_args["jumping_ratio"]
-        gen_args.pop("jumping_ratio")
-    if "jump_pad" not in gen_args:
-        jump_pad = 0
-    else:
-        jump_pad = gen_args["jump_pad"]
-        gen_args.pop("jump_pad")
+
+    # Extract jumping ratio and jump pad from generator arguments.
+    jumping_ratio = gen_args.pop("jumping_ratio", 1)
+    jump_pad = gen_args.pop("jump_pad", 0)
 
     catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
