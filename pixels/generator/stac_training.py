@@ -620,8 +620,6 @@ def predict_function_batch(
             prediction = prediction.swapaxes(1, 2)
             prediction = prediction.swapaxes(0, 1)
         else:
-            # Drop the number of steps from generator.
-            prediction = prediction[0]
             # The probability channels are last, bring them to the front.
             if prediction.shape[-1] == dtgen.num_classes:
                 prediction = prediction.swapaxes(2, 3)
@@ -677,4 +675,19 @@ def predict_function_batch(
             meta["transform"][5],
         )
 
-        _save_and_write_tif(f"{out_path}.tif", prediction, meta)
+        if len(prediction) == 1:
+            _save_and_write_tif(f"{out_path}.tif", prediction[0], meta)
+        else:
+            # Compute date list for the multiple images input for naming the
+            # output files.
+            catalog_id = dtgen.id_list[item]
+            date_list = dtgen.collection_catalog[catalog_id]["x_paths"]
+            date_list = [
+                os.path.basename(date).replace(".tif", "") for date in date_list
+            ][: dtgen.timesteps]
+            # For each input image, write one output prediction file with the
+            # date stamp in the name.
+            for index, prediction_data in enumerate(prediction):
+                _save_and_write_tif(
+                    f"{out_path}_{date_list[index]}.tif", prediction_data, meta
+                )
