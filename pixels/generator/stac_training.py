@@ -475,7 +475,6 @@ def predict_function_batch(
     logger.info(f"Predicting generator range from {item_list_min} to {item_list_max}.")
     # Predict the index range for this batch job.
     for item in item_range:
-        out_path = os.path.join(predict_path, "predictions", f"item_{item}")
         # Get metadata from index, and create paths.
         meta = dtgen.get_meta(item)
         if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
@@ -675,12 +674,17 @@ def predict_function_batch(
             meta["transform"][5],
         )
 
+        # Prepare output path for this item, using the catalog_id in the file
+        # name to match the ID from the collection.
+        catalog_id = dtgen.id_list[item]
+        out_path = os.path.join(predict_path, "predictions", f"item_{catalog_id}")
+
+        # Write the prediction data to files.
         if len(prediction) == 1:
             _save_and_write_tif(f"{out_path}.tif", prediction[0], meta)
         else:
             # Compute date list for the multiple images input for naming the
             # output files.
-            catalog_id = dtgen.id_list[item]
             date_list = dtgen.collection_catalog[catalog_id]["x_paths"]
             date_list = [
                 os.path.basename(date).replace(".tif", "") for date in date_list
