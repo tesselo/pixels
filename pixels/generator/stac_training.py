@@ -614,6 +614,9 @@ def predict_function_batch(
         # Set the Y nodata value (defaults to none).
         meta["nodata"] = dtgen.y_nan_value
 
+        # Register the number of bands to write to the output file. Standard set as 1.
+        meta["count"] = 1
+
         # Ensure the class axis is the first one.
         if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             prediction = prediction.swapaxes(1, 2)
@@ -661,8 +664,12 @@ def predict_function_batch(
             meta["nodata"] = None
             meta["dtype"] = "uint8"
 
-        # Register the number of bands to write to the output file.
-        meta["count"] = len(prediction)
+        # Conditions to be met when the probablities are to be extracted.
+        if extract_probabilities:
+            # When probabilities are to be extracted the number of bands is the number os classes.
+            meta["count"] = dtgen.num_classes
+            if generator.GENERATOR_PIXEL_MODEL:
+                prediction = prediction.reshape(*(1, *prediction.shape))
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
@@ -681,7 +688,7 @@ def predict_function_batch(
 
         # Write the prediction data to files.
         if len(prediction) == 1:
-            _save_and_write_tif(f"{out_path}.tif", prediction[0], meta)
+            _save_and_write_tif(f"{out_path}.tif", prediction, meta)
         else:
             # Compute date list for the multiple images input for naming the
             # output files.
