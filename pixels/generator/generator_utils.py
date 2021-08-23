@@ -75,7 +75,7 @@ def read_raster_file(path_raster):
         return read_raster_inside_zip(file_inside_zip, source_zip_path)
     else:
         raster_file = path_raster
-    with rasterio.open(raster_file) as src:
+    with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
         src.close()
