@@ -24,6 +24,9 @@ ALLOWED_CUSTOM_LOSSES = [
     "nan_categorical_crossentropy_loss",
 ]
 
+EVALUATION_PERCENTAGE_LIMIT = 0.2
+EVALUATION_SAMPLE_LIMIT = 2000
+
 logger = structlog.get_logger(__name__)
 
 
@@ -352,6 +355,12 @@ def train_model_function(
         gen_args["split"] = eval_split
     if gen_args["split"] <= 0:
         raise ValueError("Negative or 0 split is not allowed.")
+    # Limit the evaluation to a maximum of 20% of the dataset.
+    if gen_args["split"] > EVALUATION_PERCENTAGE_LIMIT:
+        gen_args["split"] = EVALUATION_PERCENTAGE_LIMIT
+    # Limit the evaluation to a maximum of 2000 samples.
+    if len(dtgen) * gen_args["split"] > EVALUATION_SAMPLE_LIMIT:
+        gen_args["split"] = EVALUATION_SAMPLE_LIMIT / len(dtgen)
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
