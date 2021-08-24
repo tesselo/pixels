@@ -614,7 +614,7 @@ def predict_function_batch(
         # Set the Y nodata value (defaults to none).
         meta["nodata"] = dtgen.y_nan_value
 
-        # Register the number of bands to write to the output file. Standard set as 1.
+        # Limit the number of bands to be writen in the image file to 1.
         meta["count"] = 1
 
         # Ensure the class axis is the first one.
@@ -666,7 +666,7 @@ def predict_function_batch(
 
         # Conditions to be met when the probablities are to be extracted.
         if extract_probabilities:
-            # When probabilities are to be extracted the number of bands is the number os classes.
+            # When probabilities are to be extracted the number of bands is the number of classes.
             meta["count"] = dtgen.num_classes
             if generator.GENERATOR_PIXEL_MODEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
