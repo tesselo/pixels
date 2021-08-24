@@ -688,7 +688,7 @@ def predict_function_batch(
 
         # Write the prediction data to files.
         if len(prediction) == 1:
-            _save_and_write_tif(f"{out_path}.tif", prediction, meta)
+            _save_and_write_tif(f"{out_path}.tif", prediction[0], meta)
         else:
             # Compute date list for the multiple images input for naming the
             # output files.
