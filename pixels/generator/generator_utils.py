@@ -49,7 +49,6 @@ def read_raster_inside_zip(file_inside_zip, source_zip_path):
     with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
-        src.close()
     return img, meta
 
 
@@ -59,7 +58,6 @@ def read_raster_inside_opened_zip(file_inside_zip, zip_file):
     with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
-        src.close()
     return img, meta
 
 
@@ -78,7 +76,6 @@ def read_raster_file(path_raster):
     with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
-        src.close()
     return img, meta
 
 
@@ -96,7 +93,6 @@ def read_raster_meta(path_raster):
             raster_file = path_raster
         with rasterio.open(raster_file, driver="GTiff") as src:
             meta = src.meta
-            src.close()
     except Exception as E:
         logger.warning(f"Generator error in read_raster_meta: {E}")
         meta = None
