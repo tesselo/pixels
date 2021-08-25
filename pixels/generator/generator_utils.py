@@ -46,7 +46,7 @@ def read_raster_inside_zip(file_inside_zip, source_zip_path):
     zip_file = zipfile.ZipFile(zip_file, "r")
     raster_file = zip_file.read(file_inside_zip)
     raster_file = io.BytesIO(raster_file)
-    with rasterio.open(raster_file) as src:
+    with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
         src.close()
@@ -56,7 +56,7 @@ def read_raster_inside_zip(file_inside_zip, source_zip_path):
 def read_raster_inside_opened_zip(file_inside_zip, zip_file):
     raster_file = zip_file.read(file_inside_zip)
     raster_file = io.BytesIO(raster_file)
-    with rasterio.open(raster_file) as src:
+    with rasterio.open(raster_file, driver="GTiff") as src:
         img = src.read()
         meta = src.meta
         src.close()
@@ -94,7 +94,7 @@ def read_raster_meta(path_raster):
             raster_file = io.BytesIO(raster_file)
         else:
             raster_file = path_raster
-        with rasterio.open(raster_file) as src:
+        with rasterio.open(raster_file, driver="GTiff") as src:
             meta = src.meta
             src.close()
     except Exception as E:

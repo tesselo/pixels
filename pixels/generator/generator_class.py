@@ -34,7 +34,7 @@ def read_item_raster(path):
     Read all data from a raster file.
     """
     # Open raster.
-    with rasterio.open(path) as src:
+    with rasterio.open(path, driver="GTiff") as src:
         # Read and return raster data.
         return src.read()
 
@@ -408,7 +408,7 @@ class DataGenerator_stac(keras.utils.Sequence):
             if y_path.startswith("zip://s3:"):
                 y_raster_file = self.file_in_zip.read(y_path.split("!/")[-1])
                 y_raster_file = io.BytesIO(y_raster_file)
-            with rasterio.open(y_raster_file) as src:
+            with rasterio.open(y_raster_file, driver="GTiff") as src:
                 y_img = src.read()
                 src.close()
         except Exception as e:
@@ -424,7 +424,7 @@ class DataGenerator_stac(keras.utils.Sequence):
 
         # Return only some metadata if requested.
         if search_for_meta:
-            with rasterio.open(x_paths[0]) as src:
+            with rasterio.open(x_paths[0], driver="GTiff") as src:
                 return src.meta
 
         # Open all X images in parallel.
@@ -584,7 +584,7 @@ class DataGenerator_stac(keras.utils.Sequence):
         pred_path = self.catalogs_dict[catalog_id]["prediction_path"]
         if not pred_path:
             return None
-        with rasterio.open(pred_path) as src:
+        with rasterio.open(pred_path, driver="GTiff") as src:
             prediction_img = src.read()
             meta = src.meta
         if search_for_meta:
