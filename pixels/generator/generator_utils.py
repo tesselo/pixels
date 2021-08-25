@@ -38,6 +38,13 @@ def open_zip_from_s3(source_path):
     return data
 
 
+def read_img_and_meta_raster(raster_path):
+    with rasterio.open(raster_path, driver="GTiff") as src:
+        img = src.read()
+        meta = src.meta
+    return img, meta
+
+
 def read_raster_inside_zip(file_inside_zip, source_zip_path):
     if source_zip_path.startswith("zip://s3"):
         zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
@@ -46,21 +53,13 @@ def read_raster_inside_zip(file_inside_zip, source_zip_path):
     zip_file = zipfile.ZipFile(zip_file, "r")
     raster_file = zip_file.read(file_inside_zip)
     raster_file = io.BytesIO(raster_file)
-    with rasterio.open(raster_file) as src:
-        img = src.read()
-        meta = src.meta
-        src.close()
-    return img, meta
+    return read_img_and_meta_raster(raster_file)
 
 
 def read_raster_inside_opened_zip(file_inside_zip, zip_file):
     raster_file = zip_file.read(file_inside_zip)
     raster_file = io.BytesIO(raster_file)
-    with rasterio.open(raster_file) as src:
-        img = src.read()
-        meta = src.meta
-        src.close()
-    return img, meta
+    return read_img_and_meta_raster(raster_file)
 
 
 @backoff.on_exception(
@@ -75,11 +74,7 @@ def read_raster_file(path_raster):
         return read_raster_inside_zip(file_inside_zip, source_zip_path)
     else:
         raster_file = path_raster
-    with rasterio.open(raster_file, driver="GTiff") as src:
-        img = src.read()
-        meta = src.meta
-        src.close()
-    return img, meta
+    return read_img_and_meta_raster(raster_file)
 
 
 def read_raster_meta(path_raster):
@@ -94,9 +89,8 @@ def read_raster_meta(path_raster):
             raster_file = io.BytesIO(raster_file)
         else:
             raster_file = path_raster
-        with rasterio.open(raster_file) as src:
+        with rasterio.open(raster_file, driver="GTiff") as src:
             meta = src.meta
-            src.close()
     except Exception as E:
         logger.warning(f"Generator error in read_raster_meta: {E}")
         meta = None
