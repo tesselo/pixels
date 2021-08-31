@@ -1,7 +1,6 @@
 import math
 import os
 import zipfile
-from multiprocessing import Pool
 
 import boto3
 import numpy as np
@@ -223,9 +222,10 @@ class DataGenerator(keras.utils.Sequence):
             parent_path = os.path.dirname(self.path_collection_catalog)
             x_paths = [os.path.join(parent_path, path) for path in x_paths]
             y_path = os.path.join(parent_path, y_path)
-        # Open all X images in parallel.
-        with Pool(min(len(x_paths), 1)) as p:
-            x_tensor = p.map(generator_utils.read_raster_file, x_paths)
+        # Open all X images in a loop.
+        x_tensor = []
+        for path in x_paths:
+            x_tensor.append(generator_utils.read_raster_file(path))
         # Get the imgs list and the meta list.
         x_imgs = np.array(x_tensor, dtype="object")[:, 0]
         # Ensure all images are numpy arrays.
