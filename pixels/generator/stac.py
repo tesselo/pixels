@@ -244,19 +244,16 @@ def parse_prediction_area(
     """
     import geopandas as gp
 
-    try:
-        tiles = gp.read_file(source_path)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        if source_path.startswith("s3"):
-            STAC_IO.read_text_method = stac_s3_read_method
-            STAC_IO.write_text_method = stac_s3_write_method
-            data = open_file_from_s3(source_path)
-            tiles = gp.read_file(data["Body"])
-        else:
-            logger.warning(f"Error in parse_prediction_area: {e}")
-
-    id_name = os.path.split(source_path)[-1].replace(".geojson", "")
+    if source_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+        data = open_file_from_s3(source_path)
+        data = data["Body"]
+    else:
+        data = source_path
+    tiles = gp.read_file(data)
+    file_format = source_path.split(".")[-1]
+    id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every tile geojson file create an item, add it to catalog.
     size = len(tiles)
