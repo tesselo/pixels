@@ -177,6 +177,39 @@ def list_files_in_folder(uri, filetype="tif"):
         return glob.glob(f"{uri}/**{filetype}", recursive=True)
 
 
+def create_stac_item(
+    id_raster,
+    footprint,
+    bbox,
+    datetime_var,
+    out_meta,
+    source_path,
+    media_type=None,
+    aditional_links=None,
+):
+    # Create stac item.
+    item = pystac.Item(
+        id=id_raster,
+        geometry=footprint,
+        bbox=bbox,
+        datetime=datetime_var,
+        properties=out_meta,
+    )
+    # Register kind of asset as asset of item.
+    item.add_asset(
+        key=id_raster,
+        asset=pystac.Asset(
+            href=source_path,
+            media_type=media_type,
+        ),
+    )
+    if aditional_links:
+        item.add_link(pystac.Link("corresponding_y", aditional_links))
+    # Validate item.
+    item.validate()
+    return item
+
+
 def parse_prediction_area(
     source_path,
     save_files=False,
@@ -252,25 +285,16 @@ def parse_prediction_area(
         # Make transform and crs json serializable.
         out_meta["crs"] = {"init": "epsg:" + str(tile.crs.to_epsg())}
         # Create stac item.
-        item = pystac.Item(
-            id=id_raster,
-            geometry=footprint,
-            bbox=bbox,
-            datetime=datetime_var,
-            properties=out_meta,
+        item = create_stac_item(
+            id_raster,
+            footprint,
+            bbox,
+            datetime_var,
+            out_meta,
+            source_path,
+            media_type=pystac.MediaType.GEOJSON,
+            aditional_links=aditional_links,
         )
-        # Register raster as asset of item.
-        item.add_asset(
-            key=id_raster,
-            asset=pystac.Asset(
-                href=source_path,
-                media_type=pystac.MediaType.GEOJSON,
-            ),
-        )
-        if aditional_links:
-            item.add_link(pystac.Link("corresponding_y", aditional_links))
-        # Validate item.
-        item.validate()
         # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
@@ -333,6 +357,7 @@ def parse_training_data(
         save_files = save_files == "True"
 
     if source_path.endswith("geojson") or source_path.endswith("gpkg"):
+        # parse_collection_shapes
         return parse_prediction_area(
             source_path,
             save_files=save_files,
@@ -341,6 +366,7 @@ def parse_training_data(
             aditional_links=aditional_links,
         )
     if source_path.endswith(".zip"):
+        # parse_collections_rasters
         if source_path.startswith("s3"):
             data = open_zip_from_s3(source_path)
             STAC_IO.read_text_method = stac_s3_read_method
@@ -412,26 +438,16 @@ def parse_training_data(
             global_stats.update(stats)
 
         # Create stac item.
-        item = pystac.Item(
-            id=id_raster,
-            geometry=footprint,
-            bbox=bbox,
-            datetime=datetime_var,
-            properties=out_meta,
+        item = create_stac_item(
+            id_raster,
+            footprint,
+            bbox,
+            datetime_var,
+            out_meta,
+            source_path,
+            media_type=pystac.MediaType.GEOTIFF,
+            aditional_links=aditional_links,
         )
-        # Register raster as asset of item.
-        item.add_asset(
-            key=id_raster,
-            asset=pystac.Asset(
-                href=path_item,
-                media_type=pystac.MediaType.GEOTIFF,
-            ),
-        )
-        if aditional_links:
-            item.add_link(pystac.Link("corresponding_y", aditional_links))
-        # Validate item.
-        item.validate()
-        # Add item to catalog.
         catalog.add_item(item)
     # Store final statistics on catalog.
     if categorical:
