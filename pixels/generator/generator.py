@@ -51,6 +51,9 @@ class DataGenerator(keras.utils.Sequence):
         augmentation=0,
         training_percentage=1,
         usage_type=GENERATOR_MODE_TRAINING,
+        multiclass_maker=False,
+        class_definitions=None,
+        y_max_value=None,
     ):
         """
         Initial setup for the class.
@@ -69,7 +72,12 @@ class DataGenerator(keras.utils.Sequence):
                 Numpy random seed. To randomize the dataset choice.
             timesteps : int
                 Number of timesteps to use.
-
+            multiclass_maker : boolean
+                Boolean to break the Y values into classes.
+            class_definitions : int or list
+                Values to define the Y classes. If int is a number of classes, if a list it is the classes.
+            y_max_value : float
+                Needed for classe definition with number of classes.
         """
         self.split = split
         self.random_seed = random_seed
@@ -82,6 +90,20 @@ class DataGenerator(keras.utils.Sequence):
         self.y_nan_value = y_nan_value
         self.training_percentage = training_percentage
         self.usage_type = usage_type
+
+        # Multiclass transform.
+        if self.train:
+            self.multiclass_maker = multiclass_maker
+            self.class_definitions = class_definitions
+            if isinstance(class_definitions, int):
+                if not y_max_value:
+                    raise InconsistentGeneratorDataException(
+                        "For multiclass builder with number of classes, a y_max_value most be provided."
+                    )
+            self.y_max_value = y_max_value
+        else:
+            self.multiclass_maker = False
+
         self.nan_value = nan_value
         if not nan_value:
             self.nan_value = y_nan_value
@@ -468,6 +490,11 @@ class DataGenerator(keras.utils.Sequence):
                 sizex=self.x_width,
                 sizey=self.x_height,
                 mode=self.mode,
+            )
+        # Turn to multiclass.
+        if self.multiclass_maker:
+            Y = generator_utils.multiclass_builder(
+                Y, self.class_definitions, max_number=self.y_max_value
             )
         # Return X only (not train) or X and Y (train).
         if not self.train:
