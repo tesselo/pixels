@@ -15,6 +15,7 @@ import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
+from pystac.validation import STACValidationError
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator.stac_utils import (
@@ -177,6 +178,42 @@ def list_files_in_folder(uri, filetype="tif"):
         return glob.glob(f"{uri}/**{filetype}", recursive=True)
 
 
+def create_stac_item(
+    id_raster,
+    footprint,
+    bbox,
+    datetime_var,
+    out_meta,
+    source_path,
+    media_type=None,
+    aditional_links=None,
+):
+    # Initiate stac item.
+    item = pystac.Item(
+        id=id_raster,
+        geometry=footprint,
+        bbox=bbox,
+        datetime=datetime_var,
+        properties=out_meta,
+    )
+    # Register kind of asset as asset of item.
+    item.add_asset(
+        key=id_raster,
+        asset=pystac.Asset(
+            href=source_path,
+            media_type=media_type,
+        ),
+    )
+    if aditional_links:
+        item.add_link(pystac.Link("corresponding_y", aditional_links))
+    try:
+        # Validate item.
+        item.validate()
+    except STACValidationError:
+        return None
+    return item
+
+
 def parse_prediction_area(
     source_path,
     save_files=False,
@@ -211,19 +248,20 @@ def parse_prediction_area(
     """
     import geopandas as gp
 
+    if source_path.startswith("s3"):
+        STAC_IO.read_text_method = stac_s3_read_method
+        STAC_IO.write_text_method = stac_s3_write_method
+        data = open_file_from_s3(source_path)
+        data = data["Body"]
+    else:
+        data = source_path
     try:
-        tiles = gp.read_file(source_path)
+        tiles = gp.read_file(data)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        if source_path.startswith("s3"):
-            STAC_IO.read_text_method = stac_s3_read_method
-            STAC_IO.write_text_method = stac_s3_write_method
-            data = open_file_from_s3(source_path)
-            tiles = gp.read_file(data["Body"])
-        else:
-            logger.warning(f"Error in parse_prediction_area: {e}")
-
-    id_name = os.path.split(source_path)[-1].replace(".geojson", "")
+        logger.warning(f"Error in reading from shapefile: {e}")
+    file_format = source_path.split(".")[-1]
+    id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every tile geojson file create an item, add it to catalog.
     size = len(tiles)
@@ -252,27 +290,19 @@ def parse_prediction_area(
         # Make transform and crs json serializable.
         out_meta["crs"] = {"init": "epsg:" + str(tile.crs.to_epsg())}
         # Create stac item.
-        item = pystac.Item(
-            id=id_raster,
-            geometry=footprint,
-            bbox=bbox,
-            datetime=datetime_var,
-            properties=out_meta,
+        item = create_stac_item(
+            id_raster,
+            footprint,
+            bbox,
+            datetime_var,
+            out_meta,
+            source_path,
+            media_type=pystac.MediaType.GEOJSON,
+            aditional_links=aditional_links,
         )
-        # Register raster as asset of item.
-        item.add_asset(
-            key=id_raster,
-            asset=pystac.Asset(
-                href=source_path,
-                media_type=pystac.MediaType.GEOJSON,
-            ),
-        )
-        if aditional_links:
-            item.add_link(pystac.Link("corresponding_y", aditional_links))
-        # Validate item.
-        item.validate()
-        # Add item to catalog.
-        catalog.add_item(item)
+        if item:
+            # Add item to catalog.
+            catalog.add_item(item)
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
@@ -341,6 +371,7 @@ def parse_training_data(
             aditional_links=aditional_links,
         )
     if source_path.endswith(".zip"):
+        # parse_collections_rasters
         if source_path.startswith("s3"):
             data = open_zip_from_s3(source_path)
             STAC_IO.read_text_method = stac_s3_read_method
@@ -412,27 +443,18 @@ def parse_training_data(
             global_stats.update(stats)
 
         # Create stac item.
-        item = pystac.Item(
-            id=id_raster,
-            geometry=footprint,
-            bbox=bbox,
-            datetime=datetime_var,
-            properties=out_meta,
+        item = create_stac_item(
+            id_raster,
+            footprint,
+            bbox,
+            datetime_var,
+            out_meta,
+            source_path,
+            media_type=pystac.MediaType.GEOTIFF,
+            aditional_links=aditional_links,
         )
-        # Register raster as asset of item.
-        item.add_asset(
-            key=id_raster,
-            asset=pystac.Asset(
-                href=path_item,
-                media_type=pystac.MediaType.GEOTIFF,
-            ),
-        )
-        if aditional_links:
-            item.add_link(pystac.Link("corresponding_y", aditional_links))
-        # Validate item.
-        item.validate()
-        # Add item to catalog.
-        catalog.add_item(item)
+        if item:
+            catalog.add_item(item)
     # Store final statistics on catalog.
     if categorical:
         # Convert stats to class weights.
