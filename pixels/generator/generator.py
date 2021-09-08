@@ -71,8 +71,6 @@ class DataGenerator(keras.utils.Sequence):
                 Numpy random seed. To randomize the dataset choice.
             timesteps : int
                 Number of timesteps to use.
-            multiclass_maker : boolean
-                Boolean to break the Y values into classes.
             class_definitions : int or list
                 Values to define the Y classes. If int is a number of classes, if a list it is the classes.
             y_max_value : float
@@ -95,7 +93,7 @@ class DataGenerator(keras.utils.Sequence):
         self.y_max_value = y_max_value
         if isinstance(class_definitions, int) and not y_max_value:
             raise InconsistentGeneratorDataException(
-                "For multiclass builder with number of classes, a y_max_value most be provided."
+                "For multiclass builder with number of classes, a y_max_value must be provided."
             )
 
         self.nan_value = nan_value

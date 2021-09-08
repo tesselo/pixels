@@ -354,7 +354,6 @@ def parse_training_data(
         save_files = save_files == "True"
 
     if source_path.endswith("geojson") or source_path.endswith("gpkg"):
-        # parse_collection_shapes
         return parse_prediction_area(
             source_path,
             save_files=save_files,

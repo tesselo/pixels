@@ -193,6 +193,11 @@ def multiclass_builder(Y, class_definition, max_number):
     ----------
         Y : numpy array
             Goal image in training.
+        class_definition : int or list
+            Values to define the Y classes. If int is a number of classes, if a list it is the classes.
+        max_number : float
+            Maximun possible value on training data.
+
     Returns
     -------
         multiclass_y: numpy array
