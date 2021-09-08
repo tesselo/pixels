@@ -210,7 +210,7 @@ def create_stac_item(
         # Validate item.
         item.validate()
     except STACValidationError:
-        raise STACValidationError
+        return None
     return item
 
 
@@ -300,8 +300,9 @@ def parse_prediction_area(
             media_type=pystac.MediaType.GEOJSON,
             aditional_links=aditional_links,
         )
-        # Add item to catalog.
-        catalog.add_item(item)
+        if item:
+            # Add item to catalog.
+            catalog.add_item(item)
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
@@ -452,7 +453,8 @@ def parse_training_data(
             media_type=pystac.MediaType.GEOTIFF,
             aditional_links=aditional_links,
         )
-        catalog.add_item(item)
+        if item:
+            catalog.add_item(item)
     # Store final statistics on catalog.
     if categorical:
         # Convert stats to class weights.
