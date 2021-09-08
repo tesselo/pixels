@@ -51,7 +51,6 @@ class DataGenerator(keras.utils.Sequence):
         augmentation=0,
         training_percentage=1,
         usage_type=GENERATOR_MODE_TRAINING,
-        multiclass_maker=False,
         class_definitions=None,
         y_max_value=None,
     ):
@@ -92,17 +91,12 @@ class DataGenerator(keras.utils.Sequence):
         self.usage_type = usage_type
 
         # Multiclass transform.
-        if self.train:
-            self.multiclass_maker = multiclass_maker
-            self.class_definitions = class_definitions
-            if isinstance(class_definitions, int):
-                if not y_max_value:
-                    raise InconsistentGeneratorDataException(
-                        "For multiclass builder with number of classes, a y_max_value most be provided."
-                    )
-            self.y_max_value = y_max_value
-        else:
-            self.multiclass_maker = False
+        self.class_definitions = class_definitions
+        self.y_max_value = y_max_value
+        if isinstance(class_definitions, int) and not y_max_value:
+            raise InconsistentGeneratorDataException(
+                "For multiclass builder with number of classes, a y_max_value most be provided."
+            )
 
         self.nan_value = nan_value
         if not nan_value:
@@ -167,6 +161,10 @@ class DataGenerator(keras.utils.Sequence):
             self.usage_type == GENERATOR_MODE_TRAINING
             or self.usage_type == GENERATOR_MODE_EVALUATION
         )
+
+    @property
+    def multiclass_maker(self):
+        return (self.class_definitions is not None) and self.train
 
     def parse_collection(self):
         """
@@ -494,7 +492,7 @@ class DataGenerator(keras.utils.Sequence):
         # Turn to multiclass.
         if self.multiclass_maker:
             Y = generator_utils.multiclass_builder(
-                Y, self.class_definitions, max_number=self.y_max_value
+                Y, self.class_definitions, self.y_max_value
             )
         # Return X only (not train) or X and Y (train).
         if not self.train:
