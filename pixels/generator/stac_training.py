@@ -22,6 +22,7 @@ ALLOWED_CUSTOM_LOSSES = [
     "square_stretching_error_loss",
     "stretching_error_loss",
     "nan_categorical_crossentropy_loss",
+    "root_mean_squared_error",
 ]
 
 EVALUATION_PERCENTAGE_LIMIT = 0.2
