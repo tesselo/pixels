@@ -187,7 +187,7 @@ def create_stac_item(
     media_type=None,
     aditional_links=None,
 ):
-    # Create stac item.
+    # Initiate stac item.
     item = pystac.Item(
         id=id_raster,
         geometry=footprint,
@@ -205,8 +205,13 @@ def create_stac_item(
     )
     if aditional_links:
         item.add_link(pystac.Link("corresponding_y", aditional_links))
-    # Validate item.
-    item.validate()
+    try:
+        # Validate item.
+        item.validate()
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.warning(f"Item could not be validated. Error: {e}")
+        return
     return item
 
 
@@ -251,7 +256,11 @@ def parse_prediction_area(
         data = data["Body"]
     else:
         data = source_path
-    tiles = gp.read_file(data)
+    try:
+        tiles = gp.read_file(data)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.warning(f"Error in reading from shapefile: {e}")
     file_format = source_path.split(".")[-1]
     id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -354,7 +363,6 @@ def parse_training_data(
         save_files = save_files == "True"
 
     if source_path.endswith("geojson") or source_path.endswith("gpkg"):
-        # parse_collection_shapes
         return parse_prediction_area(
             source_path,
             save_files=save_files,
