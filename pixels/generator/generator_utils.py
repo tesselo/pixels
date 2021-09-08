@@ -183,3 +183,39 @@ def do_augmentation(
         batch_X = np.vstack(batch_X)
         batch_Y = np.vstack(batch_Y)
     return batch_X, batch_Y
+
+
+def multiclass_builder(Y, class_definition, max_number):
+    """
+    Makes a linear array into a multiclass array.
+    Takes the array Y, either a list or a integer.
+    Parameters
+    ----------
+        Y : numpy array
+            Goal image in training.
+        class_definition : int or list
+            Values to define the Y classes. If int is a number of classes, if a list it is the classes.
+        max_number : float
+            Maximun possible value on training data.
+
+    Returns
+    -------
+        multiclass_y: numpy array
+            Classified image.
+    """
+    if isinstance(class_definition, int):
+        # Linear division of value with class_definition classes.
+        multiclass_y = Y / (max_number / class_definition)
+    else:
+        class_definition = np.sort(np.unique(class_definition))
+        multiclass_y = np.copy(Y)
+        # Make brackets of classes.
+        class_number = 0
+        multiclass_y[Y <= class_definition[0]] = class_number
+        for value in class_definition[1:]:
+            down_value = class_definition[class_number]
+            class_number += 1
+            multiclass_y[np.logical_and(Y > down_value, Y <= value)] = class_number
+        multiclass_y[Y > class_definition[-1]] = class_number + 1
+
+    return multiclass_y.astype("int")
