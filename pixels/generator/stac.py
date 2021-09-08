@@ -15,8 +15,8 @@ import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
-
 from pystac.validation import STACValidationError
+
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator.stac_utils import (
     _load_dictionary,
