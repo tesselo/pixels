@@ -15,6 +15,7 @@ import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
+from pystac.validation import STACValidationError
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator.stac_utils import (
@@ -187,7 +188,7 @@ def create_stac_item(
     media_type=None,
     aditional_links=None,
 ):
-    # Create stac item.
+    # Initiate stac item.
     item = pystac.Item(
         id=id_raster,
         geometry=footprint,
@@ -205,8 +206,11 @@ def create_stac_item(
     )
     if aditional_links:
         item.add_link(pystac.Link("corresponding_y", aditional_links))
-    # Validate item.
-    item.validate()
+    try:
+        # Validate item.
+        item.validate()
+    except STACValidationError:
+        return None
     return item
 
 
@@ -251,7 +255,11 @@ def parse_prediction_area(
         data = data["Body"]
     else:
         data = source_path
-    tiles = gp.read_file(data)
+    try:
+        tiles = gp.read_file(data)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.warning(f"Error in reading from shapefile: {e}")
     file_format = source_path.split(".")[-1]
     id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -292,8 +300,9 @@ def parse_prediction_area(
             media_type=pystac.MediaType.GEOJSON,
             aditional_links=aditional_links,
         )
-        # Add item to catalog.
-        catalog.add_item(item)
+        if item:
+            # Add item to catalog.
+            catalog.add_item(item)
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
@@ -445,7 +454,8 @@ def parse_training_data(
             media_type=pystac.MediaType.GEOTIFF,
             aditional_links=aditional_links,
         )
-        catalog.add_item(item)
+        if item:
+            catalog.add_item(item)
     # Store final statistics on catalog.
     if categorical:
         # Convert stats to class weights.
