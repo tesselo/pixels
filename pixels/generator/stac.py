@@ -16,6 +16,7 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 
+from pystac.validation import STACValidationError
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator.stac_utils import (
     _load_dictionary,
@@ -208,10 +209,8 @@ def create_stac_item(
     try:
         # Validate item.
         item.validate()
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        logger.warning(f"Item could not be validated. Error: {e}")
-        return
+    except STACValidationError:
+        raise STACValidationError
     return item
 
 
