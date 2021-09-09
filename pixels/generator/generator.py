@@ -327,6 +327,11 @@ class DataGenerator(keras.utils.Sequence):
             )
         # Ensure correct size of Y data in training mode.
         if self.train:
+            # Turn to multiclass.
+            if self.multiclass_maker:
+                y_tensor = generator_utils.multiclass_builder(
+                    y_tensor, self.class_definitions, self.y_max_value
+                )
             # Limit the size to the maximum expected.
             y_tensor = y_tensor[: self.num_classes, : self.y_height, : self.y_width]
             # Fill the gaps with nodata if the array is too small.
@@ -484,11 +489,6 @@ class DataGenerator(keras.utils.Sequence):
                 sizex=self.x_width,
                 sizey=self.x_height,
                 mode=self.mode,
-            )
-        # Turn to multiclass.
-        if self.multiclass_maker:
-            Y = generator_utils.multiclass_builder(
-                Y, self.class_definitions, self.y_max_value
             )
         # Return X only (not train) or X and Y (train).
         if not self.train:
