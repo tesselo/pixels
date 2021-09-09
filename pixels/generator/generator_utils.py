@@ -25,7 +25,7 @@ def open_object_from_s3(source_path):
 
 
 def read_img_and_meta_raster(raster_path):
-    if raster_path.startswith("s3://"):
+    if isinstance(raster_path, str) and raster_path.startswith("s3://"):
         raster_path = open_object_from_s3(raster_path)
     with rasterio.open(raster_path) as src:
         img = src.read()
