@@ -39,7 +39,13 @@ def open_zip_from_s3(source_path):
 
 
 def read_img_and_meta_raster(raster_path):
-    with rasterio.open(raster_path, driver="GTiff") as src:
+    if raster_path.startswith("s3://"):
+        s3_path = raster_path.split("s3://")[1]
+        bucket = s3_path.split("/")[0]
+        path = s3_path.replace(bucket + "/", "")
+        data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
+        raster_path = io.BytesIO(data)
+    with rasterio.open(raster_path) as src:
         img = src.read()
         meta = src.meta
     return img, meta
