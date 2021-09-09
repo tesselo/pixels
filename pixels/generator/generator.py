@@ -254,7 +254,7 @@ class DataGenerator(keras.utils.Sequence):
                     # Open zip for y training:
                     source_zip_path = y_path.split("!/")[0]
                     if source_zip_path.startswith("zip://s3"):
-                        zip_file = generator_utils.open_zip_from_s3(
+                        zip_file = generator_utils.open_object_from_s3(
                             source_zip_path.split("zip://")[-1]
                         )
                     else:

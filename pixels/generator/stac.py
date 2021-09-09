@@ -18,6 +18,7 @@ from pystac import STAC_IO
 from pystac.validation import STACValidationError
 
 from pixels.exceptions import PixelsException, TrainingDataParseError
+from pixels.generator import generator_utils
 from pixels.generator.stac_utils import (
     _load_dictionary,
     open_file_from_s3,
@@ -115,29 +116,6 @@ def check_file_in_s3(uri):
     list_obj = [ob["Key"] for ob in theObjs["Contents"]]
     # Ensure key is in list.
     return key in list_obj
-
-
-def open_zip_from_s3(source_path):
-    """
-    Read a zip file in s3.
-
-    Parameters
-    ----------
-        source_path : str
-            Path to the zip file on s3 containing the rasters.
-
-    Returns
-    -------
-        data : BytesIO
-            Obejct from the zip file.
-    """
-    s3_path = source_path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    path = s3_path.replace(bucket + "/", "")
-    s3 = boto3.client("s3")
-    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
-    data = io.BytesIO(data)
-    return data
 
 
 def upload_obj_s3(uri, obj):
@@ -373,7 +351,7 @@ def parse_training_data(
     if source_path.endswith(".zip"):
         # parse_collections_rasters
         if source_path.startswith("s3"):
-            data = open_zip_from_s3(source_path)
+            data = generator_utils.open_object_from_s3(source_path)
             STAC_IO.read_text_method = stac_s3_read_method
             STAC_IO.write_text_method = stac_s3_write_method
         else:

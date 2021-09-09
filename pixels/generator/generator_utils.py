@@ -8,7 +8,6 @@ import rasterio
 import structlog
 
 import pixels.generator.generator_augmentation_2D as aug
-import pixels.generator.stac as pxstc
 
 # S3 class instanciation.
 s3 = boto3.client("s3")
@@ -25,24 +24,6 @@ def open_object_from_s3(source_path):
     return data
 
 
-def open_zip_from_s3(source_path):
-    """
-    Read a zip file in s3.
-
-    Parameters
-    ----------
-        source_path : str
-            Path to the zip file on s3 containing the rasters.
-
-    Returns
-    -------
-        data : BytesIO
-            Obejct from the zip file.
-    """
-    data = open_object_from_s3(source_path)
-    return data
-
-
 def read_img_and_meta_raster(raster_path):
     if raster_path.startswith("s3://"):
         raster_path = open_object_from_s3(raster_path)
@@ -54,7 +35,7 @@ def read_img_and_meta_raster(raster_path):
 
 def read_raster_inside_zip(file_inside_zip, source_zip_path):
     if source_zip_path.startswith("zip://s3"):
-        zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
+        zip_file = open_object_from_s3(source_zip_path.split("zip://")[-1])
     else:
         zip_file = source_zip_path
     zip_file = zipfile.ZipFile(zip_file, "r")
@@ -90,7 +71,7 @@ def read_raster_meta(path_raster):
             source_zip_path = path_raster.split("!/")[0]
             file_inside_zip = path_raster.split("!/")[-1]
             if source_zip_path.startswith("zip://s3"):
-                zip_file = pxstc.open_zip_from_s3(source_zip_path.split("zip://")[-1])
+                zip_file = open_object_from_s3(source_zip_path.split("zip://")[-1])
             zip_file = zipfile.ZipFile(zip_file, "r")
             raster_file = zip_file.read(file_inside_zip)
             raster_file = io.BytesIO(raster_file)
