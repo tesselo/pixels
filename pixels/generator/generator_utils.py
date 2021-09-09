@@ -15,6 +15,16 @@ s3 = boto3.client("s3")
 logger = structlog.get_logger(__name__)
 
 
+def open_object_from_s3(source_path):
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
+    data = io.BytesIO(data)
+    return data
+
+
 def open_zip_from_s3(source_path):
     """
     Read a zip file in s3.
@@ -29,22 +39,13 @@ def open_zip_from_s3(source_path):
         data : BytesIO
             Obejct from the zip file.
     """
-    s3_path = source_path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    path = s3_path.replace(bucket + "/", "")
-    s3 = boto3.client("s3")
-    data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
-    data = io.BytesIO(data)
+    data = open_object_from_s3(source_path)
     return data
 
 
 def read_img_and_meta_raster(raster_path):
     if raster_path.startswith("s3://"):
-        s3_path = raster_path.split("s3://")[1]
-        bucket = s3_path.split("/")[0]
-        path = s3_path.replace(bucket + "/", "")
-        data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
-        raster_path = io.BytesIO(data)
+        raster_path = open_object_from_s3(raster_path)
     with rasterio.open(raster_path) as src:
         img = src.read()
         meta = src.meta
