@@ -9,8 +9,6 @@ import structlog
 
 import pixels.generator.generator_augmentation_2D as aug
 
-# S3 class instanciation.
-s3 = boto3.client("s3")
 logger = structlog.get_logger(__name__)
 
 
