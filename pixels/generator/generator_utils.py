@@ -9,12 +9,12 @@ import structlog
 
 import pixels.generator.generator_augmentation_2D as aug
 
-# S3 class instanciation.
-s3 = boto3.client("s3")
 logger = structlog.get_logger(__name__)
 
 
 def open_object_from_s3(source_path):
+    # In multiprocessing each worker must open its own connection.
+    s3 = boto3.client("s3")
     s3_path = source_path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
     path = s3_path.replace(bucket + "/", "")
