@@ -1,5 +1,4 @@
 import io
-import multiprocessing
 import zipfile
 
 import backoff
