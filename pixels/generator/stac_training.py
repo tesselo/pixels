@@ -648,7 +648,7 @@ def predict_function_batch(
         if dtgen.num_classes > 1 and not extract_probabilities:
             # Apply argmax to reduce the one-hot model output into class numbers.
             # Pick axis for argmax calculation based on 1D vs 2D or 3D.
-            axis = 0 if generator.GENERATOR_PIXEL_MODEL else 1
+            axis = 0 if dtgen.mode == generator.GENERATOR_PIXEL_MODEL else 1
             prediction = np.argmax(prediction, axis=axis)
             # Ensure the maximum number of classes is not surpassed.
             if np.max(prediction) > 255:
@@ -657,7 +657,7 @@ def predict_function_batch(
                 )
             # Rasterio expects shape to have the band number first. So expand
             # prediction shape from (height, width) to (1, height, width).
-            if generator.GENERATOR_PIXEL_MODEL:
+            if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
             # Ensure prediction has a writable type. For now, we assume there
             # will not be more than 255 classes and use unit8. The default
@@ -678,7 +678,7 @@ def predict_function_batch(
         if extract_probabilities:
             # When probabilities are to be extracted the number of bands is the number of classes.
             meta["count"] = dtgen.num_classes
-            if generator.GENERATOR_PIXEL_MODEL:
+            if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
 
         # Compute target resolution using upscale factor.
