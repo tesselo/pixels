@@ -308,11 +308,7 @@ def pixel_stack(
         light_clouds = True
         sort = "cloud_cover"
         finish_early_cloud_cover_percentage = 0.05
-        # Extend bands to necessary parts.
-        missing = [
-            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
-        ]
-        bands = list(bands) + missing
+        composite_method = "SCL"
         # Create input list with date ranges.
         dates = [
             (
@@ -331,6 +327,7 @@ def pixel_stack(
                 sort,
                 finish_early_cloud_cover_percentage,
                 platforms,
+                composite_method,
             )
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
@@ -395,6 +392,7 @@ def composite(
     sort="cloud_cover",
     finish_early_cloud_cover_percentage=0.05,
     platforms="SENTINEL_2",
+    composite_method="SCL",
 ):
     """
     Get the composite over the input features.
@@ -411,14 +409,23 @@ def composite(
         )
 
     # Check band list.
-    S2_BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
-    missing = [band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands]
-    if missing:
-        raise ValueError("Missing {} bands for composite.".format(missing))
-
-    required_band_indices = [
-        bands.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
-    ]
+    if composite_method == "SCL":
+        remove_scl_from_output = False
+        if "SCL" not in bands:
+            bands.append("SCL")
+            # If the SCL band has not been requested for output, remove it
+            # from the stack before returning the result.
+            remove_scl_from_output = True
+        scl_band_index = bands.index("SCL")
+    else:
+        missing = [
+            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
+        ]
+        if missing:
+            raise PixelsException("Missing {} bands for composite.".format(missing))
+        required_band_indices = [
+            bands.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
+        ]
 
     # Search scenes.
     items = search_data(
@@ -469,18 +476,34 @@ def composite(
             continue
         # Add scene to stack.
         layer = numpy.array([dat[1] for dat in data])
-        # Compute cloud mask for new layer.
-        layer_clouds = pixels_mask(
-            *(layer[idx] for idx in required_band_indices),
-            light_clouds=light_clouds,
-            shadow_threshold=shadow_threshold,
-        )
-        # Shadow mask only uses RGB, so limit to first three bands.
-        logger.debug(
-            "Layer masked count {} %".format(
-                int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
+        if composite_method == "SCL":
+            # SCL classes.
+            # 0: NO_DATA
+            # 1: SATURATED_OR_DEFECTIVE
+            # 2: DARK_AREA_PIXELS
+            # 3: CLOUD_SHADOWS
+            # 4: VEGETATION
+            # 5: NOT_VEGETATED
+            # 6: WATER
+            # 7: UNCLASSIFIED
+            # 8: CLOUD_MEDIUM_PROBABILITY
+            # 9: CLOUD_HIGH_PROBABILITY
+            # 10: THIN_CIRRUS
+            # 11: SNOW
+            layer_clouds = numpy.isin(layer[scl_band_index], [0, 1, 3, 7, 8, 9, 10])
+        else:
+            # Compute cloud mask for new layer.
+            layer_clouds = pixels_mask(
+                *(layer[idx] for idx in required_band_indices),
+                light_clouds=light_clouds,
+                shadow_threshold=shadow_threshold,
             )
-        )
+            # Shadow mask only uses RGB, so limit to first three bands.
+            logger.debug(
+                "Layer masked count {} %".format(
+                    int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
+                )
+            )
         # Create stack.
         if stack is None:
             # Set first return as stack.
@@ -512,5 +535,10 @@ def composite(
             )
             for i in range(len(stack)):
                 stack[i][mask] = NODATA_VALUE
+
+    # Remove scl if required.
+    if remove_scl_from_output:
+        stack = numpy.delete(stack, scl_band_index, 0)
+        bands.remove("SCL")
 
     return creation_args, first_end_date, numpy.array(stack)

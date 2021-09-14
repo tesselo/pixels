@@ -45,6 +45,7 @@ def mock_search_data(
                     "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "SCL": os.path.join(os.path.dirname(__file__), "data/SCL.tif"),
                 },
             },
         )
@@ -71,6 +72,7 @@ def mock_search_data(
                 "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                 "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                 "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "SCL": os.path.join(os.path.dirname(__file__), "data/SCL.tif"),
             },
         },
     )
@@ -178,7 +180,7 @@ class TestMosaic(unittest.TestCase):
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
-            scale=500,
+            scale=250,
             interval="weeks",
             interval_step=1,
             bands=["B01", "B02"],
@@ -190,7 +192,10 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
-        expected = [[[[2956, 2996], [7003, 7043]]] * 8] * 4
+        # expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 4
+        expected = [
+            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 2
+        ] * 4
         numpy.testing.assert_array_equal(stack, expected)
         # Interval step 2 reduces number of layers to 2.
         creation_args, dates, stack = pixel_stack(
