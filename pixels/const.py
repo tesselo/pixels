@@ -91,6 +91,24 @@ S2_BANDS = [
     "B11",
     "B12",
 ]
+# At L2A Band 10 does no longer exist, as its only an atmosphere band. The SCL
+# layer is a scene class layer produced by the Sen2Cor algorithm. It contains
+# a simple cloud mask amongst other classes.
+S2_BANDS_L2A = [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06",
+    "B07",
+    "B08",
+    "B8A",
+    "B09",
+    "B11",
+    "B12",
+    "SCL",
+]
 L8_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11"]
 L7_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
 L4_L5_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]

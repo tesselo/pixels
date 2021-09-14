@@ -19,6 +19,7 @@ from pixels.const import (
     LANDSAT_7,
     LANDSAT_8,
     S2_BANDS,
+    S2_BANDS_L2A,
     SENTINEL_2,
 )
 from pixels.utils import compute_wgs83_bbox
@@ -203,7 +204,7 @@ def format_sentinel_band(value):
     data = {}
 
     if level == "L2A":
-        for band in S2_BANDS:
+        for band in S2_BANDS_L2A:
             band_template_url = "{base_url}/{utm}/{latitude}/{grid}/{year}/{month}/{product_id}_{mgr}_{sensing_time}_{sequence}_{level}/{band}.tif"
             data[band] = band_template_url.format(
                 base_url=AWS_URL,
