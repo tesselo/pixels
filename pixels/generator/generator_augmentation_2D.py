@@ -82,6 +82,7 @@ def add_noise(image, ran=100):
 def change_bright(image, ran=1):
     return np.array(image * ran)
 
+
 def select_augmentation(img, augmentation_index):
     if augmentation_index is None or augmentation_index == 1:
         return img_flip(img)
@@ -93,6 +94,7 @@ def select_augmentation(img, augmentation_index):
         return add_noise(img, ran=10)
     if augmentation_index is None or augmentation_index == 5:
         return change_bright(img, ran=10)
+
 
 def augmentation_loops(imgs, augmentation_index):
     # Do the augmentations on images (N, B, height, width).
@@ -116,23 +118,28 @@ def augmentation_loops(imgs, augmentation_index):
     )
     return np.array(time_aug_imgs)
 
+
 def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
     data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
     data_Y = set_standard_shape(Y, sizex=sizex, sizey=sizey)
     data_Y = np.squeeze(data_Y)
     data_X = np.squeeze(data_X)
     if len(data_X.shape) < 4:
-        data_X = np.expand_dims(data_X, list(np.arange(4-len(data_X.shape))))
+        data_X = np.expand_dims(data_X, list(np.arange(4 - len(data_X.shape))))
     if len(data_Y.shape) < 4:
-        data_Y = np.expand_dims(data_Y, list(np.arange(4-len(data_Y.shape))))
+        data_Y = np.expand_dims(data_Y, list(np.arange(4 - len(data_Y.shape))))
     resulted_augmentation_X = [X[0]]
     resulted_augmentation_Y = [Y]
     for i in augmentation_index:
         # i has to be +1 because the 1st augmentation is 1.
         resulted_augmentation_X.append(augmentation_loops(data_X, i))
         resulted_augmentation_Y.append(augmentation_loops(data_Y, i))
-    resulted_augmentation_X = np.array([np.array(img) for img in resulted_augmentation_X])
-    resulted_augmentation_Y = np.array([np.array(img) for img in resulted_augmentation_Y])
+    resulted_augmentation_X = np.array(
+        [np.array(img) for img in resulted_augmentation_X]
+    )
+    resulted_augmentation_Y = np.array(
+        [np.array(img) for img in resulted_augmentation_Y]
+    )
     resulted_augmentation_Y = np.squeeze(resulted_augmentation_Y)
     return (
         resulted_augmentation_X,
