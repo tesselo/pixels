@@ -427,7 +427,7 @@ def parse_training_data(
             bbox,
             datetime_var,
             out_meta,
-            source_path,
+            path_item,
             media_type=pystac.MediaType.GEOTIFF,
             aditional_links=aditional_links,
         )
