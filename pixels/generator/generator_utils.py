@@ -146,29 +146,22 @@ def do_augmentation(
     batch_Y = np.array([])
     if mode == "2D_Model":
         X = np.expand_dims(X, 1)
-        y = np.expand_dims(y, 1)
     for batch in range(batch_size):
-        augmented_X = X[batch : batch + 1]
-        augmented_Y = y[batch : batch + 1]
-        for i in augmentation_index:
-            aug_X, aug_Y = aug.augmentation(
-                X[batch : batch + 1],
-                y[batch : batch + 1],
-                sizex=sizex,
-                sizey=sizey,
-                augmentation_index=i,
-            )
-            augmented_X = np.concatenate([augmented_X, aug_X])
-            augmented_Y = np.concatenate([augmented_Y, aug_Y])
+        aug_X, aug_Y = aug.augmentation(
+            X[batch : batch + 1],
+            y[batch : batch + 1],
+            sizex=sizex,
+            sizey=sizey,
+            augmentation_index=augmentation_index,
+        )
         if not batch_X.any():
-            batch_X = augmented_X
-            batch_Y = augmented_Y
+            batch_X = np.array(aug_X)
+            batch_Y = np.array(aug_Y)
         else:
-            batch_X = np.concatenate([batch_X, augmented_X])
-            batch_Y = np.concatenate([batch_Y, augmented_Y])
+            batch_X = np.concatenate([batch_X, aug_X])
+            batch_Y = np.concatenate([batch_Y, aug_Y])
     if mode == "2D_Model":
         batch_X = np.vstack(batch_X)
-        batch_Y = np.vstack(batch_Y)
     return batch_X, batch_Y
 
 

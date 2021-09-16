@@ -82,160 +82,61 @@ def add_noise(image, ran=100):
 def change_bright(image, ran=1):
     return np.array(image * ran)
 
+def select_augmentation(img, augmentation_index):
+    if augmentation_index is None or augmentation_index == 1:
+        return img_flip(img)
+    if augmentation_index is None or augmentation_index == 2:
+        return img_flip(img, 0)
+    if augmentation_index is None or augmentation_index == 3:
+        return img_flip(img, 1)
+    if augmentation_index is None or augmentation_index == 4:
+        return add_noise(img, ran=10)
+    if augmentation_index is None or augmentation_index == 5:
+        return change_bright(img, ran=10)
+
+def augmentation_loops(imgs, augmentation_index):
+    # Do the augmentations on images (N, B, height, width).
+    time_aug_imgs = []
+    for N in imgs:
+        aug_img = []
+        for B in N:
+            aug_img.append(select_augmentation(B, augmentation_index))
+        time_aug_imgs.append(aug_img)
+    # Revert shapes back to (N, height, width, B)
+    time_aug_imgs = np.array(time_aug_imgs)
+    time_aug_imgs = np.swapaxes(
+        time_aug_imgs,
+        len(time_aug_imgs.shape) - 2,
+        len(time_aug_imgs.shape) - 3,
+    )
+    time_aug_imgs = np.swapaxes(
+        time_aug_imgs,
+        len(time_aug_imgs.shape) - 1,
+        len(time_aug_imgs.shape) - 2,
+    )
+    return np.array(time_aug_imgs)
 
 def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
-    original_shape_X = X.shape
-    original_shape_Y = Y.shape
     data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
-    data_Y = np.squeeze(Y)
+    data_Y = set_standard_shape(Y, sizex=sizex, sizey=sizey)
+    data_Y = np.squeeze(data_Y)
     data_X = np.squeeze(data_X)
     if len(data_X.shape) < 4:
-        data_X = np.expand_dims(data_X, 0)
-    timeseries_flip = []
-    timeseries_flip0 = []
-    timeseries_flip1 = []
-    timeseries_noise = []
-    timeseries_bright = []
-    for time in data_X:
-        bands_flip = []
-        bands_flip0 = []
-        bands_flip1 = []
-        bands_noise = []
-        bands_bright = []
-        for band in time:
-            if augmentation_index is None or augmentation_index == 1:
-                bands_flip.append(img_flip(band))
-            if augmentation_index is None or augmentation_index == 2:
-                bands_flip0.append(img_flip(band, 0))
-            if augmentation_index is None or augmentation_index == 3:
-                bands_flip1.append(img_flip(band, 1))
-            if augmentation_index is None or augmentation_index == 4:
-                bands_noise.append(add_noise(band, ran=10))
-            if augmentation_index is None or augmentation_index == 5:
-                bands_bright.append(change_bright(band, ran=10))
-        timeseries_flip.append(bands_flip)
-        timeseries_flip0.append(bands_flip0)
-        timeseries_flip1.append(bands_flip1)
-        timeseries_noise.append(bands_noise)
-        timeseries_bright.append(bands_bright)
-
-    if augmentation_index is None or augmentation_index == 1:
-        timeseries_flip = np.array(timeseries_flip)
-        timeseries_flip = np.swapaxes(
-            timeseries_flip,
-            len(timeseries_flip.shape) - 2,
-            len(timeseries_flip.shape) - 3,
-        )
-        timeseries_flip = np.swapaxes(
-            timeseries_flip,
-            len(timeseries_flip.shape) - 1,
-            len(timeseries_flip.shape) - 2,
-        )
-    if augmentation_index is None or augmentation_index == 2:
-        timeseries_flip0 = np.array(timeseries_flip0)
-        timeseries_flip0 = np.swapaxes(
-            timeseries_flip0,
-            len(timeseries_flip0.shape) - 2,
-            len(timeseries_flip0.shape) - 3,
-        )
-        timeseries_flip0 = np.swapaxes(
-            timeseries_flip0,
-            len(timeseries_flip0.shape) - 1,
-            len(timeseries_flip0.shape) - 2,
-        )
-    if augmentation_index is None or augmentation_index == 3:
-        timeseries_flip1 = np.array(timeseries_flip1)
-        timeseries_flip1 = np.swapaxes(
-            timeseries_flip1,
-            len(timeseries_flip1.shape) - 2,
-            len(timeseries_flip1.shape) - 3,
-        )
-        timeseries_flip1 = np.swapaxes(
-            timeseries_flip1,
-            len(timeseries_flip1.shape) - 1,
-            len(timeseries_flip1.shape) - 2,
-        )
-    if augmentation_index is None or augmentation_index == 4:
-        timeseries_noise = np.array(timeseries_noise)
-        timeseries_noise = np.swapaxes(
-            timeseries_noise,
-            len(timeseries_noise.shape) - 2,
-            len(timeseries_noise.shape) - 3,
-        )
-        timeseries_noise = np.swapaxes(
-            timeseries_noise,
-            len(timeseries_noise.shape) - 1,
-            len(timeseries_noise.shape) - 2,
-        )
-    if augmentation_index is None or augmentation_index == 5:
-        timeseries_bright = np.array(timeseries_bright)
-        timeseries_bright = np.swapaxes(
-            timeseries_bright,
-            len(timeseries_bright.shape) - 2,
-            len(timeseries_bright.shape) - 3,
-        )
-        timeseries_bright = np.swapaxes(
-            timeseries_bright,
-            len(timeseries_bright.shape) - 1,
-            len(timeseries_bright.shape) - 2,
-        )
-
-    if augmentation_index == 0:
-        return (
-            X,
-            np.array([data_Y]).reshape(original_shape_Y),
-        )
-    elif augmentation_index == 1:
-        return (
-            np.array(timeseries_flip).reshape(original_shape_X),
-            np.array([img_flip(data_Y)]).reshape(original_shape_Y),
-        )
-    elif augmentation_index == 2:
-        return (
-            np.array(timeseries_flip0).reshape(original_shape_X),
-            np.array([img_flip(data_Y, 0)]).reshape(original_shape_Y),
-        )
-    elif augmentation_index == 3:
-        return (
-            np.array(timeseries_flip1).reshape(original_shape_X),
-            np.array([img_flip(data_Y, 1)]).reshape(original_shape_Y),
-        )
-    elif augmentation_index == 4:
-        return (
-            np.array(timeseries_noise).reshape(original_shape_X),
-            np.array([data_Y]).reshape(original_shape_Y),
-        )
-    elif augmentation_index == 5:
-        return (
-            np.array(timeseries_bright).reshape(original_shape_X),
-            np.array([data_Y]).reshape(original_shape_Y),
-        )
-
-    results_x = np.asarray(
-        [
-            np.array(timeseries_flip).reshape(original_shape_X),
-            # np.array(timeseries_flip),
-            np.array(timeseries_flip0).reshape(original_shape_X),
-            np.array(timeseries_flip1).reshape(original_shape_X),
-            np.array(timeseries_noise).reshape(original_shape_X),
-            np.array(timeseries_bright).reshape(original_shape_X),
-            X,
-        ]
-    )
-    results_y = np.asarray(
-        [
-            np.array([img_flip(data_Y)]).reshape(original_shape_Y),
-            np.array([img_flip(data_Y, 0)]).reshape(original_shape_Y),
-            np.array([img_flip(data_Y, 1)]).reshape(original_shape_Y),
-            np.array([data_Y]).reshape(original_shape_Y),
-            np.array([data_Y]).reshape(original_shape_Y),
-            np.array([data_Y]).reshape(original_shape_Y),
-        ]
-    )
-
+        data_X = np.expand_dims(data_X, list(np.arange(4-len(data_X.shape))))
+    if len(data_Y.shape) < 4:
+        data_Y = np.expand_dims(data_Y, list(np.arange(4-len(data_Y.shape))))
+    resulted_augmentation_X = [X[0]]
+    resulted_augmentation_Y = [Y]
+    for i in augmentation_index:
+        # i has to be +1 because the 1st augmentation is 1.
+        resulted_augmentation_X.append(augmentation_loops(data_X, i))
+        resulted_augmentation_Y.append(augmentation_loops(data_Y, i))
+    resulted_augmentation_X = np.array([np.array(img) for img in resulted_augmentation_X])
+    resulted_augmentation_Y = np.array([np.array(img) for img in resulted_augmentation_Y])
+    resulted_augmentation_Y = np.squeeze(resulted_augmentation_Y)
     return (
-        results_x.reshape(np.prod(results_x.shape[:2]), *results_x.shape[2:]),
-        results_y.reshape(np.prod(results_y.shape[:2]), *results_y.shape[2:]),
+        resulted_augmentation_X,
+        resulted_augmentation_Y,
     )
     # Flip
     # Add noise

@@ -482,7 +482,7 @@ class DataGenerator(keras.utils.Sequence):
             if self.train:
                 Y = Y.astype(self.dtype)
         # Augment data, for more detail see do_augmentation() on generator_utils.
-        if self.augmentation > 0:
+        if self.augmentation > 0 and self.mode in [GENERATOR_2D_MODEL, GENERATOR_3D_MODEL]:
             X, Y = generator_utils.do_augmentation(
                 X,
                 Y,
