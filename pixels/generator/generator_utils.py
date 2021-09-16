@@ -116,7 +116,15 @@ def fill_missing_dimensions(tensor, expected_shape, value=None):
 
 
 def do_augmentation(
-    X, y, sizex, sizey, augmentation_index=1, batch_size=1, mode="3D_Model"
+    X,
+    y,
+    sizeX_height,
+    sizeX_width,
+    sizeY_height,
+    sizeY_width,
+    augmentation_index=1,
+    batch_size=1,
+    mode="3D_Model",
 ):
     """
     Define how many augmentations to do, and build the correct input for the augmentation function
@@ -150,8 +158,10 @@ def do_augmentation(
         aug_X, aug_Y = aug.augmentation(
             X[batch : batch + 1],
             y[batch : batch + 1],
-            sizex=sizex,
-            sizey=sizey,
+            sizeX_height=sizeX_height,
+            sizeX_width=sizeX_width,
+            sizeY_height=sizeY_height,
+            sizeY_width=sizeY_width,
             augmentation_index=augmentation_index,
         )
         if not batch_X.any():

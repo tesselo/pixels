@@ -119,9 +119,17 @@ def augmentation_loops(imgs, augmentation_index):
     return np.array(time_aug_imgs)
 
 
-def augmentation(X, Y, sizex=360, sizey=360, augmentation_index=None):
-    data_X = set_standard_shape(X, sizex=sizex, sizey=sizey)
-    data_Y = set_standard_shape(Y, sizex=sizex, sizey=sizey)
+def augmentation(
+    X,
+    Y,
+    sizeX_height=360,
+    sizeX_width=360,
+    sizeY_height=360,
+    sizeY_width=360,
+    augmentation_index=None,
+):
+    data_X = set_standard_shape(X, sizex=sizeX_height, sizey=sizeX_width)
+    data_Y = set_standard_shape(Y, sizex=sizeY_height, sizey=sizeY_width)
     data_Y = np.squeeze(data_Y)
     data_X = np.squeeze(data_X)
     if len(data_X.shape) < 4:
