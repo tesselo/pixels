@@ -162,7 +162,6 @@ def do_augmentation(
             batch_Y = np.concatenate([batch_Y, aug_Y])
     if mode == "2D_Model":
         batch_X = np.vstack(batch_X)
-    print(batch_Y.shape)
     if len(batch_Y.shape) < 4:
         batch_Y = np.expand_dims(batch_Y, -1)
 
