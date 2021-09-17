@@ -462,6 +462,8 @@ class DataGenerator(keras.utils.Sequence):
         tensor = []
         # Loop on batch number.
         for ind in list_indexes:
+            if ind >= len(self.id_list):
+                continue
             tensor.append(self.get_and_process(ind))
         # Break down the tuple n(X, Y) into X and Y.
         if self.train:
