@@ -153,6 +153,69 @@ def augmentation(
     # brightness_range # ran > 1  Brightness of Image increases
 
 
+def do_augmentation_on_batch(
+    X,
+    y,
+    sizeX_height,
+    sizeX_width,
+    sizeY_height,
+    sizeY_width,
+    augmentation_index=1,
+    batch_size=1,
+    mode="3D_Model",
+):
+    """
+    Define how many augmentations to do, and build the correct input for the augmentation function
+
+    Parameters
+    ----------
+        X : numpy array
+            Set of collected images.
+        Y : numpy array
+            Goal image in training.
+        augmentation_index : int or list
+            Set the number of augmentations. If list, does the augmentatios
+            with the keys on the list, if int, does all the keys up to that.
+            keys:
+                0: No augmentation
+                1, 2, 3: flips
+                4: noise
+                5: bright
+    Returns
+    -------
+        augmentedX, augmentedY : numpy array
+            Augmented images.
+    """
+    if isinstance(augmentation_index, int):
+        augmentation_index = np.arange(augmentation_index) + 1
+    batch_X = np.array([])
+    batch_Y = np.array([])
+    if mode == "2D_Model":
+        X = np.expand_dims(X, 1)
+    for batch in range(batch_size):
+        aug_X, aug_Y = augmentation(
+            X[batch : batch + 1],
+            y[batch : batch + 1],
+            sizeX_height=sizeX_height,
+            sizeX_width=sizeX_width,
+            sizeY_height=sizeY_height,
+            sizeY_width=sizeY_width,
+            augmentation_index=augmentation_index,
+        )
+        if not batch_X.any():
+            batch_X = np.array(aug_X)
+            batch_Y = np.array(aug_Y)
+        else:
+            batch_X = np.concatenate([batch_X, aug_X])
+            batch_Y = np.concatenate([batch_Y, aug_Y])
+    if mode == "2D_Model":
+        batch_X = np.vstack(batch_X)
+    if len(batch_Y.shape) < 4:
+        batch_Y = np.expand_dims(batch_Y, -1)
+
+    return batch_X, batch_Y
+
+
 def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7, prediction_mode=False):
     # For prediction from uncleaned data, keep the least cloudy dates.
     if prediction_mode:

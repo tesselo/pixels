@@ -7,8 +7,6 @@ import numpy as np
 import rasterio
 import structlog
 
-from pixels.generator.generator_augmentation_2D import augmentation
-
 logger = structlog.get_logger(__name__)
 
 
@@ -113,69 +111,6 @@ def fill_missing_dimensions(tensor, expected_shape, value=None):
         final_shape[dim] = missing_shape[dim]
         tensor = np.concatenate((tensor, np.full(tuple(final_shape), value)), axis=dim)
     return tensor
-
-
-def do_augmentation(
-    X,
-    y,
-    sizeX_height,
-    sizeX_width,
-    sizeY_height,
-    sizeY_width,
-    augmentation_index=1,
-    batch_size=1,
-    mode="3D_Model",
-):
-    """
-    Define how many augmentations to do, and build the correct input for the augmentation function
-
-    Parameters
-    ----------
-        X : numpy array
-            Set of collected images.
-        Y : numpy array
-            Goal image in training.
-        augmentation_index : int or list
-            Set the number of augmentations. If list, does the augmentatios
-            with the keys on the list, if int, does all the keys up to that.
-            keys:
-                0: No augmentation
-                1, 2, 3: flips
-                4: noise
-                5: bright
-    Returns
-    -------
-        augmentedX, augmentedY : numpy array
-            Augmented images.
-    """
-    if isinstance(augmentation_index, int):
-        augmentation_index = np.arange(augmentation_index) + 1
-    batch_X = np.array([])
-    batch_Y = np.array([])
-    if mode == "2D_Model":
-        X = np.expand_dims(X, 1)
-    for batch in range(batch_size):
-        aug_X, aug_Y = augmentation(
-            X[batch : batch + 1],
-            y[batch : batch + 1],
-            sizeX_height=sizeX_height,
-            sizeX_width=sizeX_width,
-            sizeY_height=sizeY_height,
-            sizeY_width=sizeY_width,
-            augmentation_index=augmentation_index,
-        )
-        if not batch_X.any():
-            batch_X = np.array(aug_X)
-            batch_Y = np.array(aug_Y)
-        else:
-            batch_X = np.concatenate([batch_X, aug_X])
-            batch_Y = np.concatenate([batch_Y, aug_Y])
-    if mode == "2D_Model":
-        batch_X = np.vstack(batch_X)
-    if len(batch_Y.shape) < 4:
-        batch_Y = np.expand_dims(batch_Y, -1)
-
-    return batch_X, batch_Y
 
 
 def multiclass_builder(Y, class_definition, max_number):

@@ -481,12 +481,12 @@ class DataGenerator(keras.utils.Sequence):
             X = X.astype(self.dtype)
             if self.train:
                 Y = Y.astype(self.dtype)
-        # Augment data, for more detail see do_augmentation() on generator_utils.
+        # Augment data, for more detail see do_augmentation_on_batch() on generator_utils.
         if self.augmentation > 0 and self.mode in [
             GENERATOR_2D_MODEL,
             GENERATOR_3D_MODEL,
         ]:
-            X, Y = generator_utils.do_augmentation(
+            X, Y = generator_augmentation_2D.do_augmentation_on_batch(
                 X,
                 Y,
                 augmentation_index=self.augmentation,
