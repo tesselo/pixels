@@ -83,7 +83,7 @@ def change_bright(image, ran=1):
     return np.array(image * ran)
 
 
-def select_augmentation(img, augmentation_index):
+def apply_augmentation_to_image(img, augmentation_index):
     if augmentation_index is None or augmentation_index == 1:
         return img_flip(img)
     if augmentation_index is None or augmentation_index == 2:
@@ -96,15 +96,15 @@ def select_augmentation(img, augmentation_index):
         return change_bright(img, ran=10)
 
 
-def augmentation_loops(imgs, augmentation_index):
-    # Do the augmentations on images (N, B, height, width).
+def apply_augmentation_to_stack(imgs, augmentation_index):
+    # Do the augmentations on images (number_occurences, bands, height, width).
     time_aug_imgs = []
-    for N in imgs:
+    for number_occurences in imgs:
         aug_img = []
-        for B in N:
-            aug_img.append(select_augmentation(B, augmentation_index))
+        for bands in number_occurences:
+            aug_img.append(apply_augmentation_to_image(bands, augmentation_index))
         time_aug_imgs.append(aug_img)
-    # Revert shapes back to (N, height, width, B)
+    # Revert shapes back to (number_occurences, height, width, bands)
     time_aug_imgs = np.array(time_aug_imgs)
     time_aug_imgs = np.swapaxes(
         time_aug_imgs,
@@ -122,12 +122,14 @@ def augmentation_loops(imgs, augmentation_index):
 def augmentation(
     X,
     Y,
-    sizeX_height=360,
-    sizeX_width=360,
-    sizeY_height=360,
-    sizeY_width=360,
+    sizeX_height=None,
+    sizeX_width=None,
+    sizeY_height=None,
+    sizeY_width=None,
     augmentation_index=None,
 ):
+    # To make the augmentations in a standard mode we need to
+    # get the tensors on the same shape, and the same number of dimensions.
     data_X = set_standard_shape(X, sizex=sizeX_height, sizey=sizeX_width)
     data_Y = set_standard_shape(Y, sizex=sizeY_height, sizey=sizeY_width)
     data_Y = np.squeeze(data_Y)
@@ -139,15 +141,8 @@ def augmentation(
     resulted_augmentation_X = [X[0]]
     resulted_augmentation_Y = [Y]
     for i in augmentation_index:
-        # i has to be +1 because the 1st augmentation is 1.
-        resulted_augmentation_X.append(augmentation_loops(data_X, i))
-        resulted_augmentation_Y.append(augmentation_loops(data_Y, i))
-    resulted_augmentation_X = np.array(
-        [np.array(img) for img in resulted_augmentation_X]
-    )
-    resulted_augmentation_Y = np.array(
-        [np.array(img) for img in resulted_augmentation_Y]
-    )
+        resulted_augmentation_X.append(apply_augmentation_to_stack(data_X, i))
+        resulted_augmentation_Y.append(apply_augmentation_to_stack(data_Y, i))
     resulted_augmentation_Y = np.squeeze(resulted_augmentation_Y)
     return (
         resulted_augmentation_X,

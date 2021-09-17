@@ -7,7 +7,7 @@ import numpy as np
 import rasterio
 import structlog
 
-import pixels.generator.generator_augmentation_2D as aug
+from pixels.generator.generator_augmentation_2D import augmentation
 
 logger = structlog.get_logger(__name__)
 
@@ -155,7 +155,7 @@ def do_augmentation(
     if mode == "2D_Model":
         X = np.expand_dims(X, 1)
     for batch in range(batch_size):
-        aug_X, aug_Y = aug.augmentation(
+        aug_X, aug_Y = augmentation(
             X[batch : batch + 1],
             y[batch : batch + 1],
             sizeX_height=sizeX_height,
