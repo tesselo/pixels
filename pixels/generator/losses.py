@@ -31,7 +31,8 @@ def nan_categorical_crossentropy_loss(nan_value=np.nan):
 
     # Return a function
     return loss
-    
+
+
 def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, classe_to_ignore=0):
     # Create a loss function to ignore classes on one-hot scheme, can be inputed as a list or a int.
     def loss(y_true, y_pred):
@@ -56,6 +57,7 @@ def nan_root_mean_squared_error_loss(nan_value=np.nan):
 
     # Return a function
     return loss
+
 
 def nan_root_mean_squared_error_loss_more_or_less(nan_value=np.nan, less=True):
     # Create a loss function that only sees <= or >= than nan_value.
