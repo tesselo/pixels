@@ -121,8 +121,7 @@ def get_custom_loss(compile_args):
 
 
 def load_existing_model_from_file(
-    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"},
-    loss_arguments = {}
+    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}, loss_arguments={}
 ):
     # Load model.
     if model_uri.startswith("s3"):
@@ -137,7 +136,8 @@ def load_existing_model_from_file(
     except Exception as e:
         sentry_sdk.capture_exception(e)
         model = tf.keras.models.load_model(
-            model_uri, custom_objects={"loss": get_custom_loss(loss_dict)(**loss_arguments)}
+            model_uri,
+            custom_objects={"loss": get_custom_loss(loss_dict)(**loss_arguments)},
         )
     return model
 
