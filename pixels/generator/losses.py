@@ -33,11 +33,11 @@ def nan_categorical_crossentropy_loss(nan_value=np.nan):
     return loss
 
 
-def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, classe_to_ignore=0):
+def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, class_to_ignore=0):
     # Create a loss function to ignore classes on one-hot scheme, can be inputed as a list or a int.
     def loss(y_true, y_pred):
-        y_true = np.delete(y_true, classe_to_ignore, -1)
-        y_pred = np.delete(y_pred, classe_to_ignore, -1)
+        y_true = np.delete(y_true, class_to_ignore, -1)
+        y_pred = np.delete(y_pred, class_to_ignore, -1)
         indices = tf.where(tf.not_equal(y_true, nan_value))
         return tf.keras.losses.categorical_crossentropy(
             tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
