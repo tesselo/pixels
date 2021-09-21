@@ -23,6 +23,8 @@ ALLOWED_CUSTOM_LOSSES = [
     "stretching_error_loss",
     "nan_categorical_crossentropy_loss",
     "root_mean_squared_error",
+    "nan_categorical_crossentropy_loss_drop_classe",
+    "nan_root_mean_squared_error_loss_more_or_less",
 ]
 
 EVALUATION_PERCENTAGE_LIMIT = 0.2
@@ -119,7 +121,7 @@ def get_custom_loss(compile_args):
 
 
 def load_existing_model_from_file(
-    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}, nan_value=-9999
+    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}, loss_arguments={}
 ):
     # Load model.
     if model_uri.startswith("s3"):
@@ -134,7 +136,8 @@ def load_existing_model_from_file(
     except Exception as e:
         sentry_sdk.capture_exception(e)
         model = tf.keras.models.load_model(
-            model_uri, custom_objects={"loss": get_custom_loss(loss_dict)(nan_value)}
+            model_uri,
+            custom_objects={"loss": get_custom_loss(loss_dict)(**loss_arguments)},
         )
     return model
 
@@ -203,6 +206,7 @@ def train_model_function(
     gen_args = _load_dictionary(generator_arguments_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+    loss_arguments = compile_args.pop("loss_args", {})
     # Check for existing model boolean.
     if "use_existing_model" in compile_args:
         if compile_args["use_existing_model"]:
@@ -211,8 +215,9 @@ def train_model_function(
                 nan_value = gen_args["nan_value"]
             else:
                 nan_value = None
+            loss_arguments["nan_value"] = nan_value
             model = load_existing_model_from_file(
-                path_model, loss_dict=compile_args, nan_value=nan_value
+                path_model, loss_dict=compile_args, loss_arguments=loss_arguments
             )
             last_training_epochs = len(
                 stc.list_files_in_folder(
@@ -258,15 +263,15 @@ def train_model_function(
             if input not in ALLOWED_CUSTOM_LOSSES:
                 raise ValueError()
             loss_costum = getattr(losses, input)
-            loss_args = {"nan_value": dtgen.nan_value}
+            loss_arguments["nan_value"] = dtgen.nan_value
             if not loss_costum:
                 logger.warning(
                     f"Method {compile_args['loss']} not implemented, going for mse."
                 )
                 loss_costum = tf.keras.losses.mean_squared_error
-                loss_args = {}
+                loss_arguments = {}
             compile_args.pop("loss")
-            model.compile(loss=loss_costum(**loss_args), **compile_args)
+            model.compile(loss=loss_costum(**loss_arguments), **compile_args)
         else:
             model.compile(**compile_args)
 
