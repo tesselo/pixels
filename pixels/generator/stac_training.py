@@ -8,11 +8,11 @@ import pystac
 import sentry_sdk
 import structlog
 import tensorflow as tf
-import tensorflow_addons
 from rasterio import Affine
 
 import pixels.generator.stac as stc
 from pixels.generator import generator, losses
+from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import _load_dictionary
 from pixels.utils import write_raster
 
@@ -251,9 +251,7 @@ def train_model_function(
             )
             # Add complied version to metrics.
             compile_args["metrics"].append(
-                tensorflow_addons.metrics.MultiLabelConfusionMatrix(
-                    num_classes=dtgen.num_classes
-                )
+                MultiLabelConfusionMatrix(num_classes=dtgen.num_classes)
             )
 
         # Handle custom loss case.
