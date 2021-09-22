@@ -46,10 +46,7 @@ def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, class_to_ign
         mask_class = mask_class > 0
         y_true = tf.boolean_mask(y_true, mask_class, axis=class_dimension)
         y_pred = tf.boolean_mask(y_pred, mask_class, axis=class_dimension)
-        indices = tf.where(tf.not_equal(y_true, nan_value))
-        return tf.keras.losses.categorical_crossentropy(
-            tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
-        )
+        return tf.keras.losses.categorical_crossentropy(y_true, y_pred)
 
     # Return a function
     return loss
