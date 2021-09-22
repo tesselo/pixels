@@ -407,24 +407,25 @@ def composite(
         raise PixelsException(
             "For composites platforms and level must be Sentinel-2 L2A."
         )
-
+    # Copy band list to avoid race conditions.
+    bands_copy = bands.copy()
     # Check band list.
     if composite_method == "SCL":
         remove_scl_from_output = False
-        if "SCL" not in bands:
-            bands.append("SCL")
+        if "SCL" not in bands_copy:
+            bands_copy.append("SCL")
             # If the SCL band has not been requested for output, remove it
             # from the stack before returning the result.
             remove_scl_from_output = True
-        scl_band_index = bands.index("SCL")
+        scl_band_index = bands_copy.index("SCL")
     else:
         missing = [
-            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands
+            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands_copy
         ]
         if missing:
             raise PixelsException("Missing {} bands for composite.".format(missing))
         required_band_indices = [
-            bands.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
+            bands_copy.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
         ]
 
     # Search scenes.
@@ -458,11 +459,11 @@ def composite(
         # Prepare band list.
         band_list = [
             (item["bands"][band], geojson, scale, False, False, False, None)
-            for band in bands
+            for band in bands_copy
         ]
 
         if pool:
-            with Pool(len(bands)) as p:
+            with Pool(len(bands_copy)) as p:
                 data = p.starmap(retrieve, band_list)
         else:
             data = []
@@ -511,7 +512,7 @@ def composite(
             mask = layer_clouds
         else:
             # Update nodata values in stack with new pixels.
-            for i in range(len(bands)):
+            for i in range(len(bands_copy)):
                 stack[i][mask] = data[i][1][mask]
             # Update cloud mask.
             mask = mask & layer_clouds
@@ -539,6 +540,5 @@ def composite(
     # Remove scl if required.
     if remove_scl_from_output:
         stack = numpy.delete(stack, scl_band_index, 0)
-        bands.remove("SCL")
 
     return creation_args, first_end_date, numpy.array(stack)
