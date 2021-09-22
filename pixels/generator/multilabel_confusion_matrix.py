@@ -7,7 +7,7 @@ from tensorflow_addons.utils.types import AcceptableDTypes, FloatTensorLike
 from typeguard import typechecked
 
 
-class MultiLabelConfusionMatrixCorrected(Metric):
+class MultiLabelConfusionMatrix(Metric):
     """
     Computes Multi-label confusion matrix.
     Adapted from
