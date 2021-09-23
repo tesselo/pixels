@@ -35,7 +35,6 @@ def nan_categorical_crossentropy_loss(nan_value=np.nan):
 
 def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, class_to_ignore=0):
     # Create a loss function to ignore classes on one-hot scheme, can be inputed as a list or a int.
-    print(f"class_to_ignore {class_to_ignore}")
     if isinstance(class_to_ignore, int):
         class_to_ignore = [class_to_ignore]
 
