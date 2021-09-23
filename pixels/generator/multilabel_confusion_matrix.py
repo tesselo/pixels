@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.metrics import Metric
@@ -19,7 +18,7 @@ class MultiLabelConfusionMatrix(Metric):
         self,
         num_classes: FloatTensorLike,
         name: str = "Multilabel_confusion_matrix",
-        dtype: AcceptableDTypes = None,
+        dtype: AcceptableDTypes = tf.dtypes.uint8,
         **kwargs,
     ):
         super().__init__(name=name, dtype=dtype)
@@ -35,11 +34,22 @@ class MultiLabelConfusionMatrix(Metric):
         """
         Add counts to confusion matrix for this batch.
         """
-        # Compute confusion for this batch.
-        df_confusion = pd.crosstab(tf.cast(y_true, tf.int32), tf.cast(y_pred, tf.int32))
-
+        # Prepare emtpy confusion matrix.
+        df_confusion = np.zeros((self.num_classes, self.num_classes))
+        # Compute confusion for each class combination.
+        for i in range(self.num_classes):
+            for j in range(self.num_classes):
+                # Compute match for the i and j classes.
+                dat = tf.logical_and(
+                    tf.cast(y_true[:, i], tf.dtypes.bool),
+                    tf.cast(y_pred[:, j], tf.dtypes.bool),
+                )
+                # Sum the matches.
+                df_confusion[i, j] = tf.reduce_sum(tf.cast(dat, tf.dtypes.uint8))
         # Add confusion to state.
-        self.confusion_matrix.assign_add(tf.cast(df_confusion, self.dtype))
+        self.confusion_matrix.assign_add(
+            tf.cast(tf.convert_to_tensor(df_confusion), self.dtype)
+        )
 
     def result(self):
         return tf.convert_to_tensor(self.confusion_matrix)
