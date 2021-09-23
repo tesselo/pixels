@@ -17,6 +17,7 @@ from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 from pystac.validation import STACValidationError
 
+from pixels import const
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator import generator_utils
 from pixels.generator.stac_utils import (
@@ -571,6 +572,11 @@ def prepare_pixels_config(
     # if only one platform is required.
     if platforms is not None and not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
+    # Check if SCL was requested with L1C data.
+    if "SCL" in bands and (level != "L2A" or platforms != [const.SENTINEL_2]):
+        raise PixelsException(
+            f"SCL can only be requested for S2 L2A. Got {platforms} {level}."
+        )
 
     # Create new config dictionary.
     config = {
