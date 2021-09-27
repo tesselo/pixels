@@ -36,18 +36,22 @@ class MultiLabelConfusionMatrix(Metric):
         """
         # Compute confusion for each class combination.
         confusion = []
+        # Convert the prediction probabilities into one hot encoded classes. The
+        # true values are already one-hot.
+        y_pred_onehot = tf.one_hot(tf.argmax(y_pred, axis=1), depth=self.num_classes)
+        # Compute confusion values by class combination.
         for i in range(self.num_classes):
             confusion_i = []
             for j in range(self.num_classes):
                 # Compute match for the i and j classes.
                 dat = tf.logical_and(
                     tf.cast(y_true[:, i], tf.dtypes.bool),
-                    tf.cast(y_pred[:, j], tf.dtypes.bool),
+                    tf.cast(y_pred_onehot[:, j], tf.dtypes.bool),
                 )
-                # Sum the matches.
+                # Sum the matches to get the count.
                 confusion_i.append(tf.reduce_sum(tf.cast(dat, self.dtype)))
             confusion.append(confusion_i)
-        # Add confusion to state.
+        # Add confusion of this batch to state.
         self.confusion_matrix.assign_add(
             tf.cast(tf.convert_to_tensor(confusion), self.dtype)
         )
