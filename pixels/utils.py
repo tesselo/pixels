@@ -1,6 +1,8 @@
 import io
 import math
+from json import JSONEncoder
 
+import numpy
 import rasterio
 import sentry_sdk
 import structlog
@@ -313,3 +315,16 @@ def write_raster(
             output.write(memfile.read())
         output.seek(0)
         return output
+
+
+class NumpyArrayEncoder(JSONEncoder):
+    """
+    Custom encoder for numpy arrays.
+    """
+
+    def default(self, obj):
+
+        if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+
+        return JSONEncoder.default(self, obj)
