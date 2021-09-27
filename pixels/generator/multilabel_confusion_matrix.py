@@ -45,7 +45,7 @@ class MultiLabelConfusionMatrix(Metric):
                     tf.cast(y_pred[:, j], tf.dtypes.bool),
                 )
                 # Sum the matches.
-                confusion_i.append(tf.reduce_sum(tf.cast(dat, tf.dtypes.uint8)))
+                confusion_i.append(tf.reduce_sum(tf.cast(dat, self.dtype)))
             confusion.append(confusion_i)
         # Add confusion to state.
         self.confusion_matrix.assign_add(
