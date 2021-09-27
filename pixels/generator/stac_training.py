@@ -14,7 +14,7 @@ import pixels.generator.stac as stc
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import _load_dictionary
-from pixels.utils import write_raster
+from pixels.utils import NumpyArrayEncoder, write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
     "nan_mean_squared_error_loss",
@@ -330,14 +330,8 @@ def train_model_function(
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
         # Get history data.
         hist_data = history.history
-        # Convert confusion matrix elements in history from numpy array to
-        # lists. This is to ensure json serializability.
-        if "Multilabel_confusion_matrix" in hist_data:
-            hist_data["Multilabel_confusion_matrix"] = [
-                dat.tolist() for dat in hist_data["Multilabel_confusion_matrix"]
-            ]
         # Write data.
-        json.dump(hist_data, f)
+        json.dump(hist_data, f, cls=NumpyArrayEncoder)
 
     # Store the model in bucket.
     if path_model.startswith("s3"):
@@ -370,8 +364,9 @@ def train_model_function(
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = generator.DataGenerator(**gen_args)
     results = model.evaluate(dpredgen, verbose=2)
+    # Export evaluation statistics to json file.
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
-        json.dump(results, f)
+        json.dump(results, f, cls=NumpyArrayEncoder)
     if model_config_uri.startswith("s3"):
         stc.upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
         stc.upload_files_s3(path_ep_md, file_type="_stats.json")
