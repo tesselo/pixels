@@ -18,7 +18,7 @@ class MultiLabelConfusionMatrix(Metric):
         self,
         num_classes: FloatTensorLike,
         name: str = "Multilabel_confusion_matrix",
-        dtype: AcceptableDTypes = tf.dtypes.uint8,
+        dtype: AcceptableDTypes = tf.dtypes.int64,
         **kwargs,
     ):
         super().__init__(name=name, dtype=dtype)
@@ -34,10 +34,10 @@ class MultiLabelConfusionMatrix(Metric):
         """
         Add counts to confusion matrix for this batch.
         """
-        # Prepare emtpy confusion matrix.
-        df_confusion = np.zeros((self.num_classes, self.num_classes))
         # Compute confusion for each class combination.
+        confusion = []
         for i in range(self.num_classes):
+            confusion_i = []
             for j in range(self.num_classes):
                 # Compute match for the i and j classes.
                 dat = tf.logical_and(
@@ -45,10 +45,11 @@ class MultiLabelConfusionMatrix(Metric):
                     tf.cast(y_pred[:, j], tf.dtypes.bool),
                 )
                 # Sum the matches.
-                df_confusion[i, j] = tf.reduce_sum(tf.cast(dat, tf.dtypes.uint8))
+                confusion_i.append(tf.reduce_sum(tf.cast(dat, tf.dtypes.uint8)))
+            confusion.append(confusion_i)
         # Add confusion to state.
         self.confusion_matrix.assign_add(
-            tf.cast(tf.convert_to_tensor(df_confusion), self.dtype)
+            tf.cast(tf.convert_to_tensor(confusion), self.dtype)
         )
 
     def result(self):
@@ -65,7 +66,7 @@ class MultiLabelConfusionMatrix(Metric):
         return {**base_config, **config}
 
     def reset_state(self):
-        reset_value = np.zeros((self.num_classes, self.num_classes), dtype=np.int32)
+        reset_value = np.zeros((self.num_classes, self.num_classes), dtype=self.dtype)
         K.batch_set_value([(v, reset_value) for v in self.variables])
 
     def reset_states(self):
