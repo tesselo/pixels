@@ -285,6 +285,14 @@ def train_model_function(
     # be passed as a dictionary with the class weights. In this case these
     # will be passed on and not altered. If the class weights key is present,
     # the class weights will be extracted from the Y catalog.
+    if "class_weight" in fit_args and isinstance(fit_args["class_weight"], dict):
+        class_weight = fit_args["class_weight"]
+        class_weight = {int(key): val for key, val in class_weight.items()}
+        # Remove nodata value from weights if present.
+        if dtgen.y_nan_value is not None:
+            class_weight.pop(dtgen.y_nan_value, None)
+        # Set the class weight fit argument.
+        fit_args["class_weight"] = class_weight
     if (
         "class_weight" in fit_args
         and fit_args["class_weight"]
@@ -303,7 +311,7 @@ def train_model_function(
         # Open y catalog.
         y_catalog = _load_dictionary(str(y_catalog_uri))
         # Get stats from y catalog.
-        if "class_weight" in y_catalog:
+        if "class_weight" in y_catalog or "class_weight" in fit_args:
             # Ensure class weights have integer keys.
             class_weight = {
                 int(key): val for key, val in y_catalog["class_weight"].items()
