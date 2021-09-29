@@ -285,36 +285,33 @@ def train_model_function(
     # be passed as a dictionary with the class weights. In this case these
     # will be passed on and not altered. If the class weights key is present,
     # the class weights will be extracted from the Y catalog.
-    if (
-        "class_weight" in fit_args
-        and fit_args["class_weight"]
-        and not isinstance(fit_args["class_weight"], dict)
-    ):
-        # Open x catalog.
-        x_catalog = _load_dictionary(catalog_uri)
-        # Get origin files zip link from dictonary.
-        origin_files = [
-            dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
-        ][0]["href"]
-        # Construct y catalog uri.
-        y_catalog_uri = os.path.join(
-            os.path.dirname(origin_files), "stac", "catalog.json"
-        )
-        # Open y catalog.
-        y_catalog = _load_dictionary(str(y_catalog_uri))
-        # Get stats from y catalog.
-        if "class_weight" in y_catalog:
-            # Ensure class weights have integer keys.
-            class_weight = {
-                int(key): val for key, val in y_catalog["class_weight"].items()
-            }
-            # Remove nodata value from weights if present.
-            if dtgen.y_nan_value is not None:
-                class_weight.pop(dtgen.y_nan_value, None)
-            # Set the class weight fit argument.
-            fit_args["class_weight"] = class_weight
+    if "class_weight" in fit_args and fit_args["class_weight"]:
+        if isinstance(fit_args["class_weight"], dict):
+            class_weight = fit_args["class_weight"]
         else:
-            fit_args["class_weight"] = None
+            # Open x catalog.
+            x_catalog = _load_dictionary(catalog_uri)
+            # Get origin files zip link from dictonary.
+            origin_files = [
+                dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
+            ][0]["href"]
+            # Construct y catalog uri.
+            y_catalog_uri = os.path.join(
+                os.path.dirname(origin_files), "stac", "catalog.json"
+            )
+            # Open y catalog.
+            y_catalog = _load_dictionary(str(y_catalog_uri))
+            # Get stats from y catalog.
+            class_weight = y_catalog["class_weight"]
+        # Ensure class weights have integer keys.
+        class_weight = {int(key): val for key, val in class_weight.items()}
+        # Remove nodata value from weights if present.
+        if dtgen.y_nan_value is not None:
+            class_weight.pop(dtgen.y_nan_value, None)
+        # Set the class weight fit argument.
+        fit_args["class_weight"] = class_weight
+    else:
+        fit_args["class_weight"] = None
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(
         dtgen,

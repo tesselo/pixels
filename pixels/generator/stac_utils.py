@@ -51,7 +51,7 @@ def get_catalog_length(catalog_path):
     return size
 
 
-def save_dictionary(path, dict):
+def save_dictionary(path, dictionary):
     new_path = path
     if path.startswith("s3"):
         new_path = path.replace("s3://", "tmp/")
@@ -62,7 +62,7 @@ def save_dictionary(path, dict):
             # Directory already exists.
             pass
     with open(new_path, "w") as f:
-        json.dump(dict, f)
+        json.dump(dictionary, f)
     if path.startswith("s3"):
         upload_files_s3(
             os.path.dirname(new_path),
@@ -76,15 +76,15 @@ def _load_dictionary(path_file):
     if path_file.startswith("s3"):
         my_str = open_file_from_s3(path_file)["Body"].read()
         new_str = my_str.decode("utf-8")
-        dicti = json.loads(new_str)
+        dictionary = json.loads(new_str)
     else:
         with open(path_file, "r") as json_file:
             input_config = json_file.read()
             try:
-                dicti = ast.literal_eval(input_config)
+                dictionary = ast.literal_eval(input_config)
             except:
-                dicti = json.loads(str(input_config))
-    return dicti
+                dictionary = json.loads(str(input_config))
+    return dictionary
 
 
 def upload_files_s3(path, file_type=".json", delete_folder=True):
