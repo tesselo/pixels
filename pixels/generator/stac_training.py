@@ -428,6 +428,13 @@ def predict_function_batch(
             if not loss_costum:
                 logger.warning(f"Method {input} not implemented, going for mse.")
                 loss_costum = tf.keras.losses.mean_squared_error
+    # Load arguments for loss functions and force nan_value from generator.
+    loss_arguments = compile_args.pop("loss_args", {})
+    if "nan_value" in gen_args:
+        nan_value = gen_args["nan_value"]
+    else:
+        nan_value = None
+    loss_arguments["nan_value"] = nan_value
     # Load model.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
@@ -441,7 +448,7 @@ def predict_function_batch(
         except Exception as e:
             sentry_sdk.capture_exception(e)
             model = tf.keras.models.load_model(
-                f, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
+                f, custom_objects={"loss": loss_costum(**loss_arguments)}
             )
     else:
         try:
