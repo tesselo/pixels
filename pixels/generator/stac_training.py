@@ -285,10 +285,10 @@ def train_model_function(
     # be passed as a dictionary with the class weights. In this case these
     # will be passed on and not altered. If the class weights key is present,
     # the class weights will be extracted from the Y catalog.
-    if "class_weight" in fit_args:
+    if "class_weight" in fit_args and fit_args["class_weight"]:
         if isinstance(fit_args["class_weight"], dict):
             class_weight = fit_args["class_weight"]
-        if not isinstance(fit_args["class_weight"], dict):
+        else:
             # Open x catalog.
             x_catalog = _load_dictionary(catalog_uri)
             # Get origin files zip link from dictonary.
