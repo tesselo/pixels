@@ -21,10 +21,12 @@ LS_PLATFORMS = ["LANDSAT_7", "LANDSAT_8"]
 
 # Search templates
 GOOGLE_URL = "https://gcp-public-data-landsat.commondatastorage.googleapis.com"
-AWS_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
+S2_L2A_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
+S2_L1C_URL = "s3://sentinel-s2-l1c"
+LS_L2_URL = "s3://usgs-landsat/collection02/level-2/standard"
 BASE_SENTINEL = "gs://gcp-public-data-sentinel-2/tiles"
 BASE_LANDSAT = "gs://gcp-public-data-landsat"
-AWS_L1C = "s3://sentinel-s2-l1c"
+
 
 # Platform Dates [min,max]
 L1_DATES = ["1972-07-23", "1978-01-07"]

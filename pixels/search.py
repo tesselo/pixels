@@ -5,8 +5,9 @@ from dateutil.parser import parse
 from sqlalchemy import create_engine
 
 from pixels.const import (
-    AWS_L1C,
-    AWS_URL,
+    S2_L1C_URL,
+    S2_L2A_URL,
+    LS_L2_URL,
     BASE_LANDSAT,
     GOOGLE_URL,
     L1_L2_L3_BANDS,
@@ -171,7 +172,7 @@ def get_bands(response):
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
         else:
-            value["bands"] = format_ls_band(value)
+            value["bands"] = format_ls_c2_band(value) # ajeitar aqui -> como diferenciar funções para l2 e l1 ?
 
         result.append(value)
 
@@ -207,7 +208,7 @@ def format_sentinel_band(value):
         for band in S2_BANDS_L2A:
             band_template_url = "{base_url}/{utm}/{latitude}/{grid}/{year}/{month}/{product_id}_{mgr}_{sensing_time}_{sequence}_{level}/{band}.tif"
             data[band] = band_template_url.format(
-                base_url=AWS_URL,
+                base_url=S2_L2A_URL,
                 utm=utm_zone,
                 latitude=latitude_code,
                 grid=square_grid,
@@ -224,7 +225,7 @@ def format_sentinel_band(value):
         for band in S2_BANDS:
             band_template_url = "{base_url}/tiles/{utm}/{latitude}/{grid}/{year}/{month}/{day}/{sequence}/{band}.jp2"
             data[band] = band_template_url.format(
-                base_url=AWS_L1C,
+                base_url=S2_L1C_URL,
                 utm=utm_zone,
                 latitude=latitude_code,
                 grid=square_grid,
@@ -300,6 +301,41 @@ def format_ls_band(value):
     return data
 
 
+def format_ls_c2_band(value):
+    base_url = LS_L2_URL
+    sensor = value["sensor_id"]
+    date = parse(str(value["sensing_time"]))
+    year = date.year
+
+    # Product id
+    product = value["product_id"]  
+    formatted_product = product
+    #1 = LC08_L1TP_026027_20200827_20200905_01_T1 | database 
+    #2 = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
+
+    path = product.split("_")[2]
+    row = product.split("_")[3]
+
+    base_url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
+        base_url=base_url, sensor=sensor, year=year,path=path, row=row, product=product
+        )
+   
+    plat = value["spacecraft_id"] #necessario para formatar bandas de acordo com plataforma
+    data = {}
+    # Exclude Landsat 1-5
+    if plat == LANDSAT_8:
+            for band in L8_BANDS:
+                ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+
+                data[band] = ls_band_template.format(
+                    base_url=base_url, product_id=product_id, band=band
+                )
+
+
+
+ return data
+
+
 def is_level_valid(level, platforms):
     """
     Checks whether the use of the Level parameter is valid.
@@ -316,3 +352,15 @@ def is_level_valid(level, platforms):
         Sentinel 2.
     """
     return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
+
+# references to understanding collections and tiers
+# https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-1?qt-science_support_page_related_con=1#qt-science_support_page_related_con
+# https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
+
+
+#NOTE: Landsat Collection 1 based forward processing will remain in effect through December 31, 2021, concurrent with Landsat Collection 2 based forward processing. 
+# Starting January 1, 2022, all new Landsat acquisitions will be processed into the Collection 2 inventory structure only. 
+
+#Global Level-2 Science and Atmospheric Auxiliary Products 
+# New for Collection 2 is the processing and distribution of Level-2 surface reflectance and surface temperature science products for Landsat 4-5 TM, Landsat 7 ETM+ and Landsat 8 OLI/TIRS. 
+# Level-2 products are generated from Collection 2 Level-1 inputs that meet the <76 degrees Solar Zenith Angle constraint and include the required auxiliary data inputs to generate a scientifically viable product.
