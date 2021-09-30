@@ -2,6 +2,7 @@ import os
 
 import structlog
 from dateutil.parser import parse
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 
 from pixels.const import (
@@ -301,17 +302,60 @@ def format_ls_band(value):
     return data
 
 
+
+ # Product id
+    #product = value["product_id"]  
+
+    #x = LC08_L1TP_026027_20200827_20200905_01_T1 | database 
+    #y = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
+
+
+product = "LC08_L1TP_026027_20200827_20200905_01_T1"
+
+def format_product(product):
+    replacers ={"L1TP":"L2SP", "_01_":"_02_"}
+    for i, j in replacers.items():
+        print(f'i: {i} - j: {j}')
+        formatted_product = product.replace(i,j)
+    return formatted_product  # Ainda não está funcionando
+
+def format_product(product):
+    # Immutable Replacers
+    processing_level="L2SP"
+    collection = "02"
+
+    # Separate processing date
+    identifiers = product.split("_")
+    processing_date = identifiers[4]
+
+    #Convert string to datetime object via strptime.
+    date_time_obj = datetime.strptime(processing_date, '%Y%m%d')
+
+    # Update processing date by iterarion using timedelta
+    newdate = date_time_obj + timedelta(days=1)
+
+    # Converter no formato original para recolocar no product id
+    formatted_date = newdate.strftime('%Y%m%d')
+
+    # Replace date in identifiers
+    identifiers[4] = formatted_date
+    #Replace other identifiers 
+    identifiers[1] = processing_level
+    identifiers[5] = collection
+    print(identifiers)
+
+    newproduct = "_".join(identifiers)
+
+    return newproduct
+
+
+
 def format_ls_c2_band(value):
     base_url = LS_L2_URL
     sensor = value["sensor_id"]
     date = parse(str(value["sensing_time"]))
     year = date.year
 
-    # Product id
-    product = value["product_id"]  
-    formatted_product = product
-    #1 = LC08_L1TP_026027_20200827_20200905_01_T1 | database 
-    #2 = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
 
     path = product.split("_")[2]
     row = product.split("_")[3]
@@ -353,10 +397,11 @@ def is_level_valid(level, platforms):
     """
     return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
 
-# references to understanding collections and tiers
+
+# references to understanding collections, products types and tiers
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-1?qt-science_support_page_related_con=1#qt-science_support_page_related_con
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
-
+# https://www.usgs.gov/media/images/landsat-collection-2-generation-timeline
 
 #NOTE: Landsat Collection 1 based forward processing will remain in effect through December 31, 2021, concurrent with Landsat Collection 2 based forward processing. 
 # Starting January 1, 2022, all new Landsat acquisitions will be processed into the Collection 2 inventory structure only. 
@@ -364,3 +409,7 @@ def is_level_valid(level, platforms):
 #Global Level-2 Science and Atmospheric Auxiliary Products 
 # New for Collection 2 is the processing and distribution of Level-2 surface reflectance and surface temperature science products for Landsat 4-5 TM, Landsat 7 ETM+ and Landsat 8 OLI/TIRS. 
 # Level-2 products are generated from Collection 2 Level-1 inputs that meet the <76 degrees Solar Zenith Angle constraint and include the required auxiliary data inputs to generate a scientifically viable product.
+
+# Timeline of processing
+# Os produtos de Refletância de Superfície e Temperatura de Superfície de Nível 2 estão normalmente disponíveis dentro de 24 horas após uma cena ter sido processada na Camada 1 ou Camada 2: 
+# The products of Surface reflectance or Surface Temperature in level 2 are available within 24h after a secne been processed in TIer 1 or Tier 2.
