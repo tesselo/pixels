@@ -275,6 +275,8 @@ def train_model_function(
     gen_args["path_collection_catalog"] = catalog_path
     gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
     dtgen = generator.DataGenerator(**gen_args)
+    if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+        fit_args.pop("class_weight")
     if not no_compile:
         # Compile confusion matrix if requested.
         if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
