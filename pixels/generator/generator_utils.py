@@ -147,3 +147,11 @@ def multiclass_builder(Y, class_definition, max_number):
         multiclass_y[Y > class_definition[-1]] = class_number + 1
 
     return multiclass_y.astype("int")
+
+
+def class_sample_weights_builder(label, class_weights):
+    # Make the sum of weights into 1.
+    class_weights = class_weights / np.sum(class_weights)
+    # Create the image with the weights.
+    sample_weights = np.take(class_weights, label)
+    return sample_weights

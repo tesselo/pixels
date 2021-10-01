@@ -54,6 +54,7 @@ class DataGenerator(keras.utils.Sequence):
         usage_type=GENERATOR_MODE_TRAINING,
         class_definitions=None,
         y_max_value=None,
+        class_weights=None,
     ):
         """
         Initial setup for the class.
@@ -76,6 +77,8 @@ class DataGenerator(keras.utils.Sequence):
                 Values to define the Y classes. If int is a number of classes, if a list it is the classes.
             y_max_value : float
                 Needed for classe definition with number of classes.
+            class_weights : dict
+                Dictionary containing the weight of each class.
         """
         self.split = split
         self.random_seed = random_seed
@@ -115,6 +118,7 @@ class DataGenerator(keras.utils.Sequence):
         self.padding = padding
         self.y_zip = None
         if self.mode != GENERATOR_PIXEL_MODEL:
+            self.class_weights = class_weights
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,
@@ -502,4 +506,10 @@ class DataGenerator(keras.utils.Sequence):
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
+        if self.class_weights:
+            # This assumes the encoding in one-hot.
+            sample_weights = generator_utils.class_sample_weights_builder(
+                np.argmax(Y, axis=-1), self.class_weights
+            )
+            return X, Y, sample_weights
         return X, Y
