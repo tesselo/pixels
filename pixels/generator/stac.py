@@ -436,11 +436,17 @@ def parse_training_data(
             catalog.add_item(item)
     # Store final statistics on catalog.
     if categorical:
-        # Convert stats to class weights.
+        # Convert stats to class weights, inversely proportional to their count.
         global_stats_total = sum(global_stats.values())
         global_stats = {
-            key: val / global_stats_total for key, val in global_stats.items()
+            key: 1 - val / global_stats_total for key, val in global_stats.items()
         }
+        # Normalize to sum one.
+        global_stats_normalization = sum(global_stats.values())
+        global_stats = {
+            key: val / global_stats_normalization for key, val in global_stats.items()
+        }
+        # Store stats as class weights.
         catalog.extra_fields["class_weight"] = global_stats
     # Normalize paths inside catalog.
     if aditional_links:
