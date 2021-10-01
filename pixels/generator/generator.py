@@ -118,7 +118,9 @@ class DataGenerator(keras.utils.Sequence):
         self.padding = padding
         self.y_zip = None
         if self.mode != GENERATOR_PIXEL_MODEL:
-            self.class_weights = class_weights
+            self.class_weights = [
+                f / sum(class_weights.values()) for f in class_weights.values()
+            ]
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,

@@ -153,5 +153,4 @@ def class_sample_weights_builder(label, class_weights):
     # Make the sum of weights into 1.
     class_weights = class_weights / np.sum(class_weights)
     # Create the image with the weights.
-    sample_weights = np.take(class_weights, label)
-    return sample_weights
+    return np.take(class_weights, label)
