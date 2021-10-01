@@ -510,7 +510,10 @@ class DataGenerator(keras.utils.Sequence):
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
-        if self.class_weights and self.mode in [GENERATOR_3D_MODEL, GENERATOR_2D_MODEL]:
+        if self.class_weights is not None and self.mode in [
+            GENERATOR_3D_MODEL,
+            GENERATOR_2D_MODEL,
+        ]:
             # This assumes the encoding in one-hot.
             sample_weights = generator_utils.class_sample_weights_builder(
                 np.argmax(Y, axis=-1), self.class_weights
