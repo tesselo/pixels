@@ -120,9 +120,9 @@ class DataGenerator(keras.utils.Sequence):
         if self.mode != GENERATOR_PIXEL_MODEL:
             self.class_weights = class_weights
             if self.class_weights:
-                self.class_weights = [
-                    f / sum(class_weights.values()) for f in class_weights.values()
-                ]
+                self.class_weights = np.array(
+                    [f / sum(class_weights.values()) for f in class_weights.values()]
+                )
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,

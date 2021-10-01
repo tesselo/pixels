@@ -150,7 +150,5 @@ def multiclass_builder(Y, class_definition, max_number):
 
 
 def class_sample_weights_builder(label, class_weights):
-    # Make the sum of weights into 1.
-    class_weights = class_weights / np.sum(class_weights)
     # Create the image with the weights.
     return np.take(class_weights, label)
