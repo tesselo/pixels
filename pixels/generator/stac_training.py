@@ -346,6 +346,7 @@ def train_model_function(
 
     # Evaluate model on test set.
     gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
+    gen_args.pop("class_weights")
     if eval_split == 0:
         gen_args["split"] = 1 - gen_args["split"]
     else:
