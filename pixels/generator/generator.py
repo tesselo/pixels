@@ -117,8 +117,8 @@ class DataGenerator(keras.utils.Sequence):
         self.height = height
         self.padding = padding
         self.y_zip = None
+        self.class_weights = class_weights
         if self.mode != GENERATOR_PIXEL_MODEL:
-            self.class_weights = class_weights
             if self.class_weights:
                 self.class_weights = np.array(
                     [f / sum(class_weights.values()) for f in class_weights.values()]
