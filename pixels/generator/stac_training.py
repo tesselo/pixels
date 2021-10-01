@@ -205,6 +205,7 @@ def train_model_function(
     # Load the generator arguments.
     gen_args = _load_dictionary(generator_arguments_uri)
     compile_args = _load_dictionary(model_compile_arguments_uri)
+    fit_args = _load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
     # Check for existing model boolean.
@@ -237,11 +238,45 @@ def train_model_function(
     eval_split = gen_args.pop("eval_split", 0)
     if "training_percentage" not in gen_args:
         gen_args["training_percentage"] = gen_args["split"]
+    # Load the class weigths from the Y catalog if requested. Class weights can
+    # be passed as a dictionary with the class weights. In this case these
+    # will be passed on and not altered. If the class weights key is present,
+    # the class weights will be extracted from the Y catalog.
+    if "class_weight" in fit_args and fit_args["class_weight"]:
+        if isinstance(fit_args["class_weight"], dict):
+            class_weight = fit_args["class_weight"]
+        else:
+            # Open x catalog.
+            x_catalog = _load_dictionary(catalog_uri)
+            # Get origin files zip link from dictonary.
+            origin_files = [
+                dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
+            ][0]["href"]
+            # Construct y catalog uri.
+            y_catalog_uri = os.path.join(
+                os.path.dirname(origin_files), "stac", "catalog.json"
+            )
+            # Open y catalog.
+            y_catalog = _load_dictionary(str(y_catalog_uri))
+            # Get stats from y catalog.
+            class_weight = y_catalog["class_weight"]
+        # Ensure class weights have integer keys.
+        class_weight = {int(key): val for key, val in class_weight.items()}
+        # Remove nodata value from weights if present.
+        if gen_args["y_nan_value"] is not None:
+            class_weight.pop(gen_args["y_nan_value"], None)
+        # Set the class weight fit argument.
+        fit_args["class_weight"] = class_weight
+    else:
+        fit_args["class_weight"] = None
+    gen_args["class_weights"] = fit_args["class_weight"]
     # Instanciate generator.
     catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
     gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
     dtgen = generator.DataGenerator(**gen_args)
+    if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+        fit_args.pop("class_weight")
     if not no_compile:
         # Compile confusion matrix if requested.
         if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
@@ -272,8 +307,6 @@ def train_model_function(
             model.compile(loss=loss_costum(**loss_arguments), **compile_args)
         else:
             model.compile(**compile_args)
-
-    fit_args = _load_dictionary(model_fit_arguments_uri)
     if model_config_uri.startswith("s3"):
         path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
     else:
@@ -281,37 +314,6 @@ def train_model_function(
     if not os.path.exists(path_ep_md):
         os.makedirs(path_ep_md)
     # Train model.
-    # Load the class weigths from the Y catalog if requested. Class weights can
-    # be passed as a dictionary with the class weights. In this case these
-    # will be passed on and not altered. If the class weights key is present,
-    # the class weights will be extracted from the Y catalog.
-    if "class_weight" in fit_args and fit_args["class_weight"]:
-        if isinstance(fit_args["class_weight"], dict):
-            class_weight = fit_args["class_weight"]
-        else:
-            # Open x catalog.
-            x_catalog = _load_dictionary(catalog_uri)
-            # Get origin files zip link from dictonary.
-            origin_files = [
-                dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
-            ][0]["href"]
-            # Construct y catalog uri.
-            y_catalog_uri = os.path.join(
-                os.path.dirname(origin_files), "stac", "catalog.json"
-            )
-            # Open y catalog.
-            y_catalog = _load_dictionary(str(y_catalog_uri))
-            # Get stats from y catalog.
-            class_weight = y_catalog["class_weight"]
-        # Ensure class weights have integer keys.
-        class_weight = {int(key): val for key, val in class_weight.items()}
-        # Remove nodata value from weights if present.
-        if dtgen.y_nan_value is not None:
-            class_weight.pop(dtgen.y_nan_value, None)
-        # Set the class weight fit argument.
-        fit_args["class_weight"] = class_weight
-    else:
-        fit_args["class_weight"] = None
     # Verbose level 2 prints one line per epoch to the log.
     history = model.fit(
         dtgen,
