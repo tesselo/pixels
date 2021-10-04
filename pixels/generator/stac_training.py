@@ -5,7 +5,6 @@ import os
 import h5py
 import numpy as np
 import pystac
-import sentry_sdk
 import structlog
 import tensorflow as tf
 from rasterio import Affine
@@ -104,26 +103,10 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
-def get_custom_loss(compile_args):
-    if not hasattr(tf.keras.losses, compile_args["loss"]):
-        input = compile_args["loss"]
-        # Validate input
-        if input not in ALLOWED_CUSTOM_LOSSES:
-            raise ValueError()
-        loss_custom = getattr(losses, input)
-        if not loss_custom:
-            logger.warning(
-                f"Method {compile_args['loss']} not implemented, going for mse."
-            )
-            loss_custom = tf.keras.losses.mean_squared_error
-        compile_args.pop("loss")
-    return loss_custom
-
-
 def load_existing_model_from_file(
-    model_uri, loss_dict={"loss": "nan_mean_squared_error_loss"}, loss_arguments={}
+    model_uri, loss="nan_mean_squared_error_loss", loss_arguments={}
 ):
-    # Load model.
+    # Load model data from S3 if necessary.
     if model_uri.startswith("s3"):
         obj = stc.open_file_from_s3(model_uri)["Body"]
         fid_ = io.BufferedReader(obj._raw_stream)
@@ -131,14 +114,19 @@ def load_existing_model_from_file(
         bio_ = io.BytesIO(read_in_memory)
         f = h5py.File(bio_, "r")
         model_uri = f
-    try:
+    # Construct model object.
+    if hasattr(tf.keras.losses, loss):
         model = tf.keras.models.load_model(model_uri)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    elif loss in ALLOWED_CUSTOM_LOSSES:
+        # Handle custome loss functions when loading the model.
+        custom_loss = getattr(losses, loss)
         model = tf.keras.models.load_model(
             model_uri,
-            custom_objects={"loss": get_custom_loss(loss_dict)(**loss_arguments)},
+            custom_objects={"loss": custom_loss(**loss_arguments)},
         )
+    else:
+        raise ValueError(f"Loss function {loss} is not valid.")
+
     return model
 
 
@@ -210,28 +198,46 @@ def train_model_function(
     loss_arguments = compile_args.pop("loss_args", {})
     # Check for existing model boolean.
     if compile_args.get("use_existing_model"):
-        no_compile = True
         if "nan_value" in gen_args:
             nan_value = gen_args["nan_value"]
         else:
             nan_value = None
         loss_arguments["nan_value"] = nan_value
         model = load_existing_model_from_file(
-            path_model, loss_dict=compile_args, loss_arguments=loss_arguments
+            path_model, loss=compile_args["loss"], loss_arguments=loss_arguments
         )
         last_training_epochs = len(
             stc.list_files_in_folder(
                 os.path.dirname(model_config_uri), filetype=".hdf5"
             )
         )
-        logger.warning(
-            f"Training from existing model with {last_training_epochs} trained epochs."
-        )
     else:
-        no_compile = False
         last_training_epochs = 0
         # Load model, compile and fit arguments.
         model = load_model_from_file(model_config_uri)
+        # Use custom confusion matrix if requested.
+        if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
+            # Remove string version from metrics.
+            compile_args["metrics"].pop(
+                compile_args["metrics"].index("MultiLabelConfusionMatrix")
+            )
+            # Add complied version to metrics.
+            compile_args["metrics"].append(
+                MultiLabelConfusionMatrix(gen_args.get("num_classes"))
+            )
+        # Handle custom loss case.
+        if hasattr(tf.keras.losses, compile_args["loss"]):
+            model.compile(**compile_args)
+        elif compile_args["loss"] in ALLOWED_CUSTOM_LOSSES:
+            # Get custom loss function.
+            custom_loss = getattr(losses, compile_args.pop("loss"))
+            # Add nan value to loss arguments.
+            loss_arguments["nan_value"] = gen_args.get(
+                "nan_value", gen_args.get("y_nan_value", None)
+            )
+            model.compile(loss=custom_loss(**loss_arguments), **compile_args)
+        else:
+            raise ValueError(f"Loss function {compile_args['loss']} is not valid.")
 
     gen_args["dtype"] = model.input.dtype.name
     eval_split = gen_args.pop("eval_split", 0)
@@ -276,44 +282,8 @@ def train_model_function(
     dtgen = generator.DataGenerator(**gen_args)
     if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
         fit_args.pop("class_weight")
-    if not no_compile:
-        # Compile confusion matrix if requested.
-        if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
-            # Remove string version from metrics.
-            compile_args["metrics"].pop(
-                compile_args["metrics"].index("MultiLabelConfusionMatrix")
-            )
-            # Add complied version to metrics.
-            compile_args["metrics"].append(
-                MultiLabelConfusionMatrix(num_classes=dtgen.num_classes)
-            )
 
-        # Handle custom loss case.
-        if not hasattr(tf.keras.losses, compile_args["loss"]):
-            input = compile_args["loss"]
-            # Validate input
-            if input not in ALLOWED_CUSTOM_LOSSES:
-                raise ValueError()
-            loss_costum = getattr(losses, input)
-            loss_arguments["nan_value"] = dtgen.nan_value
-            if not loss_costum:
-                logger.warning(
-                    f"Method {compile_args['loss']} not implemented, going for mse."
-                )
-                loss_costum = tf.keras.losses.mean_squared_error
-                loss_arguments = {}
-            compile_args.pop("loss")
-            model.compile(loss=loss_costum(**loss_arguments), **compile_args)
-        else:
-            model.compile(**compile_args)
-    if model_config_uri.startswith("s3"):
-        path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
-    else:
-        path_ep_md = os.path.dirname(model_config_uri)
-    if not os.path.exists(path_ep_md):
-        os.makedirs(path_ep_md)
-    # Train model.
-    # Verbose level 2 prints one line per epoch to the log.
+    # Train model. Verbose level 2 prints one line per epoch to the log.
     history = model.fit(
         dtgen,
         **fit_args,
@@ -325,6 +295,13 @@ def train_model_function(
         ],
         verbose=2,
     )
+    # Write history.
+    if model_config_uri.startswith("s3"):
+        path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
+    else:
+        path_ep_md = os.path.dirname(model_config_uri)
+    if not os.path.exists(path_ep_md):
+        os.makedirs(path_ep_md)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
         # Get history data.
         hist_data = history.history
@@ -419,17 +396,6 @@ def predict_function_batch(
     compile_args = _load_dictionary(
         os.path.join(os.path.dirname(model_uri), "compile_arguments.json")
     )
-    # Get loss function.
-    if "loss" in compile_args:
-        if not hasattr(tf.keras.losses, compile_args["loss"]):
-            input = compile_args["loss"]
-            # Validate input
-            if input not in ALLOWED_CUSTOM_LOSSES:
-                raise ValueError()
-            loss_costum = getattr(losses, input)
-            if not loss_costum:
-                logger.warning(f"Method {input} not implemented, going for mse.")
-                loss_costum = tf.keras.losses.mean_squared_error
     # Load arguments for loss functions and force nan_value from generator.
     loss_arguments = compile_args.pop("loss_args", {})
     if "nan_value" in gen_args:
@@ -438,28 +404,9 @@ def predict_function_batch(
         nan_value = None
     loss_arguments["nan_value"] = nan_value
     # Load model.
-    if model_uri.startswith("s3"):
-        obj = stc.open_file_from_s3(model_uri)["Body"]
-        fid_ = io.BufferedReader(obj._raw_stream)
-        read_in_memory = fid_.read()
-        bio_ = io.BytesIO(read_in_memory)
-        f = h5py.File(bio_, "r")
-        # TODO: Change this!
-        try:
-            model = tf.keras.models.load_model(f)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            model = tf.keras.models.load_model(
-                f, custom_objects={"loss": loss_costum(**loss_arguments)}
-            )
-    else:
-        try:
-            model = tf.keras.models.load_model(model_uri)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            model = tf.keras.models.load_model(
-                model_uri, custom_objects={"loss": loss_costum(gen_args["nan_value"])}
-            )
+    model = load_existing_model_from_file(
+        model_uri, compile_args["loss"], loss_arguments
+    )
     # Instanciate generator, forcing generator to prediction mode.
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
