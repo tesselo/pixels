@@ -61,7 +61,7 @@ class DataGenerator(keras.utils.Sequence):
     ):
         """
         Initial setup for the class.
-
+        Bahamut eyes: https://bahamut.slab.com/posts/data-generator-specification-vbeitb77
         Parameters
         ----------
             path_collection_catalog : str
