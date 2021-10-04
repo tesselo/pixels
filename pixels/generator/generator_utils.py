@@ -1,5 +1,7 @@
 import io
+import os
 import zipfile
+from urllib.parse import urlparse
 
 import backoff
 import boto3
@@ -19,6 +21,21 @@ def open_object_from_s3(source_path):
     data = s3.get_object(Bucket=bucket, Key=path)["Body"].read()
     data = io.BytesIO(data)
     return data
+
+
+def download_object_from_s3(uri, folder_to_save_files):
+    s3 = boto3.client("s3")
+    parsed = urlparse(uri)
+    if parsed.scheme == "s3":
+        bucket = parsed.netloc
+        key = parsed.path[1:]
+    save_path = os.path.join(folder_to_save_files, key)
+    if os.path.exists(save_path):
+        return save_path
+    if not os.path.exists(os.path.dirname(save_path)):
+        os.makedirs(os.path.dirname(save_path))
+    s3.download_file(bucket, key, save_path)
+    return save_path
 
 
 def read_img_and_meta_raster(raster_path):
