@@ -9,10 +9,15 @@ import structlog
 import tensorflow as tf
 from rasterio import Affine
 
-import pixels.generator.stac as stc
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
-from pixels.generator.stac_utils import _load_dictionary
+from pixels.generator.stac_utils import (
+    _load_dictionary,
+    list_files_in_folder,
+    open_file_from_s3,
+    upload_files_s3,
+    upload_obj_s3,
+)
 from pixels.utils import NumpyArrayEncoder, write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
@@ -40,7 +45,7 @@ def _save_and_write_tif(out_path, img, meta):
         os.makedirs(os.path.dirname(out_path_tif))
     write_raster(img, meta, out_path=out_path_tif, dtype=img.dtype.name)
     if out_path.startswith("s3"):
-        stc.upload_files_s3(os.path.dirname(out_path_tif), file_type="tif")
+        upload_files_s3(os.path.dirname(out_path_tif), file_type="tif")
 
 
 def create_pystac_item(
@@ -91,7 +96,7 @@ def create_pystac_item(
 def load_model_from_file(model_configuration_file):
     # Open config file and load as dict.
     if model_configuration_file.startswith("s3"):
-        my_str = stc.open_file_from_s3(model_configuration_file)["Body"].read()
+        my_str = open_file_from_s3(model_configuration_file)["Body"].read()
         new_str = my_str.decode("utf-8")
         input_config = json.loads(new_str)
         input_config = json.dumps(input_config)
@@ -108,7 +113,7 @@ def load_existing_model_from_file(
 ):
     # Load model data from S3 if necessary.
     if model_uri.startswith("s3"):
-        obj = stc.open_file_from_s3(model_uri)["Body"]
+        obj = open_file_from_s3(model_uri)["Body"]
         fid_ = io.BufferedReader(obj._raw_stream)
         read_in_memory = fid_.read()
         bio_ = io.BytesIO(read_in_memory)
@@ -156,7 +161,7 @@ class Custom_Callback_SaveModel_S3(tf.keras.callbacks.Callback):
                     self.model.save(h5fl)
                     h5fl.flush()
                     h5fl.close()
-                stc.upload_obj_s3(path_model, fl.getvalue())
+                upload_obj_s3(path_model, fl.getvalue())
         else:
             with h5py.File(path_model, mode="w") as h5fl:
                 self.model.save(h5fl)
@@ -207,9 +212,7 @@ def train_model_function(
             path_model, loss=compile_args["loss"], loss_arguments=loss_arguments
         )
         last_training_epochs = len(
-            stc.list_files_in_folder(
-                os.path.dirname(model_config_uri), filetype=".hdf5"
-            )
+            list_files_in_folder(os.path.dirname(model_config_uri), filetype=".hdf5")
         )
     else:
         last_training_epochs = 0
@@ -315,7 +318,7 @@ def train_model_function(
                 model.save(h5fl)
                 h5fl.flush()
                 h5fl.close()
-            stc.upload_obj_s3(path_model, fl.getvalue())
+            upload_obj_s3(path_model, fl.getvalue())
     else:
         with h5py.File(path_model, mode="w") as h5fl:
             model.save(h5fl)
@@ -344,8 +347,8 @@ def train_model_function(
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
     if model_config_uri.startswith("s3"):
-        stc.upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
-        stc.upload_files_s3(path_ep_md, file_type="_stats.json")
+        upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
+        upload_files_s3(path_ep_md, file_type="_stats.json")
 
     # Save collection index dictionary.
     catalog_dict_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
@@ -362,7 +365,7 @@ def train_model_function(
     with open(catalog_dict_path, "w") as f:
         json.dump(catalog_dict, f)
     if catalog_uri.startswith("s3"):
-        stc.upload_files_s3(
+        upload_files_s3(
             os.path.dirname(catalog_dict_path),
             file_type="_dict.json",
             delete_folder=False,
