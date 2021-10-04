@@ -1,7 +1,5 @@
 isort
 flake8
 black
-sphinx
-recommonmark
 pytest==6.2.2
 pre-commit
