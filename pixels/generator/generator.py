@@ -24,6 +24,7 @@ GENERATOR_MODE_EVALUATION = "evaluation"
 GENERATOR_3D_MODEL = "3D_Model"
 GENERATOR_2D_MODEL = "2D_Model"
 GENERATOR_PIXEL_MODEL = "Pixel_Model"
+S3_BUCKET_NAME = "s3://pxapi-media-dev"
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -185,9 +186,8 @@ class DataGenerator(keras.utils.Sequence):
         if not self.path_collection_catalog.startswith("s3"):
             self.download_data = False
             logger.warning("Data can only be downloaded if on S3.")
-        if not self.download_data:
-            return
-        else:
+        if self.download_data:
+            logger.info("Download all data")
             list_of_tifs = list_files_in_folder(
                 os.path.dirname(self.path_collection_catalog), filetype="tif"
             )
@@ -213,11 +213,10 @@ class DataGenerator(keras.utils.Sequence):
                 ).replace(".zip!", "")
             # Change paths in collection catalog
             collection_catalog_str = collection_catalog_str.replace(
-                "s3://pxapi-media-dev", "downloaded_data"
+                S3_BUCKET_NAME, "downloaded_data"
             )
             self.collection_catalog = json.loads(collection_catalog_str)
-        logger.warning("Download of all data completed.")
-        return
+            logger.info("Download of all data completed.")
 
     def parse_collection(self):
         """
