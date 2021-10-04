@@ -32,7 +32,6 @@ from pixels.mosaic import pixel_stack
 from pixels.utils import write_raster
 
 # Get logger
-
 logger = structlog.get_logger(__name__)
 
 

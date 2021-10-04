@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import tempfile
 
 import h5py
 import numpy as np
@@ -201,6 +202,9 @@ def train_model_function(
     fit_args = _load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
+    if gen_args.get("download_data"):
+        tmpdir = tempfile.TemporaryDirectory()
+        gen_args["temp_dir"] = tmpdir.name
     # Check for existing model boolean.
     if compile_args.get("use_existing_model"):
         if "nan_value" in gen_args:
@@ -370,7 +374,8 @@ def train_model_function(
             file_type="_dict.json",
             delete_folder=False,
         )
-
+    if gen_args.get("download_data"):
+        tmpdir.cleanup()
     return model
 
 

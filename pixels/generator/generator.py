@@ -24,7 +24,6 @@ GENERATOR_MODE_EVALUATION = "evaluation"
 GENERATOR_3D_MODEL = "3D_Model"
 GENERATOR_2D_MODEL = "2D_Model"
 GENERATOR_PIXEL_MODEL = "Pixel_Model"
-S3_BUCKET_NAME = "s3://pxapi-media-dev"
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -58,6 +57,7 @@ class DataGenerator(keras.utils.Sequence):
         y_max_value=None,
         class_weights=None,
         download_data=False,
+        temp_dir=None,
     ):
         """
         Initial setup for the class.
@@ -114,6 +114,7 @@ class DataGenerator(keras.utils.Sequence):
         self.path_collection_catalog = path_collection_catalog
         # Open the indexing dictionary.
         self.collection_catalog = _load_dictionary(self.path_collection_catalog)
+        self.download_folder = temp_dir
         self.download_and_parse_data()
         self.parse_collection()
 
@@ -195,7 +196,7 @@ class DataGenerator(keras.utils.Sequence):
             )
             # Download the Pixels Data images.
             for tif in list_of_tifs:
-                generator_utils.download_object_from_s3(tif, "downloaded_data")
+                generator_utils.download_object_from_s3(tif, self.download_folder)
             # Retrieve path for training data.
             y_path_file = self.collection_catalog[
                 list(self.collection_catalog.keys())[0]
@@ -208,7 +209,7 @@ class DataGenerator(keras.utils.Sequence):
                 # Get only the zip, and not the first item inside the zip.
                 y_path_file = y_path_file.replace("zip://", "").split("!")[0]
                 y_path_file = generator_utils.download_object_from_s3(
-                    y_path_file, "downloaded_data"
+                    y_path_file, self.download_folder
                 )
                 with zipfile.ZipFile(y_path_file, "r") as zipi:
                     # extract all files
@@ -218,9 +219,10 @@ class DataGenerator(keras.utils.Sequence):
                 collection_catalog_str = collection_catalog_str.replace(
                     "zip://", ""
                 ).replace(".zip!", "")
+            bucket_name = self.path_collection_catalog.split("/")[2]
             # Change paths in collection catalog.
             collection_catalog_str = collection_catalog_str.replace(
-                S3_BUCKET_NAME, "downloaded_data"
+                f"s3://{bucket_name}", self.download_folder
             )
             self.collection_catalog = json.loads(collection_catalog_str)
             logger.info("Download of all data completed.")
