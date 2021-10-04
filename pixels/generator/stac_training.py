@@ -209,25 +209,24 @@ def train_model_function(
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
     # Check for existing model boolean.
-    if "use_existing_model" in compile_args:
-        if compile_args["use_existing_model"]:
-            no_compile = True
-            if "nan_value" in gen_args:
-                nan_value = gen_args["nan_value"]
-            else:
-                nan_value = None
-            loss_arguments["nan_value"] = nan_value
-            model = load_existing_model_from_file(
-                path_model, loss_dict=compile_args, loss_arguments=loss_arguments
+    if compile_args.get("use_existing_model"):
+        no_compile = True
+        if "nan_value" in gen_args:
+            nan_value = gen_args["nan_value"]
+        else:
+            nan_value = None
+        loss_arguments["nan_value"] = nan_value
+        model = load_existing_model_from_file(
+            path_model, loss_dict=compile_args, loss_arguments=loss_arguments
+        )
+        last_training_epochs = len(
+            stc.list_files_in_folder(
+                os.path.dirname(model_config_uri), filetype=".hdf5"
             )
-            last_training_epochs = len(
-                stc.list_files_in_folder(
-                    os.path.dirname(model_config_uri), filetype=".hdf5"
-                )
-            )
-            logger.warning(
-                f"Training from existing model with {last_training_epochs} trained epochs."
-            )
+        )
+        logger.warning(
+            f"Training from existing model with {last_training_epochs} trained epochs."
+        )
     else:
         no_compile = False
         last_training_epochs = 0
