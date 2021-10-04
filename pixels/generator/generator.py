@@ -84,6 +84,8 @@ class DataGenerator(keras.utils.Sequence):
                 Dictionary containing the weight of each class.
             download_data : bool
                 If True, and the data is not local, it will first download everything locally.
+            temp_dir : str
+                Path to temporary folder created in stac, for the download data.
         """
         self.split = split
         self.random_seed = random_seed
