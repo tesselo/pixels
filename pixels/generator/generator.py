@@ -216,6 +216,7 @@ class DataGenerator(keras.utils.Sequence):
                 "s3://pxapi-media-dev", "downloaded_data"
             )
             self.collection_catalog = json.loads(collection_catalog_str)
+        logger.warning("Download of all data completed.")
         return
 
     def parse_collection(self):
