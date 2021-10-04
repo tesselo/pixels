@@ -112,6 +112,8 @@ class DataGenerator(keras.utils.Sequence):
         # Open and analyse collection.
         self.download_data = download_data
         self.path_collection_catalog = path_collection_catalog
+        # Open the indexing dictionary.
+        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
         self.download_and_parse_data()
         self.parse_collection()
 
@@ -181,26 +183,29 @@ class DataGenerator(keras.utils.Sequence):
         return (self.class_definitions is not None) and self.train
 
     def download_and_parse_data(self):
-        # Open the indexing dictionary.
-        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
+        # Data can only be dowloaded from s3.
         if not self.path_collection_catalog.startswith("s3"):
             self.download_data = False
             logger.warning("Data can only be downloaded if on S3.")
         if self.download_data:
             logger.info("Download all data")
+            # List all collected images in pixelsdata folder.
             list_of_tifs = list_files_in_folder(
                 os.path.dirname(self.path_collection_catalog), filetype="tif"
             )
-            # Download data
-            # Pixels Data.
+            # Download the Pixels Data images.
             for tif in list_of_tifs:
                 generator_utils.download_object_from_s3(tif, "downloaded_data")
+            # Retrieve path for training data.
             y_path_file = self.collection_catalog[
                 list(self.collection_catalog.keys())[0]
             ]["y_path"]
+            # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
             collection_catalog_str = json.dumps(self.collection_catalog)
-            # Training Data.
+            # If the training data comes from a zip file, download and extract it.
             if y_path_file.startswith("zip"):
+                # Change the file name format from the rasterio reading format to an absolute one.
+                # Get only the zip, and not the first item inside the zip.
                 y_path_file = y_path_file.replace("zip://", "").split("!")[0]
                 y_path_file = generator_utils.download_object_from_s3(
                     y_path_file, "downloaded_data"
@@ -208,10 +213,12 @@ class DataGenerator(keras.utils.Sequence):
                 with zipfile.ZipFile(y_path_file, "r") as zipi:
                     # extract all files
                     zipi.extractall(y_path_file.replace(".zip", ""))
+                # Inside the catalog change the y_path, from rasterio and s3 reading format
+                # to absolute downloaded path.
                 collection_catalog_str = collection_catalog_str.replace(
                     "zip://", ""
                 ).replace(".zip!", "")
-            # Change paths in collection catalog
+            # Change paths in collection catalog.
             collection_catalog_str = collection_catalog_str.replace(
                 S3_BUCKET_NAME, "downloaded_data"
             )
