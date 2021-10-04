@@ -30,10 +30,9 @@ def download_object_from_s3(uri, folder_to_save_files):
         bucket = parsed.netloc
         key = parsed.path[1:]
     save_path = os.path.join(folder_to_save_files, key)
-    if os.path.exists(save_path):
-        return save_path
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    s3.download_file(bucket, key, save_path)
+    if not os.path.exists(save_path):
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        s3.download_file(bucket, key, save_path)
     return save_path
 
 
