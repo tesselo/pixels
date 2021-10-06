@@ -196,9 +196,12 @@ class DataGenerator(keras.utils.Sequence):
             list_of_tifs = list_files_in_folder(
                 os.path.dirname(self.path_collection_catalog), filetype="tif"
             )
-            # Download the Pixels Data images.
-            for tif in list_of_tifs:
-                generator_utils.download_object_from_s3(tif, self.download_folder)
+            # Download the Pixels Data images in parallel.
+            with Pool(min(len(list_of_tifs), 12)) as p:
+                p.starmap(
+                    generator_utils.download_object_from_s3,
+                    zip(list_of_tifs, [self.download_folder] * len(list_of_tifs)),
+                )
             # Retrieve path for training data.
             y_path_file = self.collection_catalog[
                 list(self.collection_catalog.keys())[0]
