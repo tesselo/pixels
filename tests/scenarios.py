@@ -294,3 +294,5 @@ l8_expected_scene = {
         "B11": "https://gcp-public-data-landsat.commondatastorage.googleapis.com/LC08/01/205/032/LC08_L1TP_205032_20201121_20201210_01_T1/LC08_L1TP_205032_20201121_20201210_01_T1_B11.TIF",
     },
 }
+
+# Add new tests including test for links of SL1C

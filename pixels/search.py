@@ -23,6 +23,9 @@ from pixels.const import (
     S2_BANDS,
     S2_BANDS_L2A,
     SENTINEL_2,
+    L8_COG_ITEMS,
+    L7_COG_ITEMS,
+    L4_L5_COG_ITEMS
 )
 from pixels.utils import compute_wgs83_bbox
 
@@ -116,7 +119,7 @@ def search_data(
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, wrs_path, wrs_row, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
     # Check inputs.
     if start is not None:
@@ -308,16 +311,8 @@ def format_ls_band(value):
 
     #x = LC08_L1TP_026027_20200827_20200905_01_T1 | database 
     #y = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
+    #aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
 
-
-product = "LC08_L1TP_026027_20200827_20200905_01_T1"
-
-def format_product(product):
-    replacers ={"L1TP":"L2SP", "_01_":"_02_"}
-    for i, j in replacers.items():
-        print(f'i: {i} - j: {j}')
-        formatted_product = product.replace(i,j)
-    return formatted_product  # Ainda não está funcionando
 
 def format_product(product):
     # Immutable Replacers
@@ -351,33 +346,50 @@ def format_product(product):
 
 
 def format_ls_c2_band(value):
+    #Get parameters to build the links
     base_url = LS_L2_URL
-    sensor = value["sensor_id"]
+    sensor = value["sensor_id"].lower() # replace - por _
     date = parse(str(value["sensing_time"]))
     year = date.year
-
-
-    path = product.split("_")[2]
-    row = product.split("_")[3]
-
-    base_url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
-        base_url=base_url, sensor=sensor, year=year,path=path, row=row, product=product
+    product = value["product_id"]
+    path = value["wrs_path"]
+    row = value["wrs_row"]
+    plat = value["spacecraft_id"] #necessario para formatar bandas de acordo com plataforma
+    #Format product id
+    newproduct = format_product(product)
+   
+    url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
+        base_url=base_url, sensor=sensor, year=year,path=path, row=row, product=newproduct
         )
    
-    plat = value["spacecraft_id"] #necessario para formatar bandas de acordo com plataforma
     data = {}
     # Exclude Landsat 1-5
     if plat == LANDSAT_8:
-            for band in L8_BANDS:
-                ls_band_template = "{base_url}/{product_id}_{band}.TIF"
+            for band in L8_COG_ITEMS:
+                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
 
                 data[band] = ls_band_template.format(
-                    base_url=base_url, product_id=product_id, band=band
+                    url=url_template, product_id=newproduct, band=band
+                )
+    elif plat == LANDSAT_7:
+            for band in L7_COG_ITEMS:
+                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
+
+                data[band] = ls_band_template.format(
+                    url=url_template, product_id=newproduct, band=band
                 )
 
+    elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
+            for band in L4_L5_COG_ITEMS:
+                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
 
+                data[band] = ls_band_template.format(
+                    url=url_template, product_id=newproduct, band=band
+                )
+    else: 
+        print("There are no images available in collection 2, level 2 for this search.")
 
- return data
+    return data
 
 
 def is_level_valid(level, platforms):
@@ -413,3 +425,5 @@ def is_level_valid(level, platforms):
 # Timeline of processing
 # Os produtos de Refletância de Superfície e Temperatura de Superfície de Nível 2 estão normalmente disponíveis dentro de 24 horas após uma cena ter sido processada na Camada 1 ou Camada 2: 
 # The products of Surface reflectance or Surface Temperature in level 2 are available within 24h after a secne been processed in TIer 1 or Tier 2.
+
+#aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester

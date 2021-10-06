@@ -290,3 +290,69 @@ FORMULAS = {
         [BAND_NIR1, BAND_GREEN, BAND_VRE3],
     ],
 }
+
+# Landsat - Collection 2 - Level 2 COG items
+L8_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B6",
+    "SR_B7",
+    "ST_QA",
+    "ST_B10",
+    "ST_DRAD",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_TRAD",
+    "ST_URAD",
+    "QA_PIXEL",
+    "ST_ATRAN",
+    "ST_CDIST",
+    "QA_RADSAT",
+    "SR_QA_AEROSOL"
+    }
+
+L7_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B7",
+    "ST_B6",
+    "ST_QA",
+    "ST_DRAD",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_TRAD",
+    "ST_URAD",
+    "QA_PIXEL",
+    "ST_ATRAN",
+    "ST_CDIST",
+    "QA_RADSAT",
+    "SR_ATMOS_OPACITY",
+    "SR_CLOUD_QA"
+    }
+
+L4_L5_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B7",
+    "ST_B6",
+    "QA_RADSAT",
+    "QA_PIXEL",
+    "ST_QA",
+    "SR_ATMOS_OPACITY",
+    "SR_CLOUD_QA"
+    "ST_TRAD",
+    "ST_URAD",
+    "ST_DRAD",
+    "ST_ATRAN",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_CDIST"}
