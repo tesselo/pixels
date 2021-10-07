@@ -7,7 +7,7 @@ from rasterio.warp import Resampling, reproject
 
 from pixels.const import NODATA_VALUE
 from pixels.utils import compute_mask, compute_transform
-
+from pixels.generator.generator_utils import  read_img_and_meta_raster
 logger = structlog.get_logger(__name__)
 
 
@@ -67,7 +67,7 @@ def retrieve(
 
     # Determine resampling algorithm.
     resampling = Resampling.nearest if discrete else Resampling.bilinear
-
+    #Problem to open images is not opening the links ->  read_img_and_meta_raster()?
     # Open remote raster.
     with rasterio.open(source) as src:
         # If no scale was provided, use the source scale as the target scale.

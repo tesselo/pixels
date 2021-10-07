@@ -1,5 +1,5 @@
 import os
-
+import copy
 import structlog
 from dateutil.parser import parse
 from datetime import datetime, timedelta
@@ -63,7 +63,7 @@ def search_data(
     sensor=None,
     level=None,
     limit=10,
-    sort="sensing_time",
+    sort="sensing_time"
 ):
     """
     Search for satellite images in an area of interest, for a given time interval,
@@ -146,19 +146,27 @@ def search_data(
 
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+    print (formatted_query)
     result = engine.execute(formatted_query)
+    # x = [dict(row) for row in result]
+    # print(x)
     # Transform ResultProxy into json.
-    result = get_bands([dict(row) for row in result])
+    result = get_bands([dict(row) for row in result], level=level)
+
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
 
-    logger.debug("Found {} results in search.".format(len(result)))
+    # Filter real time products for landsat
 
+    result = [dat for dat in result if "_01_RT" not in dat["product_id"]]        
+
+    logger.debug("Found {} results in search.".format(len(result)))
+    
     return result
 
 
-def get_bands(response):
+def get_bands(response, level):
     """
     Decides which method use to format bands and generate links to download it.
 
@@ -173,12 +181,20 @@ def get_bands(response):
     """
     result = []
     for value in response:
+        value2 = None
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
+        elif level ==  "L2SP":
+            value["bands"] = format_ls_c2_band(value, day_step=0)
+            value2 = copy.copy(value)
+            value2["bands"] = format_ls_c2_band(value, day_step=1) 
         else:
-            value["bands"] = format_ls_c2_band(value) # ajeitar aqui -> como diferenciar funções para l2 e l1 ?
+            value["bands"] = format_ls_c1_band(value)
 
         result.append(value)
+
+        if value2 is not None:
+            result.append(value2)
 
     return result
 
@@ -243,7 +259,7 @@ def format_sentinel_band(value):
     return data
 
 
-def format_ls_band(value):
+def format_ls_c1_band(value):
     """
     Format base url and generate links to download landsat bands.
 
@@ -314,7 +330,7 @@ def format_ls_band(value):
     #aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
 
 
-def format_product(product):
+def format_product(product, day_step):
     # Immutable Replacers
     processing_level="L2SP"
     collection = "02"
@@ -327,7 +343,7 @@ def format_product(product):
     date_time_obj = datetime.strptime(processing_date, '%Y%m%d')
 
     # Update processing date by iterarion using timedelta
-    newdate = date_time_obj + timedelta(days=1)
+    newdate = date_time_obj + timedelta(days=day_step)
 
     # Converter no formato original para recolocar no product id
     formatted_date = newdate.strftime('%Y%m%d')
@@ -337,7 +353,6 @@ def format_product(product):
     #Replace other identifiers 
     identifiers[1] = processing_level
     identifiers[5] = collection
-    print(identifiers)
 
     newproduct = "_".join(identifiers)
 
@@ -345,18 +360,22 @@ def format_product(product):
 
 
 
-def format_ls_c2_band(value):
+def format_ls_c2_band(value, day_step):
+
     #Get parameters to build the links
     base_url = LS_L2_URL
-    sensor = value["sensor_id"].lower() # replace - por _
+    sensor = value["sensor_id"].lower()
+    if sensor == "oli_tirs":
+        sensor = sensor.replace("_", "-")
+
     date = parse(str(value["sensing_time"]))
     year = date.year
     product = value["product_id"]
-    path = value["wrs_path"]
-    row = value["wrs_row"]
-    plat = value["spacecraft_id"] #necessario para formatar bandas de acordo com plataforma
+    path = str(value["wrs_path"]).zfill(3)
+    row = str(value["wrs_row"]).zfill(3)
+    plat = value["spacecraft_id"] 
     #Format product id
-    newproduct = format_product(product)
+    newproduct = format_product(product, day_step)
    
     url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
         base_url=base_url, sensor=sensor, year=year,path=path, row=row, product=newproduct
@@ -415,15 +434,8 @@ def is_level_valid(level, platforms):
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
 # https://www.usgs.gov/media/images/landsat-collection-2-generation-timeline
 
-#NOTE: Landsat Collection 1 based forward processing will remain in effect through December 31, 2021, concurrent with Landsat Collection 2 based forward processing. 
-# Starting January 1, 2022, all new Landsat acquisitions will be processed into the Collection 2 inventory structure only. 
-
-#Global Level-2 Science and Atmospheric Auxiliary Products 
-# New for Collection 2 is the processing and distribution of Level-2 surface reflectance and surface temperature science products for Landsat 4-5 TM, Landsat 7 ETM+ and Landsat 8 OLI/TIRS. 
-# Level-2 products are generated from Collection 2 Level-1 inputs that meet the <76 degrees Solar Zenith Angle constraint and include the required auxiliary data inputs to generate a scientifically viable product.
-
-# Timeline of processing
-# Os produtos de Refletância de Superfície e Temperatura de Superfície de Nível 2 estão normalmente disponíveis dentro de 24 horas após uma cena ter sido processada na Camada 1 ou Camada 2: 
-# The products of Surface reflectance or Surface Temperature in level 2 are available within 24h after a secne been processed in TIer 1 or Tier 2.
-
 #aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
+
+# FINAL aws s3 cp s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF ~/Desktop/test_l8.tif --request-payer requester
+
+#Nos   aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/224/61/LC08_L2SP_224061_20200721_20200808_02_T1 --request-payer requester 

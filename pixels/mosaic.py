@@ -54,7 +54,7 @@ def latest_pixel(
         the projection of the geojson.
     bands : list of int, optional
         Defines which band indices shall be extracted from the source raster. If
-        it is empty or None, all bands will be extracted.
+        it is empty or None, all bands will be extracted. #NOT WORKING WHEN WE DON'T PASS BANDS LIST
     platforms : str or list, optional
         The selection of satellites to search for images on pixels. The satellites
         can be from Landsat collection or Sentinel 2. The str or list must contain
