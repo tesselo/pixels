@@ -353,27 +353,6 @@ def train_model_function(
     if model_config_uri.startswith("s3"):
         upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
         upload_files_s3(path_ep_md, file_type="_stats.json")
-
-    # Save collection index dictionary.
-    catalog_dict_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
-    catalog_dict = dtgen.collection_catalog
-    catalog_dict.update(dpredgen.collection_catalog)
-    if catalog_dict_path.startswith("s3"):
-        catalog_dict_path = catalog_dict_path.replace("s3://", "tmp/")
-    if not os.path.exists(catalog_dict_path):
-        try:
-            os.makedirs(os.path.dirname(catalog_dict_path))
-        except OSError:
-            # Directory already exists.
-            pass
-    with open(catalog_dict_path, "w") as f:
-        json.dump(catalog_dict, f)
-    if catalog_uri.startswith("s3"):
-        upload_files_s3(
-            os.path.dirname(catalog_dict_path),
-            file_type="_dict.json",
-            delete_folder=False,
-        )
     if gen_args.get("download_data"):
         tmpdir.cleanup()
     return model
