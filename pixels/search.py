@@ -29,6 +29,8 @@ from pixels.const import (
 )
 from pixels.utils import compute_wgs83_bbox
 
+print("Hello Keren!")
+
 logger = structlog.get_logger(__name__)
 
 DB_NAME = os.getenv("DB_NAME")
@@ -146,20 +148,20 @@ def search_data(
 
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    print (formatted_query)
+    #print (formatted_query)
     result = engine.execute(formatted_query)
     # x = [dict(row) for row in result]
     # print(x)
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result], level=level)
-
+    #print(result)
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
 
     # Filter real time products for landsat
 
-    result = [dat for dat in result if "_01_RT" not in dat["product_id"]]        
+    result = [dat for dat in result if "_01_RT" not in dat["product_id"] if "_01_T2" not in dat["product_id"] ]        
 
     logger.debug("Found {} results in search.".format(len(result)))
     
@@ -185,9 +187,15 @@ def get_bands(response, level):
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
         elif level ==  "L2SP":
+            # Try different dates to find the scene
+            # In the same day of Collection 1
             value["bands"] = format_ls_c2_band(value, day_step=0)
+            # 1 Day after
             value2 = copy.copy(value)
             value2["bands"] = format_ls_c2_band(value, day_step=1) 
+            #1 day before
+            value3 = copy.copy(value)
+            value3["bands"] = format_ls_c2_band(value, day_step=-1) 
         else:
             value["bands"] = format_ls_c1_band(value)
 
@@ -195,6 +203,8 @@ def get_bands(response, level):
 
         if value2 is not None:
             result.append(value2)
+        if value3 is not None:
+            result.append(value3)
 
     return result
 
@@ -434,8 +444,6 @@ def is_level_valid(level, platforms):
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
 # https://www.usgs.gov/media/images/landsat-collection-2-generation-timeline
 
-#aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
+# USGS Landsat Collection 2 was released early 2021 and offers improved processing, geometric accuracy, and radiometric calibration compared to previous Collection 1 products. So the date before or after will only work for recent data.
 
-# FINAL aws s3 cp s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF ~/Desktop/test_l8.tif --request-payer requester
-
-#Nos   aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/224/61/LC08_L2SP_224061_20200721_20200808_02_T1 --request-payer requester 
+# Before that, we will need to use specific dates without certainity or logic to understand-it yet. Maybe theres a timeline dependind on the month and year of the original data!
