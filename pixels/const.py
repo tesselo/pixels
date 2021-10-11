@@ -311,8 +311,8 @@ L8_COG_ITEMS = {
     "ST_ATRAN",
     "ST_CDIST",
     "QA_RADSAT",
-    "SR_QA_AEROSOL"
-    }
+    "SR_QA_AEROSOL",
+}
 
 L7_COG_ITEMS = {
     "SR_B1",
@@ -333,8 +333,8 @@ L7_COG_ITEMS = {
     "ST_CDIST",
     "QA_RADSAT",
     "SR_ATMOS_OPACITY",
-    "SR_CLOUD_QA"
-    }
+    "SR_CLOUD_QA",
+}
 
 L4_L5_COG_ITEMS = {
     "SR_B1",
@@ -348,11 +348,11 @@ L4_L5_COG_ITEMS = {
     "QA_PIXEL",
     "ST_QA",
     "SR_ATMOS_OPACITY",
-    "SR_CLOUD_QA"
-    "ST_TRAD",
+    "SR_CLOUD_QA" "ST_TRAD",
     "ST_URAD",
     "ST_DRAD",
     "ST_ATRAN",
     "ST_EMIS",
     "ST_EMSD",
-    "ST_CDIST"}
+    "ST_CDIST",
+}

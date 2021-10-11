@@ -1,31 +1,32 @@
-import os
 import copy
+import os
+from datetime import datetime, timedelta
+
 import structlog
 from dateutil.parser import parse
-from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 
 from pixels.const import (
-    S2_L1C_URL,
-    S2_L2A_URL,
-    LS_L2_URL,
     BASE_LANDSAT,
     GOOGLE_URL,
     L1_L2_L3_BANDS,
     L4_L5_BANDS,
     L4_L5_BANDS_MSS,
+    L4_L5_COG_ITEMS,
     L7_BANDS,
+    L7_COG_ITEMS,
     L8_BANDS,
+    L8_COG_ITEMS,
     LANDSAT_4,
     LANDSAT_5,
     LANDSAT_7,
     LANDSAT_8,
+    LS_L2_URL,
     S2_BANDS,
     S2_BANDS_L2A,
+    S2_L1C_URL,
+    S2_L2A_URL,
     SENTINEL_2,
-    L8_COG_ITEMS,
-    L7_COG_ITEMS,
-    L4_L5_COG_ITEMS
 )
 from pixels.utils import compute_wgs83_bbox
 
@@ -65,7 +66,7 @@ def search_data(
     sensor=None,
     level=None,
     limit=10,
-    sort="sensing_time"
+    sort="sensing_time",
 ):
     """
     Search for satellite images in an area of interest, for a given time interval,
@@ -148,23 +149,28 @@ def search_data(
 
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    #print (formatted_query)
+    # print (formatted_query)
     result = engine.execute(formatted_query)
     # x = [dict(row) for row in result]
     # print(x)
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result], level=level)
-    #print(result)
+    # print(result)
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
 
     # Filter real time products for landsat
 
-    result = [dat for dat in result if "_01_RT" not in dat["product_id"] if "_01_T2" not in dat["product_id"] ]        
+    result = [
+        dat
+        for dat in result
+        if "_01_RT" not in dat["product_id"]
+        if "_01_T2" not in dat["product_id"]
+    ]
 
     logger.debug("Found {} results in search.".format(len(result)))
-    
+
     return result
 
 
@@ -186,16 +192,16 @@ def get_bands(response, level):
         value2 = None
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
-        elif level ==  "L2SP":
+        elif level == "L2SP":
             # Try different dates to find the scene
             # In the same day of Collection 1
             value["bands"] = format_ls_c2_band(value, day_step=0)
             # 1 Day after
             value2 = copy.copy(value)
-            value2["bands"] = format_ls_c2_band(value, day_step=1) 
-            #1 day before
+            value2["bands"] = format_ls_c2_band(value, day_step=1)
+            # 1 day before
             value3 = copy.copy(value)
-            value3["bands"] = format_ls_c2_band(value, day_step=-1) 
+            value3["bands"] = format_ls_c2_band(value, day_step=-1)
         else:
             value["bands"] = format_ls_c1_band(value)
 
@@ -331,36 +337,35 @@ def format_ls_c1_band(value):
     return data
 
 
+# Product id
+# product = value["product_id"]
 
- # Product id
-    #product = value["product_id"]  
-
-    #x = LC08_L1TP_026027_20200827_20200905_01_T1 | database 
-    #y = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
-    #aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
+# x = LC08_L1TP_026027_20200827_20200905_01_T1 | database
+# y = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
+# aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
 
 
 def format_product(product, day_step):
     # Immutable Replacers
-    processing_level="L2SP"
+    processing_level = "L2SP"
     collection = "02"
 
     # Separate processing date
     identifiers = product.split("_")
     processing_date = identifiers[4]
 
-    #Convert string to datetime object via strptime.
-    date_time_obj = datetime.strptime(processing_date, '%Y%m%d')
+    # Convert string to datetime object via strptime.
+    date_time_obj = datetime.strptime(processing_date, "%Y%m%d")
 
     # Update processing date by iterarion using timedelta
     newdate = date_time_obj + timedelta(days=day_step)
 
     # Converter no formato original para recolocar no product id
-    formatted_date = newdate.strftime('%Y%m%d')
+    formatted_date = newdate.strftime("%Y%m%d")
 
     # Replace date in identifiers
     identifiers[4] = formatted_date
-    #Replace other identifiers 
+    # Replace other identifiers
     identifiers[1] = processing_level
     identifiers[5] = collection
 
@@ -369,10 +374,9 @@ def format_product(product, day_step):
     return newproduct
 
 
-
 def format_ls_c2_band(value, day_step):
 
-    #Get parameters to build the links
+    # Get parameters to build the links
     base_url = LS_L2_URL
     sensor = value["sensor_id"].lower()
     if sensor == "oli_tirs":
@@ -383,39 +387,44 @@ def format_ls_c2_band(value, day_step):
     product = value["product_id"]
     path = str(value["wrs_path"]).zfill(3)
     row = str(value["wrs_row"]).zfill(3)
-    plat = value["spacecraft_id"] 
-    #Format product id
+    plat = value["spacecraft_id"]
+    # Format product id
     newproduct = format_product(product, day_step)
-   
+
     url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
-        base_url=base_url, sensor=sensor, year=year,path=path, row=row, product=newproduct
-        )
-   
+        base_url=base_url,
+        sensor=sensor,
+        year=year,
+        path=path,
+        row=row,
+        product=newproduct,
+    )
+
     data = {}
     # Exclude Landsat 1-5
     if plat == LANDSAT_8:
-            for band in L8_COG_ITEMS:
-                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
+        for band in L8_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
 
-                data[band] = ls_band_template.format(
-                    url=url_template, product_id=newproduct, band=band
-                )
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
     elif plat == LANDSAT_7:
-            for band in L7_COG_ITEMS:
-                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
+        for band in L7_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
 
-                data[band] = ls_band_template.format(
-                    url=url_template, product_id=newproduct, band=band
-                )
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
 
     elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
-            for band in L4_L5_COG_ITEMS:
-                ls_band_template = "{url}/{product_id}_{band}.TIF" # ajeitar aqui
+        for band in L4_L5_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
 
-                data[band] = ls_band_template.format(
-                    url=url_template, product_id=newproduct, band=band
-                )
-    else: 
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
+    else:
         print("There are no images available in collection 2, level 2 for this search.")
 
     return data
@@ -439,7 +448,7 @@ def is_level_valid(level, platforms):
     return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
 
 
-# references to understanding collections, products types and tiers
+# References to understanding collections, products types and tiers
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-1?qt-science_support_page_related_con=1#qt-science_support_page_related_con
 # https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
 # https://www.usgs.gov/media/images/landsat-collection-2-generation-timeline
