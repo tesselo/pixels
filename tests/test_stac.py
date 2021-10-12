@@ -221,7 +221,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(obj, self.item_example)
 
     @patch("pixels.search.engine.execute", l8_data_mock)
-    @patch("pixels.search.format_ls_band", l8_return)
+    @patch("pixels.search.format_ls_c1_band", l8_return)
     def test_collect_from_catalog_subsection(self):
         catalog = parse_training_data(
             self.zip_file.name, True, reference_date="2020-01-01"

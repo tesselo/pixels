@@ -30,8 +30,6 @@ from pixels.const import (
 )
 from pixels.utils import compute_wgs83_bbox
 
-print("Hello Keren!")
-
 logger = structlog.get_logger(__name__)
 
 DB_NAME = os.getenv("DB_NAME")
@@ -149,25 +147,16 @@ def search_data(
 
     # Execute and format querry.
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    # print (formatted_query)
     result = engine.execute(formatted_query)
-    # x = [dict(row) for row in result]
-    # print(x)
     # Transform ResultProxy into json.
     result = get_bands([dict(row) for row in result], level=level)
-    # print(result)
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
 
     # Filter real time products for landsat
 
-    result = [
-        dat
-        for dat in result
-        if "_01_RT" not in dat["product_id"]
-        if "_01_T2" not in dat["product_id"]
-    ]
+    result = [dat for dat in result if "_01_RT" not in dat["product_id"]]
 
     logger.debug("Found {} results in search.".format(len(result)))
 
@@ -190,6 +179,7 @@ def get_bands(response, level):
     result = []
     for value in response:
         value2 = None
+        value3 = None
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
         elif level == "L2SP":
@@ -337,14 +327,6 @@ def format_ls_c1_band(value):
     return data
 
 
-# Product id
-# product = value["product_id"]
-
-# x = LC08_L1TP_026027_20200827_20200905_01_T1 | database
-# y = LC08_L2SP_026027_20200827_20200906_02_T1 | transform processing level: L2SP(Level-2 Science Product), collection number: 02
-# aws s3 ls s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2020/026/027/LC08_L2SP_026027_20200827_20200906_02_T1/LC08_L2SP_026027_20200827_20200906_02_T1_SR_B1.TIF/  --request-payer requester
-
-
 def format_product(product, day_step):
     # Immutable Replacers
     processing_level = "L2SP"
@@ -404,14 +386,14 @@ def format_ls_c2_band(value, day_step):
     # Exclude Landsat 1-5
     if plat == LANDSAT_8:
         for band in L8_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
 
             data[band] = ls_band_template.format(
                 url=url_template, product_id=newproduct, band=band
             )
     elif plat == LANDSAT_7:
         for band in L7_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
 
             data[band] = ls_band_template.format(
                 url=url_template, product_id=newproduct, band=band
@@ -419,7 +401,7 @@ def format_ls_c2_band(value, day_step):
 
     elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
         for band in L4_L5_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"  # ajeitar aqui
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
 
             data[band] = ls_band_template.format(
                 url=url_template, product_id=newproduct, band=band
@@ -446,13 +428,3 @@ def is_level_valid(level, platforms):
         Sentinel 2.
     """
     return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
-
-
-# References to understanding collections, products types and tiers
-# https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-1?qt-science_support_page_related_con=1#qt-science_support_page_related_con
-# https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2?qt-science_support_page_related_con=1#qt-science_support_page_related_con
-# https://www.usgs.gov/media/images/landsat-collection-2-generation-timeline
-
-# USGS Landsat Collection 2 was released early 2021 and offers improved processing, geometric accuracy, and radiometric calibration compared to previous Collection 1 products. So the date before or after will only work for recent data.
-
-# Before that, we will need to use specific dates without certainity or logic to understand-it yet. Maybe theres a timeline dependind on the month and year of the original data!
