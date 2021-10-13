@@ -1,5 +1,4 @@
 import datetime
-from decimal import Decimal
 from unittest.mock import MagicMock
 
 # Mock data for sentinel 2.
@@ -8,14 +7,14 @@ sentinel_2_data_mock = MagicMock(
         {
             "spacecraft_id": "SENTINEL_2",
             "sensor_id": None,
-            "product_id": "S2A_MSIL1C_20201221T134211_N0209_R124_T22MGD_20201221T153110",
-            "granule_id": "L1C_T22MGD_A028721_20201221T134209",
-            "sensing_time": datetime.datetime(2020, 12, 21, 13, 42, 46, 147000),
+            "product_id": "S2A_MSIL2A_20201211T134211_N0214_R124_T22MGD_20201211T160214",
+            "granule_id": "L2A_T22MGD_A028578_20201211T134207",
+            "sensing_time": datetime.datetime(2020, 12, 11, 13, 42, 43, 997000),
             "mgrs_tile": "22MGD",
-            "cloud_cover": Decimal("13.3952"),
-            "wrs_path": 105233013,
-            "wrs_row": 105233013,
-            "base_url": "gs://gcp-public-data-sentinel-2/tiles/22/M/GD/S2A_MSIL1C_20201221T134211_N0209_R124_T22MGD_20201221T153110.SAFE",
+            "cloud_cover": 11.373496,
+            "wrs_path": 85217265,
+            "wrs_row": 85217265,
+            "base_url": "gs://gcp-public-data-sentinel-2/L2/tiles/22/M/GD/S2A_MSIL2A_20201211T134211_N0214_R124_T22MGD_20201211T160214.SAFE",
         }
     ]
 )
@@ -23,31 +22,30 @@ sentinel_2_data_mock = MagicMock(
 s2_expected_scene = {
     "spacecraft_id": "SENTINEL_2",
     "sensor_id": None,
-    "product_id": "S2A_MSIL1C_20201221T134211_N0209_R124_T22MGD_20201221T153110",
-    "granule_id": "L1C_T22MGD_A028721_20201221T134209",
-    "sensing_time": datetime.datetime(2020, 12, 21, 13, 42, 46, 147000),
+    "product_id": "S2A_MSIL2A_20201211T134211_N0214_R124_T22MGD_20201211T160214",
+    "granule_id": "L2A_T22MGD_A028578_20201211T134207",
+    "sensing_time": datetime.datetime(2020, 12, 11, 13, 42, 43, 997000),
     "mgrs_tile": "22MGD",
-    "cloud_cover": 13.3952,
-    "wrs_path": 105233013,
-    "wrs_row": 105233013,
-    "base_url": "gs://gcp-public-data-sentinel-2/tiles/22/M/GD/S2A_MSIL1C_20201221T134211_N0209_R124_T22MGD_20201221T153110.SAFE",
+    "cloud_cover": 11.373496,
+    "wrs_path": 85217265,
+    "wrs_row": 85217265,
+    "base_url": "gs://gcp-public-data-sentinel-2/L2/tiles/22/M/GD/S2A_MSIL2A_20201211T134211_N0214_R124_T22MGD_20201211T160214.SAFE",
     "bands": {
-        "B01": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B01.jp2",
-        "B02": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B02.jp2",
-        "B03": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B03.jp2",
-        "B04": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B04.jp2",
-        "B05": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B05.jp2",
-        "B06": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B06.jp2",
-        "B07": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B07.jp2",
-        "B08": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B08.jp2",
-        "B8A": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B8A.jp2",
-        "B09": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B09.jp2",
-        "B10": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B10.jp2",
-        "B11": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B11.jp2",
-        "B12": "s3://sentinel-s2-l1c/tiles/22/M/GD/2020/12/21/0/B12.jp2",
+        "B01": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B01.tif",
+        "B02": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B02.tif",
+        "B03": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B03.tif",
+        "B04": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B04.tif",
+        "B05": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B05.tif",
+        "B06": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B06.tif",
+        "B07": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B07.tif",
+        "B08": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B08.tif",
+        "B8A": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B8A.tif",
+        "B09": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B09.tif",
+        "B11": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B11.tif",
+        "B12": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/B12.tif",
+        "SCL": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/22/M/GD/2020/12/S2A_22MGD_20201211_0_L2A/SCL.tif",
     },
 }
-
 # Empty rsult.
 empty_data_mock = MagicMock(return_value=[])
 

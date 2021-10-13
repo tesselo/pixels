@@ -55,20 +55,24 @@ l8_return = MagicMock(
 l8_data_mock = MagicMock(
     return_value=[
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "granule_id": None,
             "sensing_time": datetime.datetime(2020, 11, 21, 11, 20, 37, 137788),
             "mgrs_tile": None,
             "cloud_cover": Decimal("0.01"),
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+            "wrs_path": 85217265,
+            "wrs_row": 85217265,
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
         },
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "granule_id": None,
             "sensing_time": datetime.datetime(2020, 11, 20, 11, 20, 37, 137788),
             "mgrs_tile": None,
             "cloud_cover": Decimal("0.01"),
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+            "wrs_path": 85217265,
+            "wrs_row": 85217265,
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
         },
     ]
 )

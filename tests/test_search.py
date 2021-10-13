@@ -34,7 +34,7 @@ from tests.scenarios import (
 # AOI.
 geojson = {
     "type": "FeatureCollection",
-    "name": "m_grande",
+    "name": "Belém",
     "crs": {"init": "EPSG:3857"},
     "features": [
         {
@@ -44,11 +44,11 @@ geojson = {
                 "type": "Polygon",
                 "coordinates": [
                     [
-                        [-1006608.126849290914834, 4823706.554369583725929],
-                        [-1006608.126849290914834, 4855094.944302001968026],
-                        [-985360.601356576895341, 4855094.944302001968026],
-                        [-985360.601356576895341, 4823706.554369583725929],
-                        [-1006608.126849290914834, 4823706.554369583725929],
+                        [-5401312.371412288397551, -165306.043231031770119],
+                        [-5401312.371412288397551, -153806.687808195129037],
+                        [-5390506.444457160308957, -153806.687808195129037],
+                        [-5390506.444457160308957, -165306.043231031770119],
+                        [-5401312.371412288397551, -165306.043231031770119],
                     ]
                 ],
             },
@@ -64,7 +64,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start="2020-12-01",
             end="2021-01-01",
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             level="L2A",
             platforms="SENTINEL_2",
@@ -77,7 +77,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start="2020-12-01",
             end="2021-01-01",
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             level="L3",
             platforms="SENTINEL_2",
@@ -90,7 +90,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start="2020-12-01",
             end="2021-01-01",
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_1",
         )
@@ -102,7 +102,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start="2020-12-01",
             end="2021-01-01",
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="Landsat_1",
         )
@@ -114,7 +114,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start=L1_DATES[0],
             end=L1_DATES[1],
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_1",
         )
@@ -126,7 +126,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start=L2_DATES[0],
             end=L2_DATES[1],
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_2",
         )
@@ -138,7 +138,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start=L3_DATES[0],
             end=L3_DATES[1],
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_3",
         )
@@ -150,7 +150,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start=L4_DATES[0],
             end=L4_DATES[1],
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_4",
         )
@@ -162,7 +162,7 @@ class SearchTest(unittest.TestCase):
             geojson,
             start=L5_DATES[0],
             end=L5_DATES[1],
-            maxcloud=20,
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_5",
         )
@@ -173,8 +173,8 @@ class SearchTest(unittest.TestCase):
         actual = search_data(
             geojson,
             start=L7_DATES,
-            end="2020-12-31",
-            maxcloud=20,
+            end="2020-01-31",
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_7",
         )
@@ -185,8 +185,8 @@ class SearchTest(unittest.TestCase):
         actual = search_data(
             geojson,
             start=L8_DATES,
-            end="2020-12-31",
-            maxcloud=20,
+            end="2021-01-31",
+            maxcloud=100,
             limit=1,
             platforms="LANDSAT_8",
         )

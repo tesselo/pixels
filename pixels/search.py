@@ -407,7 +407,9 @@ def format_ls_c2_band(value, day_step):
                 url=url_template, product_id=newproduct, band=band
             )
     else:
-        print("There are no images available in collection 2, level 2 for this search.")
+        logger.warning(
+            "There are no images available in collection 2, level 2 for this search config."
+        )
 
     return data
 
