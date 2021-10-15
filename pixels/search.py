@@ -1,25 +1,31 @@
+import copy
 import os
+from datetime import datetime, timedelta
 
 import structlog
 from dateutil.parser import parse
 from sqlalchemy import create_engine
 
 from pixels.const import (
-    AWS_L1C,
-    AWS_URL,
     BASE_LANDSAT,
     GOOGLE_URL,
     L1_L2_L3_BANDS,
     L4_L5_BANDS,
     L4_L5_BANDS_MSS,
+    L4_L5_COG_ITEMS,
     L7_BANDS,
+    L7_COG_ITEMS,
     L8_BANDS,
+    L8_COG_ITEMS,
     LANDSAT_4,
     LANDSAT_5,
     LANDSAT_7,
     LANDSAT_8,
+    LS_L2_URL,
     S2_BANDS,
     S2_BANDS_L2A,
+    S2_L1C_URL,
+    S2_L2A_URL,
     SENTINEL_2,
 )
 from pixels.utils import compute_wgs83_bbox
@@ -114,7 +120,7 @@ def search_data(
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, wrs_path, wrs_row, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
 
     # Check inputs.
     if start is not None:
@@ -143,17 +149,21 @@ def search_data(
     formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     result = engine.execute(formatted_query)
     # Transform ResultProxy into json.
-    result = get_bands([dict(row) for row in result])
+    result = get_bands([dict(row) for row in result], level=level)
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
+
+    # Filter real time products for landsat
+
+    result = [dat for dat in result if "_01_RT" not in dat["product_id"]]
 
     logger.debug("Found {} results in search.".format(len(result)))
 
     return result
 
 
-def get_bands(response):
+def get_bands(response, level):
     """
     Decides which method use to format bands and generate links to download it.
 
@@ -168,12 +178,29 @@ def get_bands(response):
     """
     result = []
     for value in response:
+        value2 = None
+        value3 = None
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
+        elif level == "L2SP":
+            # Try different dates to find the scene
+            # In the same day of Collection 1
+            value["bands"] = format_ls_c2_band(value, day_step=0)
+            # 1 Day after
+            value2 = copy.copy(value)
+            value2["bands"] = format_ls_c2_band(value, day_step=1)
+            # 1 day before
+            value3 = copy.copy(value)
+            value3["bands"] = format_ls_c2_band(value, day_step=-1)
         else:
-            value["bands"] = format_ls_band(value)
+            value["bands"] = format_ls_c1_band(value)
 
         result.append(value)
+
+        if value2 is not None:
+            result.append(value2)
+        if value3 is not None:
+            result.append(value3)
 
     return result
 
@@ -207,7 +234,7 @@ def format_sentinel_band(value):
         for band in S2_BANDS_L2A:
             band_template_url = "{base_url}/{utm}/{latitude}/{grid}/{year}/{month}/{product_id}_{mgr}_{sensing_time}_{sequence}_{level}/{band}.tif"
             data[band] = band_template_url.format(
-                base_url=AWS_URL,
+                base_url=S2_L2A_URL,
                 utm=utm_zone,
                 latitude=latitude_code,
                 grid=square_grid,
@@ -224,7 +251,7 @@ def format_sentinel_band(value):
         for band in S2_BANDS:
             band_template_url = "{base_url}/tiles/{utm}/{latitude}/{grid}/{year}/{month}/{day}/{sequence}/{band}.jp2"
             data[band] = band_template_url.format(
-                base_url=AWS_L1C,
+                base_url=S2_L1C_URL,
                 utm=utm_zone,
                 latitude=latitude_code,
                 grid=square_grid,
@@ -238,7 +265,7 @@ def format_sentinel_band(value):
     return data
 
 
-def format_ls_band(value):
+def format_ls_c1_band(value):
     """
     Format base url and generate links to download landsat bands.
 
@@ -297,6 +324,93 @@ def format_ls_band(value):
             data[band] = ls_band_template.format(
                 base_url=base_url, product_id=product_id, band=band
             )
+    return data
+
+
+def format_product(product, day_step):
+    # Immutable Replacers
+    processing_level = "L2SP"
+    collection = "02"
+
+    # Separate processing date
+    identifiers = product.split("_")
+    processing_date = identifiers[4]
+
+    # Convert string to datetime object via strptime.
+    date_time_obj = datetime.strptime(processing_date, "%Y%m%d")
+
+    # Update processing date by iterarion using timedelta
+    newdate = date_time_obj + timedelta(days=day_step)
+
+    # Converter no formato original para recolocar no product id
+    formatted_date = newdate.strftime("%Y%m%d")
+
+    # Replace date in identifiers
+    identifiers[4] = formatted_date
+    # Replace other identifiers
+    identifiers[1] = processing_level
+    identifiers[5] = collection
+
+    newproduct = "_".join(identifiers)
+
+    return newproduct
+
+
+def format_ls_c2_band(value, day_step):
+
+    # Get parameters to build the links
+    base_url = LS_L2_URL
+    sensor = value["sensor_id"].lower()
+    if sensor == "oli_tirs":
+        sensor = sensor.replace("_", "-")
+
+    date = parse(str(value["sensing_time"]))
+    year = date.year
+    product = value["product_id"]
+    path = str(value["wrs_path"]).zfill(3)
+    row = str(value["wrs_row"]).zfill(3)
+    plat = value["spacecraft_id"]
+    # Format product id
+    newproduct = format_product(product, day_step)
+
+    url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
+        base_url=base_url,
+        sensor=sensor,
+        year=year,
+        path=path,
+        row=row,
+        product=newproduct,
+    )
+
+    data = {}
+    # Exclude Landsat 1-5
+    if plat == LANDSAT_8:
+        for band in L8_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
+    elif plat == LANDSAT_7:
+        for band in L7_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
+
+    elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
+        for band in L4_L5_COG_ITEMS:
+            ls_band_template = "{url}/{product_id}_{band}.TIF"
+
+            data[band] = ls_band_template.format(
+                url=url_template, product_id=newproduct, band=band
+            )
+    else:
+        logger.warning(
+            "There are no images available in collection 2, level 2 for this search config."
+        )
+
     return data
 
 

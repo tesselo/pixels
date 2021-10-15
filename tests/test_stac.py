@@ -55,20 +55,24 @@ l8_return = MagicMock(
 l8_data_mock = MagicMock(
     return_value=[
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "granule_id": None,
             "sensing_time": datetime.datetime(2020, 11, 21, 11, 20, 37, 137788),
             "mgrs_tile": None,
             "cloud_cover": Decimal("0.01"),
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+            "wrs_path": 85217265,
+            "wrs_row": 85217265,
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
         },
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_RT",
+            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "granule_id": None,
             "sensing_time": datetime.datetime(2020, 11, 20, 11, 20, 37, 137788),
             "mgrs_tile": None,
             "cloud_cover": Decimal("0.01"),
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_RT",
+            "wrs_path": 85217265,
+            "wrs_row": 85217265,
+            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
         },
     ]
 )
@@ -221,7 +225,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(obj, self.item_example)
 
     @patch("pixels.search.engine.execute", l8_data_mock)
-    @patch("pixels.search.format_ls_band", l8_return)
+    @patch("pixels.search.format_ls_c1_band", l8_return)
     def test_collect_from_catalog_subsection(self):
         catalog = parse_training_data(
             self.zip_file.name, True, reference_date="2020-01-01"

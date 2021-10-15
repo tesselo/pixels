@@ -67,7 +67,6 @@ def retrieve(
 
     # Determine resampling algorithm.
     resampling = Resampling.nearest if discrete else Resampling.bilinear
-
     # Open remote raster.
     with rasterio.open(source) as src:
         # If no scale was provided, use the source scale as the target scale.

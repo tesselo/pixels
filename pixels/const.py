@@ -21,10 +21,12 @@ LS_PLATFORMS = ["LANDSAT_7", "LANDSAT_8"]
 
 # Search templates
 GOOGLE_URL = "https://gcp-public-data-landsat.commondatastorage.googleapis.com"
-AWS_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
+S2_L2A_URL = "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs"
+S2_L1C_URL = "s3://sentinel-s2-l1c"
+LS_L2_URL = "s3://usgs-landsat/collection02/level-2/standard"
 BASE_SENTINEL = "gs://gcp-public-data-sentinel-2/tiles"
 BASE_LANDSAT = "gs://gcp-public-data-landsat"
-AWS_L1C = "s3://sentinel-s2-l1c"
+
 
 # Platform Dates [min,max]
 L1_DATES = ["1972-07-23", "1978-01-07"]
@@ -287,4 +289,70 @@ FORMULAS = {
         [BAND_BLUE, BAND_NIR1],
         [BAND_NIR1, BAND_GREEN, BAND_VRE3],
     ],
+}
+
+# Landsat - Collection 2 - Level 2 COG items
+L8_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B6",
+    "SR_B7",
+    "ST_QA",
+    "ST_B10",
+    "ST_DRAD",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_TRAD",
+    "ST_URAD",
+    "QA_PIXEL",
+    "ST_ATRAN",
+    "ST_CDIST",
+    "QA_RADSAT",
+    "SR_QA_AEROSOL",
+}
+
+L7_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B7",
+    "ST_B6",
+    "ST_QA",
+    "ST_DRAD",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_TRAD",
+    "ST_URAD",
+    "QA_PIXEL",
+    "ST_ATRAN",
+    "ST_CDIST",
+    "QA_RADSAT",
+    "SR_ATMOS_OPACITY",
+    "SR_CLOUD_QA",
+}
+
+L4_L5_COG_ITEMS = {
+    "SR_B1",
+    "SR_B2",
+    "SR_B3",
+    "SR_B4",
+    "SR_B5",
+    "SR_B7",
+    "ST_B6",
+    "QA_RADSAT",
+    "QA_PIXEL",
+    "ST_QA",
+    "SR_ATMOS_OPACITY",
+    "SR_CLOUD_QA" "ST_TRAD",
+    "ST_URAD",
+    "ST_DRAD",
+    "ST_ATRAN",
+    "ST_EMIS",
+    "ST_EMSD",
+    "ST_CDIST",
 }
