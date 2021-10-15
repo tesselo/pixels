@@ -58,6 +58,16 @@ LANDSAT_5 = "LANDSAT_5"
 LANDSAT_7 = "LANDSAT_7"
 LANDSAT_8 = "LANDSAT_8"
 
+LANDSAT_SERIES = [
+    LANDSAT_1,
+    LANDSAT_2,
+    LANDSAT_3,
+    LANDSAT_4,
+    LANDSAT_5,
+    LANDSAT_7,
+    LANDSAT_8,
+]
+
 # Const fort each band name
 BAND_COASTAL = "coastal"
 BAND_BLUE = "blue"
