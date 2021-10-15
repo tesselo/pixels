@@ -21,6 +21,7 @@ from pixels.const import (
     LANDSAT_5,
     LANDSAT_7,
     LANDSAT_8,
+    LANDSAT_SERIES,
     LS_L2_URL,
     S2_BANDS,
     S2_BANDS_L2A,
@@ -155,8 +156,8 @@ def search_data(
         dat["cloud_cover"] = float(dat["cloud_cover"])
 
     # Filter real time products for landsat
-
-    result = [dat for dat in result if "_01_RT" not in dat["product_id"]]
+    if sensor in LANDSAT_SERIES:
+        result = [dat for dat in result if "_01_RT" not in dat["product_id"]]
 
     logger.debug("Found {} results in search.".format(len(result)))
 
