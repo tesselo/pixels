@@ -767,8 +767,8 @@ def create_x_catalog(x_folder, source_path=None):
     index_catalog = {}
     for cat in list_cats:
         cat_dict = _load_dictionary(cat)
-        cat_dict["relative_paths"] = False
         index_catalog.update(cat_dict)
+    cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
     save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
