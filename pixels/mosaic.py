@@ -8,6 +8,7 @@ from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
 from pixels.const import (
+    DISCRETE_BANDS,
     LANDSAT_1_LAUNCH_DATE,
     NODATA_VALUE,
     S2_BANDS_REQUIRED_FOR_COMPOSITES,
@@ -131,7 +132,15 @@ def latest_pixel(
             first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
         band_list = [
-            (item["bands"][band], geojson, scale, False, False, False, None)
+            (
+                item["bands"][band],
+                geojson,
+                scale,
+                True if band in DISCRETE_BANDS else False,
+                False,
+                False,
+                None,
+            )
             for band in bands
         ]
 
@@ -458,7 +467,15 @@ def composite(
             first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
         band_list = [
-            (item["bands"][band], geojson, scale, False, False, False, None)
+            (
+                item["bands"][band],
+                geojson,
+                scale,
+                True if band in DISCRETE_BANDS else False,
+                False,
+                False,
+                None,
+            )
             for band in bands_copy
         ]
 
