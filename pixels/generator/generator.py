@@ -250,6 +250,10 @@ class DataGenerator(keras.utils.Sequence):
                 collection_catalog_str = collection_catalog_str.replace(
                     "zip://", ""
                 ).replace(".zip!", "")
+            if y_path_file.endswith("geojson"):
+                y_path_file = generator_utils.download_object_from_s3(
+                    y_path_file, self.download_folder
+                )
             bucket_name = self.path_collection_catalog.split("/")[2]
             # Change paths in collection catalog.
             collection_catalog_str = collection_catalog_str.replace(
