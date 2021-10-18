@@ -22,6 +22,7 @@ logger = structlog.get_logger(__name__)
 # S3 class instanciation.
 s3 = boto3.client("s3")
 
+# Mode Definitions
 GENERATOR_MODE_TRAINING = "training"
 GENERATOR_MODE_PREDICTION = "prediction"
 GENERATOR_MODE_EVALUATION = "evaluation"
@@ -29,6 +30,14 @@ GENERATOR_3D_MODEL = "3D_Model"
 GENERATOR_2D_MODEL = "2D_Model"
 GENERATOR_PIXEL_MODEL = "Pixel_Model"
 GENERATOR_RESNET_2D_MODEL = "RESNET_2D_Model"
+GENERATOR_RESNET_3D_MODEL = "RESNET_3D_Model"
+
+# Groups of modes.
+GENERATOR_2D_MODES = [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL]
+GENERATOR_3D_MODES = [GENERATOR_3D_MODEL, GENERATOR_RESNET_3D_MODEL]
+GENERATOR_X_IMAGE_MODES = [*GENERATOR_3D_MODES, *GENERATOR_2D_MODES]
+GENERATOR_Y_IMAGE_MODES = [GENERATOR_3D_MODEL, GENERATOR_2D_MODEL]
+GENERATOR_Y_VALUE_MODES = [GENERATOR_RESNET_2D_MODEL, GENERATOR_RESNET_3D_MODEL]
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -348,7 +357,7 @@ class DataGenerator(keras.utils.Sequence):
                 y_img, y_meta = generator_utils.read_raster_inside_opened_zip(
                     file_inside_zip, self.y_zip
                 )
-            elif y_path.endswith("geojson") and self.mode == GENERATOR_RESNET_2D_MODEL:
+            elif y_path.endswith("geojson") and self.mode in GENERATOR_Y_VALUE_MODES:
                 import geopandas as gp
 
                 if self.y_geojson is None:
@@ -396,7 +405,7 @@ class DataGenerator(keras.utils.Sequence):
             : self.timesteps, : self.num_bands, : self.height, : self.width
         ]
         # Fill missing pixels to the standard, with the NaN value of the object.
-        if self.mode in [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL]:
+        if self.mode in GENERATOR_2D_MODES:
             # In 2D mode we dont want to fill missing timesteps.
             self.x_open_shape = (x_tensor.shape[0], *self.x_open_shape[1:])
         if x_tensor.shape != self.x_open_shape:
@@ -421,7 +430,7 @@ class DataGenerator(keras.utils.Sequence):
                 mode=self.padding_mode,
             )
         # Ensure correct size of Y data in training mode.
-        if self.train and self.mode not in [GENERATOR_RESNET_2D_MODEL]:
+        if self.train and self.mode in GENERATOR_Y_IMAGE_MODES:
             # Turn to multiclass.
             if self.multiclass_maker:
                 y_tensor = generator_utils.multiclass_builder(
@@ -477,7 +486,7 @@ class DataGenerator(keras.utils.Sequence):
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
         # Make padded timesteps, with nan_value.
-        if self.mode in [GENERATOR_3D_MODEL, GENERATOR_PIXEL_MODEL]:
+        if self.mode in [*GENERATOR_3D_MODES, GENERATOR_PIXEL_MODEL]:
             if len(x_imgs) < self.timesteps:
                 x_imgs = np.vstack(
                     (
@@ -494,11 +503,7 @@ class DataGenerator(keras.utils.Sequence):
         x_imgs = filters._order_tensor_on_masks(
             np.array(x_imgs), self.x_nan_value, number_images=self.timesteps
         )
-        if self.mode in [
-            GENERATOR_3D_MODEL,
-            GENERATOR_2D_MODEL,
-            GENERATOR_RESNET_2D_MODEL,
-        ]:
+        if self.mode in GENERATOR_X_IMAGE_MODES:
             # This gets the data to be used in image models.
             x_tensor, y_tensor = self.process_data(x_imgs, y_tensor=y_img)
             # Change the shape order to :
@@ -506,7 +511,7 @@ class DataGenerator(keras.utils.Sequence):
             # Y -> (width, height, num_classes, )
             x_tensor = np.swapaxes(x_tensor, 1, 2)
             x_tensor = np.swapaxes(x_tensor, 2, 3)
-            if self.train and self.mode not in [GENERATOR_RESNET_2D_MODEL]:
+            if self.train and self.mode in GENERATOR_Y_IMAGE_MODES:
                 y_tensor = np.swapaxes(y_tensor, 0, 1)
                 y_tensor = np.swapaxes(y_tensor, 1, 2)
         if self.mode == GENERATOR_PIXEL_MODEL:
@@ -518,7 +523,7 @@ class DataGenerator(keras.utils.Sequence):
             y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
         if not self.train:
             return x_tensor
-        if self.mode in [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL]:
+        if self.mode in GENERATOR_2D_MODES:
             y_tensor = np.repeat(np.array([y_tensor]), x_tensor.shape[0], axis=0)
         return x_tensor, y_tensor
 
@@ -572,9 +577,8 @@ class DataGenerator(keras.utils.Sequence):
         # Since 2D mode is a special case of 3D, it just requires a ravel on
         # 1st two dimensions.
         if self.mode in [
-            GENERATOR_2D_MODEL,
+            *GENERATOR_2D_MODES,
             GENERATOR_PIXEL_MODEL,
-            GENERATOR_RESNET_2D_MODEL,
         ]:
             X = np.vstack(X)
             if self.train:
@@ -585,10 +589,7 @@ class DataGenerator(keras.utils.Sequence):
             if self.train:
                 Y = Y.astype(self.dtype)
         # Augment data, for more detail see do_augmentation_on_batch() on generator_utils.
-        if self.augmentation > 0 and self.mode in [
-            GENERATOR_2D_MODEL,
-            GENERATOR_3D_MODEL,
-        ]:
+        if self.augmentation > 0 and self.mode in GENERATOR_Y_IMAGE_MODES:
             X, Y = generator_augmentation_2D.do_augmentation_on_batch(
                 X,
                 Y,
@@ -603,10 +604,7 @@ class DataGenerator(keras.utils.Sequence):
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
-        if self.class_weights is not None and self.mode in [
-            GENERATOR_3D_MODEL,
-            GENERATOR_2D_MODEL,
-        ]:
+        if self.class_weights is not None and self.mode in GENERATOR_Y_IMAGE_MODES:
             # This assumes the encoding in one-hot.
             sample_weights = generator_utils.class_sample_weights_builder(
                 np.argmax(Y, axis=-1), self.class_weights
