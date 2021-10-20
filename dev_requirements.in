@@ -1,5 +1,7 @@
 isort
 flake8
 black
-pytest==6.2.2
+pytest
 pre-commit
+lxml
+semgrep
