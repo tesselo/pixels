@@ -4,4 +4,7 @@ black
 pytest
 pre-commit
 lxml
-semgrep
+semgrep<0.65.0
+bandit
+wily
+pydocstyle

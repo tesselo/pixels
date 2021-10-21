@@ -22,29 +22,42 @@ upgrade_batch_dependencies: dev_install
 	pip-compile --upgrade --output-file ./batch/docker/tensorflow_requirements.txt ./batch/docker/tensorflow_requirements.in
 	pip-compile --upgrade --output-file ./batch/docker/requirements.txt ./batch/docker/requirements.in
 
-#
-#   Extended Reports
-#
-.PHONY: coverage
-
-coverage:
-	python -m pytest --cov=pixels --cov-report term --cov-report html:reports/coverage-integration --cov-report term:skip-covered
-
 
 #
 #   Code Checks
 #
-.PHONY: pre-commit check semgrep
+.PHONY: pre-commit check coverage
 
 pre-commit:
 	pre-commit run -a
 
+coverage:
+	python -m pytest --cov=pixels --cov-report term --cov-report html:reports/coverage-integration --cov-report term:skip-covered
+
 check: pre-commit coverage
 
-semgrep:
+#
+#   Extended Reports
+#
+.PHONY: smells security complexity check-advanced check-extended
+
+smells:
 	semgrep --config=p/r2c-ci --config=p/python
 
-check-extended: check semgrep
+security:
+	bandit -r pixels
+
+complexity:
+	wily build pixels
+	wily report pixels
+
+doc-style:
+	pydocstyle batch/runpixels.py pixels
+
+check-advanced: smells security
+check-picky: complexity doc-style
+check-extended: check check-advanced check-picky
+
 #
 #   Code Checks auto-fix
 #
