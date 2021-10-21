@@ -25,3 +25,4 @@ backoff
 structlog
 structlog-sentry
 click
+pygeos
