@@ -52,7 +52,7 @@ cycler==0.10.0
     # via matplotlib
 docutils==0.15.2
     # via awscli
-fiona==1.8.18
+fiona==1.8.20
     # via
     #   -r ./batch/docker/requirements.in
     #   geopandas
