@@ -56,12 +56,12 @@ make check
 Includes security checks and other code smells.
 
 ```bash
-make advanced
+make check-advanced
 ```
 
 ### Picky checks to be a code snob
 
 Includes code complexity and documentation style checks.
 ```bash
-make picky
+make check-picky
 ```
