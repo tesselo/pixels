@@ -1,28 +1,22 @@
-import copy
-import os
-from datetime import datetime, timedelta
-
 import structlog
 from dateutil.parser import parse
-from sqlalchemy import create_engine
 
+from pixels.config.db_config import create_connection_pixels, create_connection_pxsearch
 from pixels.const import (
     BASE_LANDSAT,
     GOOGLE_URL,
     L1_L2_L3_BANDS,
     L4_L5_BANDS,
     L4_L5_BANDS_MSS,
-    L4_L5_COG_ITEMS,
     L7_BANDS,
-    L7_COG_ITEMS,
     L8_BANDS,
-    L8_COG_ITEMS,
     LANDSAT_4,
     LANDSAT_5,
     LANDSAT_7,
     LANDSAT_8,
     LANDSAT_SERIES,
-    LS_L2_URL,
+    LS_BANDS_NAMES,
+    LS_LOOKUP,
     S2_BANDS,
     S2_BANDS_L2A,
     S2_L1C_URL,
@@ -31,28 +25,13 @@ from pixels.const import (
 )
 from pixels.utils import compute_wgs83_bbox
 
+# from sqlalchemy import create_engine
+
+
 logger = structlog.get_logger(__name__)
 
-DB_NAME = os.getenv("DB_NAME")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-
-# Setup db engine and connect.
-if DB_NAME is not None:
-    DB_TEMPLATE = "postgresql+pg8000://{username}:{password}@{host}:{port}/{database}"
-    db_url = DB_TEMPLATE.format(
-        username=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=5432,
-        database=DB_NAME,
-    )
-    engine = create_engine(db_url, client_encoding="utf8")
-else:
-    engine = create_engine(
-        "postgresql+pg8000://postgres:postgres@localhost:5432/pixels"
-    )
+conn_pixels = create_connection_pixels()
+conn_pxsearch = create_connection_pxsearch()
 
 
 def search_data(
@@ -113,15 +92,167 @@ def search_data(
             List of dictionaries with characteristics of each scene present in the search
             result and the respective links to download each band.
     """
-    # Convert str in list.
-    if platforms is not None and not isinstance(platforms, (list, tuple)):
-        platforms = [platforms]
 
+    db_result = execute_query(
+        geojson, start, end, platforms, maxcloud, scene, sensor, level, limit, sort
+    )
+
+    # Transform ResultProxy into json.
+    scenes_result = get_bands([dict(row) for row in db_result], level=level)
+
+    # Convert cloud cover into float to allow json serialization of the output.
+    for dat in scenes_result:
+        dat["cloud_cover"] = float(dat["cloud_cover"])
+
+    # Remove assets from final scenes_result
+    if level == "L2":
+        for dat in scenes_result:
+            if "links" in dat:
+                del dat["links"]
+
+    # Filter real time products for landsat
+    if sensor in LANDSAT_SERIES:
+        scenes_result = [
+            dat for dat in scenes_result if "_01_RT" not in dat["product_id"]
+        ]
+
+    logger.debug("Found {} results in search.".format(len(scenes_result)))
+
+    return scenes_result
+
+
+def execute_query(
+    geojson, start, end, platforms, maxcloud, scene, sensor, level, limit, sort
+):
+    """
+    Connects to the database, considering the level passed, and then executes the query.
+
+    Parameters
+    ----------
+        geojson : dict
+            The area over which the data will be selected. The geometry extent will be used
+            as bounding box to select images that intersect it.
+        start : str, optional
+            The date to start search on pixels.
+        end : str, optional
+            The date to end search on pixels.
+        platforms : str or list, optional
+            The selection of satellites to search for images on pixels. The satellites
+            can be from Landsat collection or Sentinel 2. The str or list must contain
+            the following values: 'SENTINEL_2', 'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3',
+            'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or'LANDSAT_8'. If ignored, it returns
+            values from different platforms according to the combination of the other
+            parameters.
+        maxcloud : int, optional
+            Maximun accepted cloud coverage in images. If not provided returns records with
+            up to 100% cloud coverage.
+        scene : str, optional
+            The product id to search for a specific scene. Ignored if not provided.
+        sensor: str, optional
+            The imager sensor used in the Landsat 4. It can be 'MSS' or 'TM'.
+        level : str, optional
+            The level of image processing for Sentinel-2 or Landsat Collection 2.
+            For the first one, it can be 'L1C'(Level-1C) or 'L2A'(Level-2A) that provides
+            Bottom Of Atmosphere (BOA) reflectance images derived from associated Level-1C products.
+            For Landsat the value passed must be 'L2', that includes scene-based global Level-2 surface reflectance and surface temperature science products.
+            Ignored if platforms is not Sentinel 2.
+        limit : int, optional
+            Specifies the number of records to be returned in the search result.
+        sort : str, optional
+            Defines the ordering of the results. By default, sensing time is used, ordering
+            the images from the most recent date to the oldest. Another option to order the
+            results is the cloud cover which are ordered from the least cloudy to the
+            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
+
+    Returns
+    -------
+        query :
+            a sqlalchemy engine cursor to query execution.
+
+    """
+    query = build_query(
+        start, end, platforms, maxcloud, scene, sensor, level, limit, sort
+    )
     # Getting bounds.
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
+    # Execute and format querry.
+    if level == "L2":
+        formatted_query = query.format(
+            xmin=xmin,
+            xmax=xmax,
+            ymin=ymin,
+            ymax=ymax,
+            schema="data",
+            mgrs_tile="",
+            granule_id="",
+            links=", links",
+        )
+        return conn_pxsearch.execute(formatted_query)
+    else:
+        formatted_query = query.format(
+            xmin=xmin,
+            xmax=xmax,
+            ymin=ymin,
+            ymax=ymax,
+            schema="public",
+            mgrs_tile=" mgrs_tile, ",
+            granule_id=" granule_id, ",
+            links="",
+        )
+        return conn_pixels.execute(formatted_query)
+
+
+def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, sort):
+    """
+    Format and add parameters to query template.
+
+    Parameters
+    ----------
+        start : str, optional
+            The date to start search on pixels.
+        end : str, optional
+            The date to end search on pixels.
+        platforms : str or list, optional
+            The selection of satellites to search for images on pixels. The satellites
+            can be from Landsat collection or Sentinel 2. The str or list must contain
+            the following values: 'SENTINEL_2', 'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3',
+            'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or'LANDSAT_8'. If ignored, it returns
+            values from different platforms according to the combination of the other
+            parameters.
+        maxcloud : int, optional
+            Maximun accepted cloud coverage in images. If not provided returns records with
+            up to 100% cloud coverage.
+        scene : str, optional
+            The product id to search for a specific scene. Ignored if not provided.
+        sensor: str, optional
+            The imager sensor used in the Landsat 4. It can be 'MSS' or 'TM'.
+        level : str, optional
+            The level of image processing for Sentinel-2 or Landsat Collection 2.
+            For the first one, it can be 'L1C'(Level-1C) or 'L2A'(Level-2A) that provides
+            Bottom Of Atmosphere (BOA) reflectance images derived from associated Level-1C products.
+            For Landsat the value passed must be 'L2', that includes scene-based global Level-2
+            surface reflectance and surface temperature science products.
+            Ignored if platforms is not Sentinel 2.
+        limit : int, optional
+            Specifies the number of records to be returned in the search result.
+        sort : str, optional
+            Defines the ordering of the results. By default, sensing time is used, ordering
+            the images from the most recent date to the oldest. Another option to order the
+            results is the cloud cover which are ordered from the least cloudy to the
+            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
+
+    Returns
+    -------
+        query : str
+            query template to execute in postgreSQL.
+    """
+    # Ensure platforms follow the list format.
+    if platforms is not None and not isinstance(platforms, (list, tuple)):
+        platforms = [platforms]
+
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, granule_id, sensing_time, mgrs_tile, cloud_cover, wrs_path, wrs_row, base_url FROM imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326),bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), ST_Transform(bbox, 4326))"
 
     # Check inputs.
     if start is not None:
@@ -133,7 +264,7 @@ def search_data(
             (",".join("'" + plat + "'" for plat in platforms))
         )
     if maxcloud is not None:
-        query += " AND cloud_cover <= {} ".format(maxcloud)
+        query += " AND CAST(cloud_cover AS NUMERIC) <= {} ".format(float(maxcloud))
     if scene is not None:
         query += " AND product_id = '{}' ".format(scene)
     if sensor is not None:
@@ -146,22 +277,7 @@ def search_data(
     if limit is not None:
         query += " LIMIT {};".format(limit)
 
-    # Execute and format querry.
-    formatted_query = query.format(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    result = engine.execute(formatted_query)
-    # Transform ResultProxy into json.
-    result = get_bands([dict(row) for row in result], level=level)
-    # Convert cloud cover into float to allow json serialization of the output.
-    for dat in result:
-        dat["cloud_cover"] = float(dat["cloud_cover"])
-
-    # Filter real time products for landsat
-    if sensor in LANDSAT_SERIES:
-        result = [dat for dat in result if "_01_RT" not in dat["product_id"]]
-
-    logger.debug("Found {} results in search.".format(len(result)))
-
-    return result
+    return query
 
 
 def get_bands(response, level):
@@ -179,29 +295,14 @@ def get_bands(response, level):
     """
     result = []
     for value in response:
-        value2 = None
-        value3 = None
         if "sentinel-2" in value["base_url"]:
             value["bands"] = format_sentinel_band(value)
-        elif level == "L2SP":
-            # Try different dates to find the scene
-            # In the same day of Collection 1
-            value["bands"] = format_ls_c2_band(value, day_step=0)
-            # 1 Day after
-            value2 = copy.copy(value)
-            value2["bands"] = format_ls_c2_band(value, day_step=1)
-            # 1 day before
-            value3 = copy.copy(value)
-            value3["bands"] = format_ls_c2_band(value, day_step=-1)
+        elif level == "L2":
+            value["bands"] = format_ls_c2_bands(value)
         else:
             value["bands"] = format_ls_c1_band(value)
 
         result.append(value)
-
-        if value2 is not None:
-            result.append(value2)
-        if value3 is not None:
-            result.append(value3)
 
     return result
 
@@ -328,93 +429,6 @@ def format_ls_c1_band(value):
     return data
 
 
-def format_product(product, day_step):
-    # Immutable Replacers
-    processing_level = "L2SP"
-    collection = "02"
-
-    # Separate processing date
-    identifiers = product.split("_")
-    processing_date = identifiers[4]
-
-    # Convert string to datetime object via strptime.
-    date_time_obj = datetime.strptime(processing_date, "%Y%m%d")
-
-    # Update processing date by iterarion using timedelta
-    newdate = date_time_obj + timedelta(days=day_step)
-
-    # Converter no formato original para recolocar no product id
-    formatted_date = newdate.strftime("%Y%m%d")
-
-    # Replace date in identifiers
-    identifiers[4] = formatted_date
-    # Replace other identifiers
-    identifiers[1] = processing_level
-    identifiers[5] = collection
-
-    newproduct = "_".join(identifiers)
-
-    return newproduct
-
-
-def format_ls_c2_band(value, day_step):
-
-    # Get parameters to build the links
-    base_url = LS_L2_URL
-    sensor = value["sensor_id"].lower()
-    if sensor == "oli_tirs":
-        sensor = sensor.replace("_", "-")
-
-    date = parse(str(value["sensing_time"]))
-    year = date.year
-    product = value["product_id"]
-    path = str(value["wrs_path"]).zfill(3)
-    row = str(value["wrs_row"]).zfill(3)
-    plat = value["spacecraft_id"]
-    # Format product id
-    newproduct = format_product(product, day_step)
-
-    url_template = "{base_url}/{sensor}/{year}/{path}/{row}/{product}".format(
-        base_url=base_url,
-        sensor=sensor,
-        year=year,
-        path=path,
-        row=row,
-        product=newproduct,
-    )
-
-    data = {}
-    # Exclude Landsat 1-5
-    if plat == LANDSAT_8:
-        for band in L8_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"
-
-            data[band] = ls_band_template.format(
-                url=url_template, product_id=newproduct, band=band
-            )
-    elif plat == LANDSAT_7:
-        for band in L7_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"
-
-            data[band] = ls_band_template.format(
-                url=url_template, product_id=newproduct, band=band
-            )
-
-    elif plat == LANDSAT_4 or plat == LANDSAT_5 and sensor == "TM":
-        for band in L4_L5_COG_ITEMS:
-            ls_band_template = "{url}/{product_id}_{band}.TIF"
-
-            data[band] = ls_band_template.format(
-                url=url_template, product_id=newproduct, band=band
-            )
-    else:
-        logger.warning(
-            "There are no images available in collection 2, level 2 for this search config."
-        )
-
-    return data
-
-
 def is_level_valid(level, platforms):
     """
     Checks whether the use of the Level parameter is valid.
@@ -431,3 +445,28 @@ def is_level_valid(level, platforms):
         Sentinel 2.
     """
     return level is not None and len(platforms) == 1 and platforms[0] == SENTINEL_2
+
+
+def format_ls_c2_bands(value):
+    """
+        Get  links to download landsat collection 02 bands. from assets data.
+
+    Parameters
+    ----------
+        value : dict
+            Dictionary with characteristics of a scene (product id, sensing time, assets, etc).
+
+    Returns
+    -------
+        bands_links : dict
+            Dictionary of each bands url.
+    """
+
+    bands_links = {}
+
+    links = value["links"]
+    for band_name, band_data in links.items():
+        if band_name in LS_BANDS_NAMES:
+            bands_links[LS_LOOKUP[band_name]] = band_data["alternate"]["s3"]["href"]
+
+    return bands_links

@@ -126,7 +126,7 @@ L7_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
 L4_L5_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 L4_L5_BANDS_MSS = ["B1", "B2", "B3", "B4"]
 L1_L2_L3_BANDS = ["B4", "B5", "B6", "B7"]
-
+LS_COGS_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 DISCRETE_BANDS = ["SCL"]
 
 # Bands for composite mode.
@@ -367,4 +367,27 @@ L4_L5_COG_ITEMS = {
     "ST_EMIS",
     "ST_EMSD",
     "ST_CDIST",
+}
+
+LS_BANDS_NAMES = [
+    "red",
+    "blue",
+    "green",
+    "nir08",
+    "swir16",
+    "swir22",
+    "coastal",
+    "qa_pixel",
+    "qa_radsat",
+]
+LS_LOOKUP = {
+    "red": "B4",
+    "blue": "B2",
+    "green": "B3",
+    "nir08": "B5",
+    "swir16": "B6",
+    "swir22": "B7",
+    "coastal": "B1",
+    "qa_pixel": "QA_PIXEL",
+    "qa_radsat": "QA_SAT",
 }

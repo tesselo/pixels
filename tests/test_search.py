@@ -27,6 +27,8 @@ from tests.scenarios import (
     l7_expected_scene,
     l8_data_mock,
     l8_expected_scene,
+    l8_l2_data_mock,
+    l8_l2_expected_scene,
     s2_expected_scene,
     sentinel_2_data_mock,
 )
@@ -57,8 +59,37 @@ geojson = {
 }
 
 
+geojson_MZ = {
+    "type": "FeatureCollection",
+    "name": "TEST_AREA_MNC_PIXELS",
+    "crs": {"init": "EPSG:32736"},
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {"id": 4, "areas_pred": "Area Manica Sul"},
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [452589.846835004282184, 7701177.79016338288784],
+                            [452589.846835004282184, 7768612.886005393229425],
+                            [521878.828473358182237, 7768612.886005393229425],
+                            [521878.828473358182237, 7701177.79016338288784],
+                            [452589.846835004282184, 7701177.79016338288784],
+                        ]
+                    ]
+                ],
+            },
+        }
+    ],
+}
+
+
 class SearchTest(unittest.TestCase):
-    @patch("pixels.search.engine.execute", sentinel_2_data_mock)
+    maxDiff = None
+
+    @patch("pixels.search.conn_pixels.execute", sentinel_2_data_mock)
     def test_result_sentinel(self):
         actual = search_data(
             geojson,
@@ -71,7 +102,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], s2_expected_scene)
 
-    @patch("pixels.search.engine.execute", empty_data_mock)
+    @patch("pixels.search.conn_pixels.execute", empty_data_mock)
     def test_level(self):
         actual = search_data(
             geojson,
@@ -84,7 +115,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertEqual(actual, [])
 
-    @patch("pixels.search.engine.execute", empty_data_mock)
+    @patch("pixels.search.conn_pixels.execute", empty_data_mock)
     def test_date(self):
         actual = search_data(
             geojson,
@@ -96,7 +127,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertEqual(actual, [])
 
-    @patch("pixels.search.engine.execute", empty_data_mock)
+    @patch("pixels.search.conn_pixels.execute", empty_data_mock)
     def test_platform(self):
         actual = search_data(
             geojson,
@@ -108,7 +139,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertEqual(actual, [])
 
-    @patch("pixels.search.engine.execute", l1_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l1_data_mock)
     def test_result_l1(self):
         actual = search_data(
             geojson,
@@ -120,7 +151,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l1_expected_scene)
 
-    @patch("pixels.search.engine.execute", l2_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l2_data_mock)
     def test_result_l2(self):
         actual = search_data(
             geojson,
@@ -132,7 +163,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l2_expected_scene)
 
-    @patch("pixels.search.engine.execute", l3_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l3_data_mock)
     def test_result_l3(self):
         actual = search_data(
             geojson,
@@ -144,7 +175,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l3_expected_scene)
 
-    @patch("pixels.search.engine.execute", l4_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l4_data_mock)
     def test_result_l4(self):
         actual = search_data(
             geojson,
@@ -156,7 +187,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l4_expected_scene)
 
-    @patch("pixels.search.engine.execute", l5_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l5_data_mock)
     def test_result_l5(self):
         actual = search_data(
             geojson,
@@ -168,7 +199,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l5_expected_scene)
 
-    @patch("pixels.search.engine.execute", l7_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l7_data_mock)
     def test_result_l7(self):
         actual = search_data(
             geojson,
@@ -180,7 +211,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertDictEqual(actual[0], l7_expected_scene)
 
-    @patch("pixels.search.engine.execute", l8_data_mock)
+    @patch("pixels.search.conn_pixels.execute", l8_data_mock)
     def test_result_l8(self):
         actual = search_data(
             geojson,
@@ -191,3 +222,16 @@ class SearchTest(unittest.TestCase):
             platforms="LANDSAT_8",
         )
         self.assertDictEqual(actual[0], l8_expected_scene)
+
+    @patch("pixels.search.conn_pxsearch.execute", l8_l2_data_mock)
+    def test_result_ls_l2(self):
+        actual = search_data(
+            geojson_MZ,
+            start=L8_DATES,
+            end="2015-03-01",
+            maxcloud=100,
+            limit=1,
+            platforms="LANDSAT_8",
+            level="L2",
+        )
+        self.assertDictEqual(actual[0], l8_l2_expected_scene)
