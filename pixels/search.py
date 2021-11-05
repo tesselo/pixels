@@ -25,9 +25,6 @@ from pixels.const import (
 )
 from pixels.utils import compute_wgs83_bbox
 
-# from sqlalchemy import create_engine
-
-
 logger = structlog.get_logger(__name__)
 
 conn_pixels = create_connection_pixels()
@@ -116,7 +113,7 @@ def search_data(
             dat for dat in scenes_result if "_01_RT" not in dat["product_id"]
         ]
 
-    logger.debug("Found {} results in search.".format(len(scenes_result)))
+    logger.debug(f"Found {len(scenes_result)} in search.")
 
     return scenes_result
 
