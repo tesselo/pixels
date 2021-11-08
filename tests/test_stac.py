@@ -224,7 +224,7 @@ class TestUtils(unittest.TestCase):
         obj.pop("assets")
         self.assertEqual(obj, self.item_example)
 
-    @patch("pixels.search.conn_pixels.execute", l8_data_mock)
+    @patch("pixels.search.execute_query", l8_data_mock)
     @patch("pixels.search.format_ls_c1_band", l8_return)
     def test_collect_from_catalog_subsection(self):
         catalog = parse_training_data(

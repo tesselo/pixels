@@ -3,9 +3,9 @@ import os
 from sqlalchemy import create_engine
 
 
-def create_connection_pixels():
+def create_db_engine_pixels():
     """
-    Get connection URL from environment variables to to Pixels DB.
+    Create database engine from environment variables to Pixels DB.
     """
     pg_user = os.environ.get("DB_USER_PIXELS", "postgres")
     pg_pass = os.environ.get("DB_PASS_PIXELS", "")
@@ -17,9 +17,9 @@ def create_connection_pixels():
     return create_engine(db_url, client_encoding="utf8")
 
 
-def create_connection_pxsearch():
+def create_db_engine_pxsearch():
     """
-    Get connection URL from environment variables to Pxsearch Db.
+    Create database engine from environment variables to Pxsearch Db.
     """
     pg_user = os.environ.get("DB_USER_PXSEARCH", "postgres")
     pg_pass = os.environ.get("DB_PASS_PXSEARCH", "")
