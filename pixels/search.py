@@ -1,7 +1,7 @@
 import structlog
 from dateutil.parser import parse
 
-from pixels.config.db_config import create_connection_pixels, create_connection_pxsearch
+from pixels.config.db_config import create_db_engine_pixels, create_db_engine_pxsearch
 from pixels.const import (
     BASE_LANDSAT,
     GOOGLE_URL,
@@ -27,8 +27,8 @@ from pixels.utils import compute_wgs83_bbox
 
 logger = structlog.get_logger(__name__)
 
-conn_pixels = create_connection_pixels()
-conn_pxsearch = create_connection_pxsearch()
+pixels_db_engine = create_db_engine_pixels()
+pxsearch_db_engine = create_db_engine_pxsearch()
 
 
 def search_data(
@@ -173,7 +173,7 @@ def execute_query(
     # Getting bounds.
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
-    # Execute and format querry.
+    # Execute and format query.
     if level == "L2":
         formatted_query = query.format(
             xmin=xmin,
@@ -185,7 +185,8 @@ def execute_query(
             granule_id="",
             links=", links",
         )
-        return conn_pxsearch.execute(formatted_query)
+        with pxsearch_db_engine.connect() as connection:
+            yield connection.execute(formatted_query)
     else:
         formatted_query = query.format(
             xmin=xmin,
@@ -197,7 +198,8 @@ def execute_query(
             granule_id=" granule_id, ",
             links="",
         )
-        return conn_pixels.execute(formatted_query)
+        with pixels_db_engine.connect() as connection:
+            yield connection.execute(formatted_query)
 
 
 def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, sort):
