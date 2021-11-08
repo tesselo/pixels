@@ -763,11 +763,16 @@ def create_x_catalog(x_folder, source_path=None):
         catalogs_path_list = glob.glob(
             f"{downloads_folder}/**/**/catalog.json", recursive=True
         )
+
+    if not list_cats:
+        raise PixelsException(f"Trying to build an empty catalog from {x_folder}")
+
     # Open all index catalogs and merge them.
     index_catalog = {}
     for cat in list_cats:
         cat_dict = _load_dictionary(cat)
         index_catalog.update(cat_dict)
+    # FIXME: it is still unknown if the following line has any effect
     cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
     save_dictionary(cat_path, index_catalog)
