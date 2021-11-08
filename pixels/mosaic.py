@@ -131,18 +131,23 @@ def latest_pixel(
         if first_end_date is None:
             first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
-        band_list = [
-            (
-                item["bands"][band],
-                geojson,
-                scale,
-                True if band in DISCRETE_BANDS else False,
-                False,
-                False,
-                None,
+        band_list = []
+        for band in bands:
+            if band not in item["bands"]:
+                raise PixelsException(
+                    f"Latest pixel requested for a band not present: {band} in {item['base_url']}"
+                )
+            band_list.append(
+                (
+                    item["bands"][band],
+                    geojson,
+                    scale,
+                    True if band in DISCRETE_BANDS else False,
+                    False,
+                    False,
+                    None,
+                )
             )
-            for band in bands
-        ]
 
         data = []
         failed_retrieve = False
