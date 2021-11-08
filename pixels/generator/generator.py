@@ -72,6 +72,7 @@ class DataGenerator(keras.utils.Sequence):
         class_weights=None,
         download_data=False,
         temp_dir=None,
+        normalization=None,
     ):
         """
         Initial setup for the class.
@@ -112,6 +113,7 @@ class DataGenerator(keras.utils.Sequence):
         self.y_nan_value = y_nan_value
         self.training_percentage = training_percentage
         self.usage_type = usage_type
+        self.normalization = normalization
 
         # Multiclass transform.
         self.class_definitions = class_definitions
@@ -605,6 +607,9 @@ class DataGenerator(keras.utils.Sequence):
                 sizeY_width=self.y_width,
                 mode=self.mode,
             )
+        if self.normalization is not None:
+            # Normalize data to [0, 1].
+            X = np.clip(X, 0, self.normalization) / self.normalization
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
