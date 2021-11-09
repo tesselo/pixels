@@ -94,7 +94,8 @@ def search_data(
         geojson, start, end, platforms, maxcloud, scene, sensor, level, limit, sort
     )
 
-    scenes_result = get_bands([dict(row) for row in db_result], level=level)
+    results = [dict(row) for row in db_result]
+    scenes_result = get_bands(results, level=level)
 
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in scenes_result:
@@ -172,7 +173,7 @@ def execute_query(
     # Getting bounds.
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
-    # Execute and format query.
+    # Format and execute query.
     if level == "L2":
         formatted_query = query.format(
             xmin=xmin,
@@ -184,8 +185,7 @@ def execute_query(
             granule_id="",
             links=", links",
         )
-        with pxsearch_db_engine.connect() as connection:
-            yield connection.execute(formatted_query).fetchall()
+        engine = pxsearch_db_engine
     else:
         formatted_query = query.format(
             xmin=xmin,
@@ -197,8 +197,10 @@ def execute_query(
             granule_id=" granule_id, ",
             links="",
         )
-        with pixels_db_engine.connect() as connection:
-            yield connection.execute(formatted_query).fetchall()
+        engine = pixels_db_engine
+
+    connection = engine.connect(close_with_result=True)
+    return connection.execute(formatted_query)
 
 
 def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, sort):
