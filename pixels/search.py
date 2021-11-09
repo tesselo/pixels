@@ -94,7 +94,6 @@ def search_data(
         geojson, start, end, platforms, maxcloud, scene, sensor, level, limit, sort
     )
 
-    # Transform ResultProxy into json.
     scenes_result = get_bands([dict(row) for row in db_result], level=level)
 
     # Convert cloud cover into float to allow json serialization of the output.
@@ -186,7 +185,7 @@ def execute_query(
             links=", links",
         )
         with pxsearch_db_engine.connect() as connection:
-            yield connection.execute(formatted_query)
+            yield connection.execute(formatted_query).fetchall()
     else:
         formatted_query = query.format(
             xmin=xmin,
@@ -199,7 +198,7 @@ def execute_query(
             links="",
         )
         with pixels_db_engine.connect() as connection:
-            yield connection.execute(formatted_query)
+            yield connection.execute(formatted_query).fetchall()
 
 
 def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, sort):
