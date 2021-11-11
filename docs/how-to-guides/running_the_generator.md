@@ -4,14 +4,15 @@ For rapid model testing and iterations, it is sometimes useful to to run the gen
 The arguments definitions can be seen here:[Pixels Data Generator](../generator.md)
 
 ```python
-import pixels.stac_generator.generator as gen
+from pixels.stac_generator.generator import DataGenerator
+
 
 # Path to Collection dictionary.
 # It can be on s3 or locally, it has to be a catalogs_dict.json representing the collection.
 path_collection_catalog = 's3://pxapi-media-dev/pixelsdata/5444055e-89d0-4fe8-a0b4-3abb1f0a6c5e/data/catalogs_dict.json'
 
 gen_args = {
- 'path_collection_catalog':path_collection_catalog,
+    'path_collection_catalog':path_collection_catalog,
     'random_seed' : 23,
     'split':0.8,
     'width':100,
@@ -27,7 +28,7 @@ gen_args = {
 }
 
 
-dtgen = gen.DataGenerator(**gen_args)
+data_generator = DataGenerator(**gen_args)
 ```
 
 To run locally how can set:
