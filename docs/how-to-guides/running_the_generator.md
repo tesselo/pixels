@@ -3,41 +3,61 @@ For rapid model testing and iterations, it is sometimes useful to to run the gen
 
 The arguments definitions can be seen here:[Pixels Data Generator](../generator.md)
 
+When running the generator locally multiple times, it can make sense to download the data so that subsequent runs are faster. To do so, use the following additional parameters: 'download_data' and 'temp_dir'.
+
+
 ```python
 from pixels.stac_generator.generator import DataGenerator
 
 
 # Path to Collection dictionary.
 # It can be on s3 or locally, it has to be a catalogs_dict.json representing the collection.
-path_collection_catalog = 's3://pxapi-media-dev/pixelsdata/5444055e-89d0-4fe8-a0b4-3abb1f0a6c5e/data/catalogs_dict.json'
-
-gen_args = {
-    'path_collection_catalog':path_collection_catalog,
-    'random_seed' : 23,
-    'split':0.8,
-    'width':100,
-    'height':100,
-    'timesteps':12,
-    'num_bands':10,
-    'batch_number':1,
-    'num_classes':1,
-    'augmentation':0,
-    'padding':2,
-    'usage_type':"training",
-    'mode':'3D_Model'
-}
+path_collection_catalog = 's3://bucket-key/pixelsdata/collection_id_key/data/catalogs_dict.json'
 
 
-data_generator = DataGenerator(**gen_args)
+data_training_generator = DataGenerator(
+    path_collection_catalog=path_collection_catalog,
+    random_seed = 23,
+    split=0.8,
+    usage_type="training",
+    download_data=True,
+    temp_dir="/home/user/Desktop/local_generator_data",
+        ...
+)
 ```
-
-To run locally how can set:
-
-```python
-'download_data':True,
-'temp_dir':"/home/user/Desktop/local_generator_data",
-```
-
 The first time you instantiate the generator it will download the data to the temp_dir and build a new catalogs_dict.json with the local paths.
 
 Every other instantiation with the same paths after will just run a file check and use the already downloaded data.
+
+To run an evaluation using the remaining data from the same dataset a new generator must be instanciated. The "usage_type" must be changed to "evaluation",
+training percentage must be the same as the split in the training generator, it is also important that the random_seed is the same as the training generator.
+"split" can be used here independently, one can have have a split lesser than the remaining dataset. Be aware that split is allways referent to the full dataset size.
+
+Considering a dataset with 1000 samples.
+
+```python
+# This creates a generator with the remaining 20% that were not used in the training.
+>>> data_evaluation_generator = DataGenerator(
+        ... same as in training
+        split=0.2,
+        usage_type="evaluation",
+        training_percentage=0.8
+        ...
+    )
+>>> len(data_evaluation_generator)
+200
+```
+
+```python
+# This creates a generator with the 10% of the full dataset, only fetching samples not used in the training.
+
+>>> data_evaluation_generator = DataGenerator(
+        ... same as in training
+        split=0.1,
+        usage_type="evaluation",
+        training_percentage=0.8
+        ...
+    )
+>>> len(data_evaluation_generator)
+100
+```
