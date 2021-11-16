@@ -268,7 +268,7 @@ class DataGenerator(keras.utils.Sequence):
         """
         Seting class id list based on existing catalog dictionary.
         """
-        if self.usage_type == GENERATOR_MODE_PREDICTION:
+        if self.usage_type in [GENERATOR_MODE_PREDICTION, GENERATOR_MODE_TRAINING]:
             self.training_percentage = self.split
         # The ids are the names of each image collection.
         self.original_id_list = list(self.collection_catalog.keys())
