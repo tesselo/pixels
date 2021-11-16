@@ -103,7 +103,7 @@ Dictionary containing the weight of each class.
 
 ### Normalization
 
-The normalization parameter should be a numeric value. All the pixels data in
+The ```normalization``` parameter should be a numeric value. All the pixels data in
 the X value will be normalized from 0 to 1, using the normalization value as
 the maximum value. The normalization expressed as a numpy code snippet is the
 following: `x_norm = numpy.clip(x, 0, normalization)`.
