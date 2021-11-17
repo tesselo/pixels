@@ -101,14 +101,20 @@ Needed for class definition with number of classes.
 ```class_weights```: dict
 Dictionary containing the weight of each class.
 
-### Normalization
+### Optimizing performance
 
-The ```normalization``` parameter should be a numeric value. All the pixels data in
-the X value will be normalized from 0 to 1, using the normalization value as
-the maximum value. The normalization expressed as a numpy code snippet is the
-following: `x_norm = numpy.clip(x, 0, normalization)`.
-Sentinel-2 : 10000
-LandSat-8: 65535
+`normalization`: numerical
+This parameter is to normalize the input values to a range of 0 to 1. Neural
+networks train better on normalized data. All the pixels data in the X value
+will be normalized from 0 to 1 using the normalization value as the maximum
+value. The normalization expressed as a numpy code snippet is the following:
+`x_norm = numpy.clip(x, 0, normalization)`. Recommended values are 10000 for
+Sentinel-2, and 65535 for Landsat-8.
+
+`shuffle`: bool
+Determines if the available data shall be shuffled randomly before each epoch.
+Randomizing the order of the input data helps the model converge faster during
+training. Default: True.
 
 ### Data storage
 

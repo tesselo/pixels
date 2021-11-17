@@ -73,6 +73,7 @@ class DataGenerator(keras.utils.Sequence):
         download_data=False,
         temp_dir=None,
         normalization=None,
+        shuffle=True,
     ):
         """
         Initial setup for the class.
@@ -114,6 +115,7 @@ class DataGenerator(keras.utils.Sequence):
         self.training_percentage = training_percentage
         self.usage_type = usage_type
         self.normalization = normalization
+        self.shuffle = shuffle
 
         # Multiclass transform.
         self.class_definitions = class_definitions
@@ -301,6 +303,9 @@ class DataGenerator(keras.utils.Sequence):
                 logger.warning("The requested length is bigger than the id list size.")
             self.id_list = self.id_list[:length]
             self.length = len(self.id_list)
+        # Shuffle data to help the fitting process.
+        if self.shuffle:
+            np.random.shuffle(self.id_list)
 
     def __len__(self):
         # The return value is the actual generator size, the number of times it
@@ -620,3 +625,7 @@ class DataGenerator(keras.utils.Sequence):
             )
             return X, Y, sample_weights
         return X, Y
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            np.random.shuffle(self.id_list)

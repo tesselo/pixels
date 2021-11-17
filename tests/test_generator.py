@@ -18,6 +18,7 @@ class TestGenerator:
         "mode": "3D_Model",
         "usage_type": "training",
         "random_seed": 5,
+        "shuffle": False,
     }
 
     @pytest.mark.parametrize(
@@ -170,3 +171,14 @@ class TestGenerator:
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
+
+    def test_shuffle(self):
+        gen_args = {**self.gen_args}
+        dtgen_no_shuffle = DataGenerator(**gen_args)
+        gen_args["shuffle"] = True
+        dtgen = DataGenerator(**gen_args)
+        dtgen.on_epoch_end()
+        np.testing.assert_array_equal(
+            np.sort(dtgen.id_list),
+            np.sort(dtgen_no_shuffle.id_list),
+        )
