@@ -81,30 +81,6 @@ class DataGenerator(keras.utils.Sequence):
         """
         Initial setup for the class.
         Bahamut eyes: https://bahamut.slab.com/posts/data-generator-specification-vbeitb77
-        Parameters
-        ----------
-            path_collection_catalog : str
-                Path to the dictonary containing the training set.
-            split : float
-                Value between 0 and 1. Percentage of dataset to use.
-            training_percentage: float
-                Percentage of dataset used for training. Ignored in prediction.
-            usage_type : str
-                One of [training, evaluation, prediction]
-            random_seed : int
-                Numpy random seed. To randomize the dataset choice.
-            timesteps : int
-                Number of timesteps to use.
-            class_definitions : int or list
-                Values to define the Y classes. If int is a number of classes, if a list it is the classes.
-            y_max_value : float
-                Needed for classe definition with number of classes.
-            class_weights : dict
-                Dictionary containing the weight of each class.
-            download_data : bool
-                If True, and the data is not local, it will first download everything locally.
-            temp_dir : str
-                Path to temporary folder created in stac, for the download data.
         """
         self.split = split
         self.random_seed = random_seed
