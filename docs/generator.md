@@ -74,6 +74,10 @@ Default : 1
 Number of pixels to add as padding (a frame around the image).
 Default : 0
 
+`y_padding`: int
+Number of pixels to add as padding on Y (a frame around the image).
+Default : 0
+
 `padding_mode`: string
 Padding mode, from numpy.pad().
 Default : "edge"
