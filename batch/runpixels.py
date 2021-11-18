@@ -3,14 +3,11 @@
 Execute a function from the pixels package from the commandline.
 """
 import importlib
-import logging
 import os
-import sys
 
 import click
 import sentry_sdk
 import structlog
-from structlog_sentry import SentryJsonProcessor
 
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(
@@ -20,29 +17,6 @@ if "SENTRY_DSN" in os.environ:
         # Set traces_sample_rate to 0.1 to capture 10%
         traces_sample_rate=0.1,
     )
-
-# Set structlog logging config.
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        SentryJsonProcessor(level=logging.ERROR, tag_keys="__all__"),
-        structlog.processors.JSONRenderer(),
-    ],
-    context_class=structlog.threadlocal.wrap_dict(dict),
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
-)
-
-# Set standard logging config.
-logging.basicConfig(format="%(message)s", stream=sys.stdout, level=logging.INFO)
 
 # Get logger for the this module.
 logger = structlog.get_logger("runpixels")
