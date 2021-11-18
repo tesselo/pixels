@@ -14,16 +14,20 @@ The main difficulty in specifying the generator arguments are to properly align 
 ### Collection
 
 `path_collection_catalog`: string
+
 Path to the dictonary containing the training set. Either in s3 or locally. Has to be a catalogs_dict.json file.
 
 `split`: float
+
 Value between 0 and 1. Percentage of dataset to use.
 
 `training_percentage`: float
+
 Value between 0 and 1. Percentage of dataset to use if in training mode or percentage used for training if in evaluation mode.
 In training it is the variable that decides the split.
 
 `random_seed`: int
+
 Numpy random seed. To randomize the dataset choice.
 
 ### Modes
@@ -45,75 +49,101 @@ Then there are 3 current model types on use, each one making a different generat
 ### Image
 
 `height`: int
+
 Height of X image, in pixels. Value not considered in Pixel Mode.
 
 `width`: int
+
 Width of X image, in pixels. Value not considered in Pixel Mode.
 
 `y_height`: int, optional
+
 Height of Y image, in pixels. Only use if X and Y are different sizes. Value not considered in Pixel Mode.
 
 `y_width`: int, optional
+
 Width of y image, in pixels. Only use if X and Y are different sizes. Value not considered in Pixel Mode.
 
 `num_bands`: int
+
 Number of bands in the X images.
 - Sentinel-2: 10
 - LandSat-8: 7
 
 `num_classes`: int
+
 Number of classes in Y data.
 
 ### Image Processing
 
 `upsampling`: int
+
 Number of time to upsample the X data.
+
 Default : 1
 
 `padding`: int
+
 Number of pixels to add as padding (a frame around the image).
+
 Default : 0
 
 `y_padding`: int
+
 Number of pixels to add as padding on Y (a frame around the image).
+
 Default : 0
 
 `padding_mode`: string
+
 Padding mode, from numpy.pad().
+
 Default : "edge"
 
 `augmentation`: int
+
 Number of augmentation to do.
+
 Default : 0
 
 `batch_number`: int
+
 Number of batch to do.
+
 Default : 1
 
 `x_nan_value`: float
+
 Value to ignore on X data. This either masks out the values on pixel mode, or informs the loss function of what is to ignore.
+
 Default : 0
 
 `y_nan_value`: float
+
 Value to ignore on Y data. This masks out the values on pixel mode.
 
 `nan_value`: float
+
 Same as y_nan_value, legacy argument still used in the pipeline.
 
 ### Classification
 
 `class_definitions`: int or list
+
 Values to define the Y classes. If int is a number of classes, if a list it is the classes.
 
 `y_max_value`: float
+
 Needed for class definition with number of classes.
 
 `class_weights`: dict
+
 Dictionary containing the weight of each class.
 
 ### Optimizing performance
 
 `normalization`: numerical
+
 This parameter is to normalize the input values to a range of 0 to 1. Neural
 networks train better on normalized data. All the pixels data in the X value
 will be normalized from 0 to 1 using the normalization value as the maximum
@@ -122,6 +152,7 @@ value. The normalization expressed as a numpy code snippet is the following:
 Sentinel-2, and 65535 for Landsat-8.
 
 `shuffle`: bool
+
 Determines if the available data shall be shuffled randomly before each epoch.
 Randomizing the order of the input data helps the model converge faster during
 training. Default: True.
@@ -129,9 +160,11 @@ training. Default: True.
 ### Data storage
 
 `download_data`: bool
+
 If True, and the data is not local, it will first download everything locally.
 
 `temp_dir`: str
+
 Path to temporary folder created in stac, for the download data.
 
 ## Prediction specific arguments
