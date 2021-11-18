@@ -61,6 +61,7 @@ class DataGenerator(keras.utils.Sequence):
         mode=GENERATOR_3D_MODEL,
         batch_number=1,
         padding=0,
+        y_padding=0,
         x_nan_value=0,
         y_nan_value=None,
         nan_value=None,
@@ -150,6 +151,7 @@ class DataGenerator(keras.utils.Sequence):
         self.y_width = y_width
         self.y_height = y_height
         self.padding = padding
+        self.y_padding = y_padding
         self.y_zip = None
         self.y_geojson = None
         self.class_weights = class_weights
@@ -168,6 +170,8 @@ class DataGenerator(keras.utils.Sequence):
                 self.y_width = self.width * self.upsampling
                 self.y_height = self.height * self.upsampling
             self.y_open_shape = (1, self.y_height, self.y_width)
+            self.y_width = self.y_width + (self.y_padding * 2)
+            self.y_height = self.y_height + (self.y_padding * 2)
             self.x_width = (self.width * self.upsampling) + (self.padding * 2)
             self.x_height = (self.height * self.upsampling) + (self.padding * 2)
             if self.mode == GENERATOR_3D_MODEL:
