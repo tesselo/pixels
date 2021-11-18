@@ -50,6 +50,12 @@ Height of X image, in pixels. Value not considered in Pixel Mode.
 `width`: int
 Width of X image, in pixels. Value not considered in Pixel Mode.
 
+`y_height`: int, optional
+Height of Y image, in pixels. Only use if X and Y are different sizes. Value not considered in Pixel Mode.
+
+`y_width`: int, optional
+Width of y image, in pixels. Only use if X and Y are different sizes. Value not considered in Pixel Mode.
+
 `num_bands`: int
 Number of bands in the X images.
 - Sentinel-2: 10
