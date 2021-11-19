@@ -95,6 +95,8 @@ class DataGenerator(keras.utils.Sequence):
         self.usage_type = usage_type
         self.normalization = normalization
         self.shuffle = shuffle
+        if self.usage_type != GENERATOR_MODE_TRAINING:
+            self.shuffle = False
 
         # Multiclass transform.
         self.class_definitions = class_definitions

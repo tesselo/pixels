@@ -159,7 +159,7 @@ Sentinel-2, and 65535 for Landsat-8.
 
 Determines if the available data shall be shuffled randomly before each epoch.
 Randomizing the order of the input data helps the model converge faster during
-training. Default: True.
+training. This is set to false if not in training mode. Default: True.
 
 ### Data storage
 
