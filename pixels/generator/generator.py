@@ -119,8 +119,13 @@ class DataGenerator(keras.utils.Sequence):
         self.collection_catalog = _load_dictionary(self.path_collection_catalog)
 
         if download_data:
-            download_dir = download_dir or tempfile.TemporaryDirectory().name
+            temp_dir = None
+            if not download_dir:
+                temp_dir = tempfile.TemporaryDirectory()
+                download_dir = temp_dir.name
             self.download_and_parse_data(download_dir)
+            if temp_dir:
+                temp_dir.cleanup()
         self.parse_collection()
 
         # Handle image size.
