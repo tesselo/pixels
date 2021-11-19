@@ -206,7 +206,7 @@ def train_model_function(
     train_with_array = gen_args.pop("train_with_array", None)
     if gen_args.get("download_data"):
         tmpdir = tempfile.TemporaryDirectory()
-        gen_args["temp_dir"] = tmpdir.name
+        gen_args["download_dir"] = tmpdir.name
     # Check for existing model boolean.
     if compile_args.get("use_existing_model"):
         if "nan_value" in gen_args:
