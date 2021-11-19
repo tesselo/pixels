@@ -37,7 +37,10 @@ GENERATOR_2D_MODES = [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL]
 GENERATOR_3D_MODES = [GENERATOR_3D_MODEL, GENERATOR_RESNET_3D_MODEL]
 GENERATOR_X_IMAGE_MODES = [*GENERATOR_3D_MODES, *GENERATOR_2D_MODES]
 GENERATOR_Y_IMAGE_MODES = [GENERATOR_3D_MODEL, GENERATOR_2D_MODEL]
-GENERATOR_Y_VALUE_MODES = [GENERATOR_RESNET_2D_MODEL, GENERATOR_RESNET_3D_MODEL]
+GENERATOR_Y_VALUE_MODES = [
+    GENERATOR_RESNET_2D_MODEL,
+    GENERATOR_RESNET_3D_MODEL,
+]
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -108,13 +111,14 @@ class DataGenerator(keras.utils.Sequence):
         if not nan_value:
             self.nan_value = y_nan_value
 
-        # Open and analyse collection.
-        self.download_data = download_data
         self.path_collection_catalog = path_collection_catalog
         # Open the indexing dictionary.
-        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
-        self.download_folder = temp_dir
-        self.download_and_parse_data()
+        self.collection_catalog = _load_dictionary(
+            self.path_collection_catalog
+        )
+
+        if download_data:
+            self.download_and_parse_data(temp_dir)
         self.parse_collection()
 
         # Handle image size.
@@ -200,56 +204,56 @@ class DataGenerator(keras.utils.Sequence):
     def multiclass_maker(self):
         return (self.class_definitions is not None) and self.train
 
-    def download_and_parse_data(self):
-        # Data can only be dowloaded from s3.
+    def download_and_parse_data(self, download_dir):
+        # Data can only be downloaded from s3.
         if not self.path_collection_catalog.startswith("s3"):
-            self.download_data = False
             logger.warning("Data can only be downloaded if on S3.")
-        if self.download_data:
-            logger.info("Download all data")
-            # List all collected images in pixelsdata folder.
-            list_of_tifs = list_files_in_folder(
-                os.path.dirname(self.path_collection_catalog), filetype="tif"
+            return
+
+        logger.info("Download all data")
+        # List all collected images in pixelsdata folder.
+        list_of_tifs = list_files_in_folder(
+            os.path.dirname(self.path_collection_catalog), filetype="tif"
+        )
+        # Download the Pixels Data images in parallel.
+        with Pool(min(len(list_of_tifs), 12)) as p:
+            p.starmap(
+                generator_utils.download_object_from_s3,
+                zip(list_of_tifs, [download_dir] * len(list_of_tifs)),
             )
-            # Download the Pixels Data images in parallel.
-            with Pool(min(len(list_of_tifs), 12)) as p:
-                p.starmap(
-                    generator_utils.download_object_from_s3,
-                    zip(list_of_tifs, [self.download_folder] * len(list_of_tifs)),
-                )
-            # Retrieve path for training data.
-            y_path_file = self.collection_catalog[
-                list(self.collection_catalog.keys())[0]
-            ]["y_path"]
-            # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
-            collection_catalog_str = json.dumps(self.collection_catalog)
-            # If the training data comes from a zip file, download and extract it.
-            if y_path_file.startswith("zip"):
-                # Change the file name format from the rasterio reading format to an absolute one.
-                # Get only the zip, and not the first item inside the zip.
-                y_path_file = y_path_file.replace("zip://", "").split("!")[0]
-                y_path_file = generator_utils.download_object_from_s3(
-                    y_path_file, self.download_folder
-                )
-                with zipfile.ZipFile(y_path_file, "r") as zipi:
-                    # extract all files
-                    zipi.extractall(y_path_file.replace(".zip", ""))
-                # Inside the catalog change the y_path, from rasterio and s3 reading format
-                # to absolute downloaded path.
-                collection_catalog_str = collection_catalog_str.replace(
-                    "zip://", ""
-                ).replace(".zip!", "")
-            if y_path_file.endswith("geojson"):
-                y_path_file = generator_utils.download_object_from_s3(
-                    y_path_file, self.download_folder
-                )
-            bucket_name = self.path_collection_catalog.split("/")[2]
-            # Change paths in collection catalog.
+        # Retrieve path for training data.
+        y_path_file = self.collection_catalog[
+            list(self.collection_catalog.keys())[0]
+        ]["y_path"]
+        # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
+        collection_catalog_str = json.dumps(self.collection_catalog)
+        # If the training data comes from a zip file, download and extract it.
+        if y_path_file.startswith("zip"):
+            # Change the file name format from the rasterio reading format to an absolute one.
+            # Get only the zip, and not the first item inside the zip.
+            y_path_file = y_path_file.replace("zip://", "").split("!")[0]
+            y_path_file = generator_utils.download_object_from_s3(
+                y_path_file, download_dir
+            )
+            with zipfile.ZipFile(y_path_file, "r") as zipi:
+                # extract all files
+                zipi.extractall(y_path_file.replace(".zip", ""))
+            # Inside the catalog change the y_path, from rasterio and s3 reading format
+            # to absolute downloaded path.
             collection_catalog_str = collection_catalog_str.replace(
-                f"s3://{bucket_name}", self.download_folder
+                "zip://", ""
+            ).replace(".zip!", "")
+        if y_path_file.endswith("geojson"):
+            y_path_file = generator_utils.download_object_from_s3(
+                y_path_file, download_dir
             )
-            self.collection_catalog = json.loads(collection_catalog_str)
-            logger.info("Download of all data completed.")
+        bucket_name = self.path_collection_catalog.split("/")[2]
+        # Change paths in collection catalog.
+        collection_catalog_str = collection_catalog_str.replace(
+            f"s3://{bucket_name}", download_dir
+        )
+        self.collection_catalog = json.loads(collection_catalog_str)
+        logger.info("Download of all data completed.")
 
     def parse_collection(self):
         """
