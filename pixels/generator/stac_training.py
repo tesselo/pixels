@@ -34,6 +34,7 @@ ALLOWED_CUSTOM_LOSSES = [
 
 EVALUATION_PERCENTAGE_LIMIT = 0.2
 EVALUATION_SAMPLE_LIMIT = 2000
+TRAIN_WITH_ARRAY_LIMIT = 1e7
 
 logger = structlog.get_logger(__name__)
 
@@ -202,6 +203,7 @@ def train_model_function(
     fit_args = _load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
+    train_with_array = gen_args.pop("train_with_array", None)
     if gen_args.get("download_data"):
         tmpdir = tempfile.TemporaryDirectory()
         gen_args["temp_dir"] = tmpdir.name
@@ -290,18 +292,50 @@ def train_model_function(
     if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
         fit_args.pop("class_weight")
 
-    # Train model. Verbose level 2 prints one line per epoch to the log.
-    history = model.fit(
-        dtgen,
-        **fit_args,
-        callbacks=[
-            Custom_Callback_SaveModel_S3(
-                passed_epochs=last_training_epochs,
-                path=os.path.dirname(model_config_uri),
-            )
-        ],
-        verbose=2,
-    )
+    # Train model, verbose level 2 prints one line per epoch to the log.
+    if train_with_array:
+        # Stack all items into one array.
+        X = []
+        Y = []
+        pixel_counter = 0
+        for x, y in dtgen:
+            X.append(x)
+            Y.append(y)
+            pixel_counter += y.shape[0]
+            if pixel_counter > TRAIN_WITH_ARRAY_LIMIT:
+                logger.warning(
+                    "Training array limit reached, stopping collecting pixels. "
+                    f"{pixel_counter} > {TRAIN_WITH_ARRAY_LIMIT}"
+                )
+                break
+        X = np.vstack(X)
+        Y = np.vstack(Y)
+        # Fit model with data arrays.
+        history = model.fit(
+            X,
+            Y,
+            **fit_args,
+            callbacks=[
+                Custom_Callback_SaveModel_S3(
+                    passed_epochs=last_training_epochs,
+                    path=os.path.dirname(model_config_uri),
+                )
+            ],
+            verbose=2,
+        )
+    else:
+        # Fit model with generator directly.
+        history = model.fit(
+            dtgen,
+            **fit_args,
+            callbacks=[
+                Custom_Callback_SaveModel_S3(
+                    passed_epochs=last_training_epochs,
+                    path=os.path.dirname(model_config_uri),
+                )
+            ],
+            verbose=2,
+        )
     # Write history.
     if model_config_uri.startswith("s3"):
         path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
