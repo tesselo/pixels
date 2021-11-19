@@ -169,9 +169,10 @@ training. This is set to false if not in training mode. Default: True.
 
 If True, and the data is not local, it will first download everything locally.
 
-`temp_dir`: str
+`download_dir`: str
 
-Path to temporary folder created in stac, for the download data.
+Path to for the downloaded data directory. If `download_dir` is not set and 
+`download_data` is `True`, a temporary directory will be created automatically.
 
 ## Supporting arguments
 This section documents a number of arguments that can be set as generator
