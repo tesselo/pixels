@@ -4,7 +4,7 @@ For rapid model testing and iterations, it is sometimes useful to to run the gen
 The arguments definitions can be seen here:[Pixels Data Generator](../generator.md)
 
 ## Prediction mode
-When running the generator locally multiple times, it can make sense to download the data so that subsequent runs are faster. To do so, use the following additional parameters: ```download_data``` and ```temp_dir```.
+When running the generator locally multiple times, it can make sense to download the data so that subsequent runs are faster. To do so, use the following additional parameters: ```download_data``` and ```download_dir```.
 
 ```python
 from pixels.stac_generator.generator import DataGenerator
@@ -19,11 +19,11 @@ data_training_generator = DataGenerator(
     split=0.8,
     usage_type="training",
     download_data=True,
-    temp_dir="/home/user/Desktop/local_generator_data",
+    download_dir="/home/user/Desktop/local_generator_data",
     ...
 )
 ```
-The first time you instantiate the generator it will download the data to the temp_dir and build a new catalogs_dict.json with the local paths.
+The first time you instantiate the generator it will download the data to the download_dir and build a new catalogs_dict.json with the local paths.
 
 Every other instantiation with the same paths after will just run a file check and use the already downloaded data.
 
