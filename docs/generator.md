@@ -78,8 +78,8 @@ Number of classes in Y data.
 
 `upsampling`: int
 
-Number of time to upsample the X data. This value needs to be set so that the
-upsampled X images will match exactly the size of the Y images in pixels.
+Number of time to up-sample the X data. This value needs to be set so that the
+up-sampled X images will match exactly the input shape required by the model.
 
 Default : 1
 
@@ -205,5 +205,18 @@ Default: False
 Determine if the probabilities will be rescaled to UInt8 integers from 0 to 255
 (0.3% increments). This will save space and make things faster. It also applies
 to single class predictions.
+
+Default: False
+
+### Collecting pixels in one array
+For specific cases it is beneficial to collect all available data into one
+single array before training. This is possible with the following argument:
+
+`train_with_array`: bool
+
+Determine if all input data should be collected into a single array to perform
+the model fit. This can increase training and convergence speeds substantially
+Note that this will only work on small datasets that fit into memory on the
+server instances, for instance for 1D models.
 
 Default: False
