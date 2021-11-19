@@ -78,7 +78,8 @@ Number of classes in Y data.
 
 `upsampling`: int
 
-Number of time to upsample the X data.
+Number of time to upsample the X data. This value needs to be set so that the
+upsampled X images will match exactly the size of the Y images in pixels.
 
 Default : 1
 
@@ -124,7 +125,8 @@ Default : 0
 
 `y_nan_value`: float
 
-Value to ignore on Y data. This masks out the values on pixel mode.
+Value to ignore on Y data. This masks out the values on pixel mode. This should
+be set to -9999 if a custom loss function is used in the model.
 
 `nan_value`: float
 
@@ -171,9 +173,18 @@ If True, and the data is not local, it will first download everything locally.
 
 Path to temporary folder created in stac, for the download data.
 
-## Prediction specific arguments
+## Supporting arguments
+This section documents a number of arguments that can be set as generator
+arguments in the stac training algorithm, that are not direct arguments of the
+DataGenerator. These additional arguments are related with formatting the input
+and output of the models, as well as handling special cases during prediction.
 
-If the size of the input images for prediction is bigger than the model input, there is going to be a moving window inside that image. For each window within the image, a prediction will be made. For overlapping sections, an average from the moving window predictions will be calculcated and stored as result. The final output will have the size of the input image.
+### Variable prediction image size
+If the size of the input images for prediction is bigger than the model input,
+there is going to be a moving window inside that image. For each window within
+the image, a prediction will be made. For overlapping sections, an average from
+the moving window predictions will be calculcated and stored as result. The
+final output will have the size of the input image.
 
 The arguments for using this feature are:
 
@@ -181,26 +192,18 @@ The arguments for using this feature are:
 
 `jumping_ratio`: The ratio in which every step is given. For instance, with a value of 1 no two images will overlap, since the step will be the size of the window. With a value of 0.5 every half of window will overlap with the next, step being window size x 0.5.
 
-### Output formats
+### Output scaling
+`extract_probabilities`:
 
-`extract_probabilities`: will extract the probability of each class in bands instead of having a single band with the class DN.
+Determine if the probability of each class will be storedin bands instead of
+having a single band with the class DN.
 
-`rescale_probabilities`: will rescale the probabilities to 0 to 255 (0.3% increments). This will save space and make things faster. It also applies to single class predictions.
+Default: False
 
+`rescale_probabilities`:
 
-## Biggest concerns
+Determine if the probabilities will be rescaled to UInt8 integers from 0 to 255
+(0.3% increments). This will save space and make things faster. It also applies
+to single class predictions.
 
-The generator must be informed of the size of the images it is going to read as the X. For instance if squares of 10x10 pixels:
-
-- height = 10
-- width = 10
-
-If the goal image is on a higher resolution, Y images being 100x100 pixels:
-
-- upsampling = 10
-
-Values with input needed:
-
-- num_bands = 10 ( Sentinel2)
-- timesteps = 12
-- y_nan_value = -9999 (if custom loss function)
+Default: False
