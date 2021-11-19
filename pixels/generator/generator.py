@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import tempfile
 import zipfile
 from multiprocessing import Pool
 
@@ -113,11 +114,10 @@ class DataGenerator(keras.utils.Sequence):
 
         self.path_collection_catalog = path_collection_catalog
         # Open the indexing dictionary.
-        self.collection_catalog = _load_dictionary(
-            self.path_collection_catalog
-        )
+        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
 
         if download_data:
+            temp_dir = temp_dir or tempfile.TemporaryDirectory().name
             self.download_and_parse_data(temp_dir)
         self.parse_collection()
 
@@ -222,9 +222,9 @@ class DataGenerator(keras.utils.Sequence):
                 zip(list_of_tifs, [download_dir] * len(list_of_tifs)),
             )
         # Retrieve path for training data.
-        y_path_file = self.collection_catalog[
-            list(self.collection_catalog.keys())[0]
-        ]["y_path"]
+        y_path_file = self.collection_catalog[list(self.collection_catalog.keys())[0]][
+            "y_path"
+        ]
         # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
         collection_catalog_str = json.dumps(self.collection_catalog)
         # If the training data comes from a zip file, download and extract it.
