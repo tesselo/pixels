@@ -425,11 +425,10 @@ def predict_function_batch(
         nan_value = None
     loss_arguments["nan_value"] = nan_value
     # Load model.
-    #    model = load_existing_model_from_file(
-    #       model_uri, compile_args["loss"], loss_arguments
-    #  )
+    model = load_existing_model_from_file(
+        model_uri, compile_args["loss"], loss_arguments
+    )
 
-    model = load_model_from_file(model_uri.replace("h5", "json"))
     # Instanciate generator, forcing generator to prediction mode.
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
