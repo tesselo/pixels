@@ -425,9 +425,11 @@ def predict_function_batch(
         nan_value = None
     loss_arguments["nan_value"] = nan_value
     # Load model.
-    model = load_existing_model_from_file(
-        model_uri, compile_args["loss"], loss_arguments
-    )
+    #    model = load_existing_model_from_file(
+    #       model_uri, compile_args["loss"], loss_arguments
+    #  )
+
+    model = load_model_from_file(model_uri.replace("h5", "json"))
     # Instanciate generator, forcing generator to prediction mode.
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
@@ -455,23 +457,31 @@ def predict_function_batch(
     item_list_min = array_index * int(items_per_job)
     item_range = range(item_list_min, item_list_max)
     logger.info(f"Predicting generator range from {item_list_min} to {item_list_max}.")
+    model_upsampling = 1
+    if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+        # Index img number based on mode.
+        if dtgen.mode == generator.GENERATOR_3D_MODEL:
+            width_index = 3
+            height_index = 2
+        else:
+            width_index = 2
+            height_index = 1
+        model_upsampling = int(model.output_shape[1] / model.input_shape[height_index])
+    upsampling = int(dtgen.upsampling * model_upsampling)
     # Predict the index range for this batch job.
     for item in item_range:
         # Get metadata from index, and create paths.
         meta = dtgen.get_meta(item)
         if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
-            # Index img number based on mode.
-            if dtgen.mode == generator.GENERATOR_3D_MODEL:
-                width_index = 3
-                height_index = 2
-            else:
-                width_index = 2
-                height_index = 1
             # If the generator output is bigger than model shape, do a jumping window.
             big_square_width = dtgen.expected_x_shape[width_index]
             big_square_height = dtgen.expected_x_shape[height_index]
-            big_square_width_result = big_square_width - (dtgen.padding * 2)
-            big_square_height_result = big_square_height - (dtgen.padding * 2)
+            big_square_width_result = (big_square_width * model_upsampling) - (
+                dtgen.padding * 2
+            )
+            big_square_height_result = (big_square_height * model_upsampling) - (
+                dtgen.padding * 2
+            )
             # Moving window for prediction with bigger shapes than model.
             if dtgen.expected_x_shape[1:] != model.input_shape[1:]:
                 logger.warning(
@@ -543,11 +553,21 @@ def predict_function_batch(
                             jump_pad_i_i : pred.shape[2] - jump_pad_i_f,
                             :,
                         ]
+                        # Make the iterators for the prediction big window.
+                        j_pred = j * model_upsampling
+                        i_pred = i * model_upsampling
+                        jumping_height_pred = jumping_height * model_upsampling
                         # Get the image from the main prediction.
                         aux_pred = prediction[
                             :,
-                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            j_pred
+                            + jump_pad_j_i : j_pred
+                            + jumping_height_pred
+                            - jump_pad_j_f,
+                            i_pred
+                            + jump_pad_i_i : i_pred
+                            + jumping_height_pred
+                            - jump_pad_i_f,
                             :,
                         ]
                         if aux_pred.shape != pred.shape:
@@ -559,8 +579,14 @@ def predict_function_batch(
                             ]
                         aux_sum = pred_num_it[
                             :,
-                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            j_pred
+                            + jump_pad_j_i : j_pred
+                            + jumping_height_pred
+                            - jump_pad_j_f,
+                            i_pred
+                            + jump_pad_i_i : i_pred
+                            + jumping_height_pred
+                            - jump_pad_i_f,
                             :,
                         ]
                         pred_sum = np.ones(pred.shape)
@@ -568,15 +594,27 @@ def predict_function_batch(
                         summed_pred = np.nansum([pred, aux_pred], axis=0)
                         prediction[
                             :,
-                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            j_pred
+                            + jump_pad_j_i : j_pred
+                            + jumping_height_pred
+                            - jump_pad_j_f,
+                            i_pred
+                            + jump_pad_i_i : i_pred
+                            + jumping_height_pred
+                            - jump_pad_i_f,
                         ] = summed_pred
                         # Summed secction of iteration on each pixel.
                         summed_iteration = np.sum([aux_sum, pred_sum], axis=0)
                         pred_num_it[
                             :,
-                            j + jump_pad_j_i : j + jumping_height - jump_pad_j_f,
-                            i + jump_pad_i_i : i + jumping_width - jump_pad_i_f,
+                            j_pred
+                            + jump_pad_j_i : j_pred
+                            + jumping_height_pred
+                            - jump_pad_j_f,
+                            i_pred
+                            + jump_pad_i_i : i_pred
+                            + jumping_height_pred
+                            - jump_pad_i_f,
                         ] = summed_iteration
                 prediction[prediction != prediction] = dtgen.nan_value
                 pred_num_it[pred_num_it == 0] = 1
@@ -586,7 +624,6 @@ def predict_function_batch(
                 prediction = model.predict(dtgen[item])
             meta["width"] = big_square_width_result
             meta["height"] = big_square_height_result
-
         if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             data = dtgen[item]
             prediction = model.predict(data)
@@ -655,11 +692,11 @@ def predict_function_batch(
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
-            meta["transform"][0] / dtgen.upsampling,
+            meta["transform"][0] / upsampling,
             meta["transform"][1],
             meta["transform"][2],
             meta["transform"][3],
-            meta["transform"][4] / dtgen.upsampling,
+            meta["transform"][4] / upsampling,
             meta["transform"][5],
         )
 
