@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Pool
 
 import numpy
 import sentry_sdk
@@ -154,14 +153,8 @@ def latest_pixel(
         if pool:
             try:
                 with ThreadPoolExecutor(max_workers=len(bands)) as executor:
-                    # Submit band retrieval tasks to pool.
-                    futures = []
-                    for band in band_list:
-                        futures.append(executor.submit(retrieve, *band))
-                    # Process completed tasks.
-                    for future in futures:
-                        result = future.result()
-                        data.append(result)
+                    futures = [executor.submit(retrieve, *band) for band in band_list]
+                    data = [future.result() for future in futures]
             except RasterioIOError as e:
                 sentry_sdk.capture_exception(e)
                 logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
@@ -252,7 +245,7 @@ def pixel_stack(
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
-    retrieve_pool = False
+    retrieve_pool = True
 
     if mode == "all" or interval == "all":
         # For all mode, the date range is constructed around each scene, and
@@ -357,8 +350,9 @@ def pixel_stack(
 
     result = []
     if pool_size > 1:
-        with Pool(pool_size) as p:
-            result = p.starmap(funk, dates)
+        with ThreadPoolExecutor(max_workers=pool_size) as executor:
+            futures = [executor.submit(funk, *date) for date in dates]
+            result = [future.result() for future in futures]
     else:
         for date in dates:
             result.append(funk(*date))
@@ -485,8 +479,9 @@ def composite(
         ]
 
         if pool:
-            with Pool(len(bands_copy)) as p:
-                data = p.starmap(retrieve, band_list)
+            with ThreadPoolExecutor(max_workers=len(band_list)) as executor:
+                futures = [executor.submit(retrieve, *band) for band in band_list]
+                data = [future.result() for future in futures]
         else:
             data = []
             for band in band_list:

@@ -150,7 +150,7 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
-            pool_size=1,
+            pool_size=5,
         )
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
