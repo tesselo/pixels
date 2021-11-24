@@ -146,6 +146,12 @@ Needed for class definition with number of classes.
 
 Dictionary containing the weight of each class.
 
+`one_hot`: bool
+
+Boolean to set multiclass as sparse or one_hot.
+
+Default: True
+
 ### Optimizing performance
 
 `normalization`: numerical
