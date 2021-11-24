@@ -81,6 +81,7 @@ class DataGenerator(keras.utils.Sequence):
         download_dir=None,
         normalization=None,
         shuffle=True,
+        one_hot=True,
     ):
         """
         Initial setup for the class.
@@ -99,6 +100,7 @@ class DataGenerator(keras.utils.Sequence):
         self.usage_type = usage_type
         self.normalization = normalization
         self.shuffle = shuffle
+        self.one_hot = one_hot
         if self.usage_type != GENERATOR_MODE_TRAINING:
             self.shuffle = False
 
@@ -524,7 +526,7 @@ class DataGenerator(keras.utils.Sequence):
         if self.mode == GENERATOR_PIXEL_MODEL:
             x_tensor, y_tensor = self.process_pixels(x_imgs, Y=y_img)
         # For multiclass problems, convert the Y data to categorical.
-        if self.num_classes > 1 and self.train:
+        if self.num_classes > 1 and self.train and self.one_hot:
             # Convert data to one-hot encoding. This assumes class DN numbers to
             # be strictly sequential and starting with 0.
             if self.y_nan_value:
