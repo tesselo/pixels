@@ -527,6 +527,10 @@ class DataGenerator(keras.utils.Sequence):
         if self.num_classes > 1 and self.train:
             # Convert data to one-hot encoding. This assumes class DN numbers to
             # be strictly sequential and starting with 0.
+            if self.y_nan_value:
+                nan_value_mask = y_tensor == self.y_nan_value
+                y_tensor[nan_value_mask] = self.num_classes
+                self.num_classes += 1
             y_tensor = keras.utils.to_categorical(y_tensor, self.num_classes)
         if not self.train:
             return x_tensor
