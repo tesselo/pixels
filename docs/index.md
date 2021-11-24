@@ -119,3 +119,10 @@ clipped against the input geometries.
 The `pool_size` parameter determines how many images can be collected in
 parallel on the backend. This is still experimental and should be used with
 caution. Specifying `pool_size` to `1` is the safest option.
+
+
+### Logging level
+
+The default logging level is `INFO`. If you want to change this behaviour either
+when using pixels as a library or from pixels API, set the environment variable
+`LOG_LEVEL` to the desired one.
