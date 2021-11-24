@@ -441,7 +441,7 @@ class DataGenerator(keras.utils.Sequence):
             # Turn to multiclass.
             if self.multiclass_maker:
                 y_tensor = generator_utils.multiclass_builder(
-                    y_tensor, self.class_definitions, self.y_max_value
+                    y_tensor, self.class_definitions, self.y_max_value, self.y_nan_value
                 )
             # Limit the size to the maximum expected.
             y_tensor = y_tensor[: self.num_classes, : self.y_height, : self.y_width]

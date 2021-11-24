@@ -128,7 +128,7 @@ def fill_missing_dimensions(tensor, expected_shape, value=None):
     return tensor
 
 
-def multiclass_builder(Y, class_definition, max_number):
+def multiclass_builder(Y, class_definition, max_number, y_nan_value=None):
     """
     Makes a linear array into a multiclass array.
     Takes the array Y, either a list or a integer.
@@ -140,12 +140,14 @@ def multiclass_builder(Y, class_definition, max_number):
             Values to define the Y classes. If int is a number of classes, if a list it is the classes.
         max_number : float
             Maximun possible value on training data.
-
+        y_nan_value : float
+            NaN value for the image.
     Returns
     -------
         multiclass_y: numpy array
             Classified image.
     """
+    nan_mask = Y == y_nan_value
     if isinstance(class_definition, int):
         # Linear division of value with class_definition classes.
         multiclass_y = Y / (max_number / class_definition)
@@ -160,7 +162,8 @@ def multiclass_builder(Y, class_definition, max_number):
             class_number += 1
             multiclass_y[np.logical_and(Y > down_value, Y <= value)] = class_number
         multiclass_y[Y > class_definition[-1]] = class_number + 1
-
+    # Return nan values to image
+    multiclass_y[nan_mask] = y_nan_value
     return multiclass_y.astype("int")
 
 
