@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 import structlog
@@ -7,7 +8,8 @@ from structlog_sentry import SentryJsonProcessor
 __version__ = "0.1"
 
 # Set standard logging config.
-logging.basicConfig(format="%(message)s", stream=sys.stdout, level=logging.WARNING)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
+logging.basicConfig(format="%(message)s", stream=sys.stdout, level=LOG_LEVEL)
 
 # Set structlog logging config.
 structlog.configure(
