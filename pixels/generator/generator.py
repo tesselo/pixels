@@ -104,6 +104,17 @@ class DataGenerator(keras.utils.Sequence):
         if self.usage_type != GENERATOR_MODE_TRAINING:
             self.shuffle = False
 
+        # Cross checking.
+        if (
+            self.y_nan_value
+            and self.mode in GENERATOR_Y_IMAGE_MODES
+            and self.num_classes > 1
+        ):
+            if self.y_nan_value not in np.arange(self.num_classes):
+                raise InconsistentGeneratorDataException(
+                    "For image classification the y_nan_value must be one the classes."
+                )
+
         # Multiclass transform.
         self.class_definitions = class_definitions
         self.y_max_value = y_max_value
