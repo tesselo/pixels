@@ -162,8 +162,8 @@ def multiclass_builder(Y, class_definition, max_number, y_nan_value=None):
             class_number += 1
             multiclass_y[np.logical_and(Y > down_value, Y <= value)] = class_number
         multiclass_y[Y > class_definition[-1]] = class_number + 1
-    # Return nan values to image
-    multiclass_y[nan_mask] = y_nan_value
+    # Make last class the nan_values.
+    multiclass_y[nan_mask] = class_number + 2
     return multiclass_y.astype("int")
 
 
