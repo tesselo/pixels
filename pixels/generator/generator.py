@@ -109,6 +109,7 @@ class DataGenerator(keras.utils.Sequence):
             self.y_nan_value
             and self.mode in GENERATOR_Y_IMAGE_MODES
             and self.num_classes > 1
+            and not self.class_definitions
         ):
             if self.y_nan_value not in np.arange(self.num_classes):
                 raise InconsistentGeneratorDataException(
