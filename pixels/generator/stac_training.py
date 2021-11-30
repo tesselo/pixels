@@ -464,7 +464,7 @@ def predict_function_batch(
             height_index = 2
         else:
             width_index = 2
-            height_index = 10
+            height_index = 1
         model_upsampling = int(
             model.output_shape[1]
             / (model.input_shape[height_index] - (dtgen.padding * 2))
