@@ -16,6 +16,7 @@ pystac==0.5.4
 jsonschema==3.2.0
 numpy>1.20
 geopandas
+pyproj==3.2.1
 h5py
 tensorflow-addons==0.12.1
 sentry-sdk
