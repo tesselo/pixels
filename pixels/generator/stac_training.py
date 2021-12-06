@@ -469,6 +469,8 @@ def predict_function_batch(
             model.output_shape[1]
             / (model.input_shape[height_index] - (dtgen.padding * 2))
         )
+        if model_upsampling == 0:
+            model_upsampling = 1
     upsampling = int(dtgen.upsampling * model_upsampling)
     # Predict the index range for this batch job.
     for item in item_range:
