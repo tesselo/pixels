@@ -22,5 +22,6 @@ RUN apt-get -y update\
   && apt-get -y update\
   && apt-get -y install zip gdal-bin libgdal-dev
 
+RUN pip install -U pip
 ADD requirements.txt requirements.txt
 RUN pip install -r requirements.txt
