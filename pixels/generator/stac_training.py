@@ -526,13 +526,17 @@ def predict_function_batch(
                         if res.shape[1:] != model.input_shape[1:]:
                             if big_square_height - j < height:
                                 res = data[:, :, -height:, i : i + width, :]
+                                j = big_square_height - (height - dtgen.padding)
                             if big_square_width - i < width:
                                 res = data[:, :, j : j + height, -width:, :]
+                                i = big_square_height - (width - dtgen.padding)
                             if (
                                 big_square_height - j < height
                                 and big_square_width - i < width
                             ):
                                 res = data[:, :, -height:, -width:, :]
+                                j = big_square_height - (height - dtgen.padding)
+                                i = big_square_height - (width - dtgen.padding)
                         # If 2D mode break aditional dimension.
                         if dtgen.mode == generator.GENERATOR_2D_MODEL:
                             res = res[:, 0]
@@ -546,10 +550,16 @@ def predict_function_batch(
                             jump_pad_i_i = 0
                         if big_square_width - i < jump_width:
                             jump_pad_i_f = 0
+                        if big_square_width - i < width:
+                            jump_pad_i_f = 0
+                            jump_pad_i_i = 0
                         if j == 0:
                             jump_pad_j_i = 0
                         if big_square_height - j < jump_height:
                             jump_pad_j_f = 0
+                        if big_square_height - j < height:
+                            jump_pad_j_f = 0
+                            jump_pad_j_i = 0
                         # Get only the array without the padding.
                         pred = pred[
                             :,
