@@ -711,6 +711,7 @@ def predict_function_batch(
             prediction = (prediction - clip_range[0]) * (255 / clip_range[1])
             meta["dtype"] = "uint8"
             prediction = prediction.astype("uint8")
+            meta["nodata"] = None
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
