@@ -710,6 +710,7 @@ def predict_function_batch(
             prediction = np.clip(prediction, clip_range[0], clip_range[1])
             prediction = (prediction - clip_range[0]) * (255 / clip_range[1])
             meta["dtype"] = "uint8"
+            meta["nodata"] = None
             prediction = prediction.astype("uint8")
 
         # Compute target resolution using upscale factor.
