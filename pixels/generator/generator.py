@@ -593,7 +593,7 @@ class DataGenerator(keras.utils.Sequence):
             Y = np.array([np.array(y[1]) for y in tensor])
         else:
             X = tensor
-        X = np.array([np.array(x) for x in X])
+        X = np.stack(X, axis=0)
         # Since 2D mode is a special case of 3D, it just requires a ravel on
         # 1st two dimensions.
         if self.mode in [
