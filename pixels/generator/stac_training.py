@@ -442,6 +442,7 @@ def predict_function_batch(
     jump_pad = gen_args.pop("jump_pad", 0)
     extract_probabilities = gen_args.pop("extract_probabilities", False)
     rescale_probabilities = gen_args.pop("rescale_probabilities", False)
+    clip_range = gen_args.pop("clip_range", False)
 
     catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
@@ -703,6 +704,13 @@ def predict_function_batch(
             meta["count"] = dtgen.num_classes
             if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
+
+        # Clip between the given range and rescale it to uint8.
+        if clip_range:
+            prediction = np.clip(prediction, clip_range[0], clip_range[1])
+            prediction = (prediction - clip_range[0]) * (255 / clip_range[1])
+            meta["dtype"] = "uint8"
+            prediction = prediction.astype("uint8")
 
         # Compute target resolution using upscale factor.
         meta["transform"] = Affine(
