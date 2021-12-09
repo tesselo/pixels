@@ -252,7 +252,7 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
         platforms = [platforms]
 
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), ST_Transform(bbox, 4326))"
+    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), bbox)"
 
     # Check inputs.
     if start is not None:
@@ -264,7 +264,7 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
             (",".join("'" + plat + "'" for plat in platforms))
         )
     if maxcloud is not None:
-        query += " AND CAST(cloud_cover AS NUMERIC) <= {} ".format(float(maxcloud))
+        query += " AND cloud_cover <= {} ".format(float(maxcloud))
     if scene is not None:
         query += " AND product_id = '{}' ".format(scene)
     if sensor is not None:
