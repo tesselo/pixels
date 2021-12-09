@@ -515,7 +515,8 @@ class DataGenerator(keras.utils.Sequence):
                             (
                                 self.timesteps - np.array(x_imgs).shape[0],
                                 *np.array(x_imgs).shape[1:],
-                            )
+                            ),
+                            dtype=x_imgs.dtype,
                         ),
                     )
                 )
