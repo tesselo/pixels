@@ -35,7 +35,7 @@ numpy==1.21.4
     #   h5py
     #   rasterio
     #   snuggs
-pg8000==1.18.0
+pg8000==1.23.0
     # via -r requirements.in
 pyparsing==3.0.6
     # via
@@ -47,7 +47,7 @@ python-dateutil==2.8.2
     # via pystac
 rasterio==1.2.10
     # via -r requirements.in
-scramp==1.2.2
+scramp==1.4.1
     # via pg8000
 sentry-sdk==1.5.0
     # via
@@ -61,7 +61,7 @@ snuggs==1.4.7
     # via rasterio
 sqlalchemy==1.4.0
     # via -r requirements.in
-structlog==21.2.0
+structlog==21.4.0
     # via -r requirements.in
 structlog-sentry==1.4.0
     # via -r requirements.in
