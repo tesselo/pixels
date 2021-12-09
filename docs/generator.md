@@ -215,6 +215,12 @@ to single class predictions.
 
 Default: False
 
+`clip_range`: tuple
+
+Tuple with a range to clip the predictions. If the range exists, apart from the clip it will be rescale to [0,255] and dtype to uint8.
+
+Default: False
+
 ### Collecting pixels in one array
 For specific cases it is beneficial to collect all available data into one
 single array before training. This is possible with the following argument:
