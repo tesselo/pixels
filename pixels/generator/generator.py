@@ -487,11 +487,6 @@ class DataGenerator(keras.utils.Sequence):
         if self.train:
             # Flatten 2D data to 1D.
             Y = Y.ravel()
-            # Ensure X and Y have the same size.
-            if X.shape[0] != Y.shape[0]:
-                raise InconsistentGeneratorDataException(
-                    f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
-                )
             # Add Y nodata values to mask array.
             if self.y_nan_value:
                 mask_1d = np.logical_and(mask_1d, Y != self.y_nan_value)
@@ -501,6 +496,11 @@ class DataGenerator(keras.utils.Sequence):
             Y = np.expand_dims(Y, axis=-1)
         # Drop the X values using combined mask.
         X = X[mask_1d]
+        # Ensure X and Y have the same size.
+        if X.shape[0] != Y.shape[0]:
+            raise InconsistentGeneratorDataException(
+                f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
+            )
         return np.array(X), np.array(Y)
 
     def get_and_process(self, index):
