@@ -497,10 +497,11 @@ class DataGenerator(keras.utils.Sequence):
         # Drop the X values using combined mask.
         X = X[mask_1d]
         # Ensure X and Y have the same size.
-        if X.shape[0] != Y.shape[0]:
-            raise InconsistentGeneratorDataException(
-                f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
-            )
+        if self.train:
+            if X.shape[0] != Y.shape[0]:
+                raise InconsistentGeneratorDataException(
+                    f"X and Y shape are not the same ({X.shape[0]} vs {Y.shape[0]})"
+                )
         return np.array(X), np.array(Y)
 
     def get_and_process(self, index):
