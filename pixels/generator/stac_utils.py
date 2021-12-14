@@ -199,6 +199,11 @@ def list_files_in_s3(uri, filetype="tif"):
     return list_obj
 
 
+def check_for_squared_pixels(rst):
+    if abs(rst.transform[0]) != abs(rst.transform[4]):
+        raise PixelsException(f"Pixels are not squared for raster {rst.name}")
+
+
 def get_bbox_and_footprint_and_stats(raster_uri, categorical):
     """with open(path, "r") as file:
         file.write(json.dumps(catalog_dict))
@@ -225,6 +230,7 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
         Statistics of the data, counts by unique value.
     """
     with rasterio.open(raster_uri) as ds:
+        check_for_squared_pixels(ds)
         # Get bounds.
         bounds = ds.bounds
         # Create bbox as list.

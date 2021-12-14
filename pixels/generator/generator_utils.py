@@ -9,6 +9,8 @@ import numpy as np
 import rasterio
 import structlog
 
+from pixels.generator.stac_utils import check_for_squared_pixels
+
 logger = structlog.get_logger(__name__)
 
 
@@ -40,6 +42,7 @@ def read_img_and_meta_raster(raster_path):
     if isinstance(raster_path, str) and raster_path.startswith("s3://"):
         raster_path = open_object_from_s3(raster_path)
     with rasterio.open(raster_path) as src:
+        check_for_squared_pixels(src)
         img = src.read()
         meta = src.meta
     return img, meta
