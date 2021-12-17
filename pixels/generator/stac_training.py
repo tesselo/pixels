@@ -433,6 +433,7 @@ def predict_function_batch(
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
+    gen_args["x_nan_value"] = None
 
     # Extract generator arguments that are only for prediction and are not
     # passed to generator. These arguments need to be handled differently in a
