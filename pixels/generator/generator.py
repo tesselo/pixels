@@ -607,11 +607,6 @@ class DataGenerator(keras.utils.Sequence):
             X = np.vstack(X)
             if self.train:
                 Y = np.vstack(Y)
-        # Enforce a dtype.
-        if self.dtype:
-            X = X.astype(self.dtype)
-            if self.train:
-                Y = Y.astype(self.dtype)
         # Augment data, for more detail see do_augmentation_on_batch() on generator_utils.
         if self.augmentation > 0 and self.mode in GENERATOR_Y_IMAGE_MODES:
             X, Y = generator_augmentation_2D.do_augmentation_on_batch(
@@ -628,6 +623,11 @@ class DataGenerator(keras.utils.Sequence):
         if self.normalization is not None:
             # Normalize data to [0, 1].
             X = np.clip(X, 0, self.normalization) / self.normalization
+        # Enforce a dtype.
+        if self.dtype:
+            X = X.astype(self.dtype)
+            if self.train:
+                Y = Y.astype(self.dtype)
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
