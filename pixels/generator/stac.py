@@ -4,6 +4,7 @@ import json
 import os
 import zipfile
 from collections import Counter
+from multiprocessing import Pool
 
 import numpy as np
 import pystac
@@ -69,6 +70,59 @@ def create_stac_item(
     except STACValidationError:
         return None
     return item
+
+
+def parse_raster_data_and_create_stac_item(
+    path_item, source_path, data, categorical, reference_date, aditional_links
+):
+    id_raster = os.path.split(path_item)[-1].replace(".tif", "")
+    raster_file = path_item
+    # For zip files, wrap the path with a zip prefix.
+    if source_path.endswith(".zip") and source_path.startswith("s3"):
+        file_in_zip = zipfile.ZipFile(data, "r")
+        raster_file = file_in_zip.read(path_item)
+        raster_file = io.BytesIO(raster_file)
+        path_item = "zip://{}!/{}".format(source_path, path_item)
+    elif source_path.endswith(".zip"):
+        path_item = "zip://{}!/{}".format(source_path, path_item)
+        raster_file = path_item
+    # Extract metadata from raster.
+    (
+        bbox,
+        footprint,
+        datetime_var,
+        out_meta,
+        stats,
+    ) = get_bbox_and_footprint_and_stats(raster_file, categorical)
+    # Ensure datetime var is set properly.
+    if datetime_var is None:
+        if reference_date is None:
+            raise TrainingDataParseError("Datetime could not be determined for stac.")
+        else:
+            datetime_var = reference_date
+    # Ensure datetime is object not string.
+    datetime_var = parser.parse(datetime_var)
+    # Add projection stac extension, assuming input crs has a EPSG id.
+    out_meta["proj:epsg"] = out_meta["crs"].to_epsg()
+    out_meta["stac_extensions"] = ["projection"]
+    # Make transform and crs json serializable.
+    out_meta["transform"] = tuple(out_meta["transform"])
+    out_meta["crs"] = out_meta["crs"].to_dict()
+    out_meta["stats"] = stats
+    # Create stac item.
+    item = create_stac_item(
+        id_raster,
+        footprint,
+        bbox,
+        datetime_var,
+        out_meta,
+        path_item,
+        media_type=pystac.MediaType.GEOTIFF,
+        aditional_links=aditional_links,
+    )
+    print(item)
+    print(stats)
+    return item, stats
 
 
 def parse_prediction_area(
@@ -257,63 +311,28 @@ def parse_training_data(
     logger.debug("Found {} source rasters.".format(len(raster_list)))
     # For every raster in the zip file create an item, add it to catalog.
     global_stats = Counter()
-    for path_item in raster_list:
-        id_raster = os.path.split(path_item)[-1].replace(".tif", "")
-        raster_file = path_item
-        # For zip files, wrap the path with a zip prefix.
-        if source_path.endswith(".zip") and source_path.startswith("s3"):
-            file_in_zip = zipfile.ZipFile(data, "r")
-            raster_file = file_in_zip.read(path_item)
-            raster_file = io.BytesIO(raster_file)
-            path_item = "zip://{}!/{}".format(source_path, path_item)
-        elif source_path.endswith(".zip"):
-            path_item = "zip://{}!/{}".format(source_path, path_item)
-            raster_file = path_item
-        # Extract metadata from raster.
-        (
-            bbox,
-            footprint,
-            datetime_var,
-            out_meta,
-            stats,
-        ) = get_bbox_and_footprint_and_stats(raster_file, categorical)
-
-        # Ensure datetime var is set properly.
-        if datetime_var is None:
-            if reference_date is None:
-                raise TrainingDataParseError(
-                    "Datetime could not be determined for stac."
-                )
-            else:
-                datetime_var = reference_date
-        # Ensure datetime is object not string.
-        datetime_var = parser.parse(datetime_var)
-        # Add projection stac extension, assuming input crs has a EPSG id.
-        out_meta["proj:epsg"] = out_meta["crs"].to_epsg()
-        out_meta["stac_extensions"] = ["projection"]
-        # Make transform and crs json serializable.
-        out_meta["transform"] = tuple(out_meta["transform"])
-        out_meta["crs"] = out_meta["crs"].to_dict()
-        if categorical:
-            out_meta["stats"] = stats
-            # Add item statistics to global stats counter.
-            global_stats.update(stats)
-
-        # Create stac item.
-        item = create_stac_item(
-            id_raster,
-            footprint,
-            bbox,
-            datetime_var,
-            out_meta,
-            path_item,
-            media_type=pystac.MediaType.GEOTIFF,
-            aditional_links=aditional_links,
+    # Parse the raster Data images in parallel.
+    with Pool(min(len(raster_list), 12)) as p:
+        result_parse = p.starmap(
+            parse_raster_data_and_create_stac_item,
+            zip(
+                raster_list,
+                [source_path] * len(raster_list),
+                [data] * len(raster_list),
+                [categorical] * len(raster_list),
+                [reference_date] * len(raster_list),
+                [aditional_links] * len(raster_list),
+            ),
         )
-        if item:
-            catalog.add_item(item)
-    # Store final statistics on catalog.
+    items = [ite[0] for ite in result_parse]
+    stats = [ite[1] for ite in result_parse]
+    # Add the list of items to the catalog.
+    catalog.add_items(items)
     if categorical:
+        # Add item statistics to global stats counter.
+        for stat in stats:
+            global_stats.update(stat)
+        # Store final statistics on catalog.
         # Convert stats to class weights, inversely proportional to their count.
         global_stats_total = sum(global_stats.values())
         global_stats = {
