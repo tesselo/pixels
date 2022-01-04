@@ -10,6 +10,7 @@ import numpy as np
 import pystac
 import sentry_sdk
 import structlog
+import tqdm
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
@@ -120,8 +121,6 @@ def parse_raster_data_and_create_stac_item(
         media_type=pystac.MediaType.GEOTIFF,
         aditional_links=aditional_links,
     )
-    print(item)
-    print(stats)
     return item, stats
 
 
@@ -266,7 +265,7 @@ def parse_training_data(
             Stac catalog dictionary containing all the raster items.
     """
     logger.debug("Building stac catalog for {}.".format(source_path))
-
+    data = None
     # If input is string, convert to boolean.
     if isinstance(categorical, str):
         categorical = categorical == "True"
@@ -312,8 +311,12 @@ def parse_training_data(
     # For every raster in the zip file create an item, add it to catalog.
     global_stats = Counter()
     # Parse the raster Data images in parallel.
-    with Pool(min(len(raster_list), 12)) as p:
-        result_parse = p.starmap(
+    # Added a progess bar. Using a step of the list size/5.
+    # Which means that at every 20% update it shows the progess.
+    pool = Pool(processes=min(len(raster_list), 12))
+    result_parse = []
+    for result in tqdm.tqdm(
+        pool.starmap(
             parse_raster_data_and_create_stac_item,
             zip(
                 raster_list,
@@ -323,7 +326,11 @@ def parse_training_data(
                 [reference_date] * len(raster_list),
                 [aditional_links] * len(raster_list),
             ),
-        )
+        ),
+        total=len(raster_list),
+        miniters=int(len(raster_list) / 5),
+    ):
+        result_parse.append(result)
     items = [ite[0] for ite in result_parse]
     stats = [ite[1] for ite in result_parse]
     # Add the list of items to the catalog.
@@ -564,7 +571,9 @@ def get_and_write_raster_from_item(
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        logger.warning(f"Error in parsing data in get_and_write_raster_from_item: {e}")
+        logger.warning(
+            f"Error in parse_training_data data inside get_and_write_raster_from_item: {e}"
+        )
     # Build a intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     # Ensure no duplicates get on the dictionary.
@@ -782,7 +791,6 @@ def create_x_catalog(x_folder, source_path=None):
         catalogs_path_list = glob.glob(
             f"{downloads_folder}/**/**/catalog.json", recursive=True
         )
-
     if not list_cats:
         raise PixelsException(f"Trying to build an empty catalog from {x_folder}")
 
