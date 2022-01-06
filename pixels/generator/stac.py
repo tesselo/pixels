@@ -313,24 +313,24 @@ def parse_training_data(
     # Parse the raster Data images in parallel.
     # Added a progess bar. Using a step of the list size/5.
     # Which means that at every 20% update it shows the progess.
-    pool = Pool(processes=min(len(raster_list), 12))
     result_parse = []
-    for result in tqdm.tqdm(
-        pool.starmap(
-            parse_raster_data_and_create_stac_item,
-            zip(
-                raster_list,
-                [source_path] * len(raster_list),
-                [data] * len(raster_list),
-                [categorical] * len(raster_list),
-                [reference_date] * len(raster_list),
-                [aditional_links] * len(raster_list),
+    with Pool(processes=min(len(raster_list), 12)) as p:
+        for result in tqdm.tqdm(
+            p.starmap(
+                parse_raster_data_and_create_stac_item,
+                zip(
+                    raster_list,
+                    [source_path] * len(raster_list),
+                    [data] * len(raster_list),
+                    [categorical] * len(raster_list),
+                    [reference_date] * len(raster_list),
+                    [aditional_links] * len(raster_list),
+                ),
             ),
-        ),
-        total=len(raster_list),
-        miniters=int(len(raster_list) / 5),
-    ):
-        result_parse.append(result)
+            total=len(raster_list),
+            miniters=int(len(raster_list) / 5),
+        ):
+            result_parse.append(result)
     items = [ite[0] for ite in result_parse]
     stats = [ite[1] for ite in result_parse]
     # Add the list of items to the catalog.
