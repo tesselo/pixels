@@ -37,6 +37,14 @@ from pixels.utils import write_raster
 logger = structlog.get_logger(__name__)
 
 
+def pooling_definition_starmap(
+    pool_process, function_to_pool, primary_list, *secondary_lists
+):
+    size_lists = len(primary_list)
+    sec = [[f] * size_lists for f in secondary_lists]
+    return pool_process.starmap(function_to_pool, zip(primary_list, *sec))
+
+
 def create_stac_item(
     id_raster,
     footprint,
@@ -316,16 +324,15 @@ def parse_training_data(
     result_parse = []
     with Pool(processes=min(len(raster_list), 12)) as p:
         for result in tqdm.tqdm(
-            p.starmap(
+            pooling_definition_starmap(
+                p,
                 parse_raster_data_and_create_stac_item,
-                zip(
-                    raster_list,
-                    [source_path] * len(raster_list),
-                    [data] * len(raster_list),
-                    [categorical] * len(raster_list),
-                    [reference_date] * len(raster_list),
-                    [aditional_links] * len(raster_list),
-                ),
+                raster_list,
+                source_path,
+                data,
+                categorical,
+                reference_date,
+                aditional_links,
             ),
             total=len(raster_list),
             miniters=int(len(raster_list) / 5),
