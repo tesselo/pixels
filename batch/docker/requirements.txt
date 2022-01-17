@@ -73,7 +73,7 @@ matplotlib==3.3.4
     # via -r ./batch/docker/requirements.in
 munch==2.5.0
     # via fiona
-numpy==1.22.0
+numpy==1.21.1
     # via
     #   -r ./batch/docker/requirements.in
     #   h5py
