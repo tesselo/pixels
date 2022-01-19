@@ -4,7 +4,7 @@ pyparsing
 pystac==0.5.4
 rasterio
 sentry-sdk
-SQLAlchemy==1.4.0
+SQLAlchemy
 backoff
 structlog
 structlog-sentry
