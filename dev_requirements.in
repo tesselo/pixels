@@ -2,6 +2,7 @@ isort
 flake8
 black
 pytest
+pytest-cov
 pre-commit
 lxml
 semgrep<0.65.0
