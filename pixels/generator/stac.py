@@ -10,11 +10,11 @@ import numpy as np
 import pystac
 import sentry_sdk
 import structlog
-import tqdm
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 from pystac.validation import STACValidationError
+from tqdm import tqdm
 
 from pixels import const
 from pixels.exceptions import PixelsException, TrainingDataParseError
@@ -37,12 +37,28 @@ from pixels.utils import write_raster
 logger = structlog.get_logger(__name__)
 
 
-def pooling_definition_starmap(
-    pool_process, function_to_pool, primary_list, *secondary_lists
-):
-    size_lists = len(primary_list)
-    sec = [[f] * size_lists for f in secondary_lists]
-    return pool_process.starmap(function_to_pool, zip(primary_list, *sec))
+def argument_generator(main_arg, *secondary_lists):
+    """Make a argument that yields for every value in main_arg a list
+    with that value and all the values in secondary list."""
+    for val in main_arg:
+        yield (val, *secondary_lists)
+
+
+def run_imap_multiprocessing(func, argument_list):
+    ite = argument_generator(*argument_list)
+    ite_size = len(argument_list[0])
+    num_processes = min(ite_size, 12)
+    result_list_tqdm = []
+    with Pool(processes=num_processes) as pool:
+
+        for result in tqdm(
+            pool.imap(func=func, iterable=ite),
+            total=ite_size,
+            miniters=int(ite_size / 5),
+        ):
+            result_list_tqdm.append(result)
+
+    return result_list_tqdm
 
 
 def create_stac_item(
@@ -54,6 +70,8 @@ def create_stac_item(
     source_path,
     media_type=None,
     aditional_links=None,
+    out_path=None,
+    catalog=None,
 ):
     # Initiate stac item.
     item = pystac.Item(
@@ -78,11 +96,25 @@ def create_stac_item(
         item.validate()
     except STACValidationError:
         return None
+    if out_path and catalog:
+        item.set_self_href(os.path.join(out_path, id_raster, f"{id_raster}.json"))
+        item.set_root(catalog)
+        item.set_parent(catalog)
+        item.make_links_absolute()
+        item.make_asset_hrefs_absolute()
+        item.save_object()
     return item
 
 
 def parse_raster_data_and_create_stac_item(
-    path_item, source_path, data, categorical, reference_date, aditional_links
+    path_item,
+    source_path,
+    data,
+    categorical,
+    reference_date,
+    aditional_links,
+    catalog,
+    out_path=None,
 ):
     id_raster = os.path.split(path_item)[-1].replace(".tif", "")
     raster_file = path_item
@@ -128,8 +160,14 @@ def parse_raster_data_and_create_stac_item(
         path_item,
         media_type=pystac.MediaType.GEOTIFF,
         aditional_links=aditional_links,
+        out_path=out_path,
+        catalog=catalog,
     )
     return item, stats
+
+
+def parse_raster_data_and_create_stac_item_star_arguments(arg):
+    return parse_raster_data_and_create_stac_item(*arg)
 
 
 def parse_prediction_area(
@@ -183,6 +221,8 @@ def parse_prediction_area(
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every tile geojson file create an item, add it to catalog.
     size = len(tiles)
+    out_stac_folder = os.path.join(os.path.dirname(source_path), "stac")
+    catalog.normalize_hrefs(out_stac_folder)
     for count in range(size):
         tile = tiles.iloc[count : count + 1]
         id_raster = str(tile.index.to_list()[0])
@@ -217,6 +257,7 @@ def parse_prediction_area(
             source_path,
             media_type=pystac.MediaType.GEOJSON,
             aditional_links=aditional_links,
+            out_path=out_stac_folder,
         )
         if item:
             # Add item to catalog.
@@ -224,13 +265,11 @@ def parse_prediction_area(
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
-    catalog.normalize_hrefs(os.path.join(os.path.dirname(source_path), "stac"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
-    # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
-        catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
+        catalog.save_object()
     return catalog
 
 
@@ -321,23 +360,21 @@ def parse_training_data(
     # Parse the raster Data images in parallel.
     # Added a progess bar. Using a step of the list size/5.
     # Which means that at every 20% update it shows the progess.
-    result_parse = []
-    with Pool(processes=min(len(raster_list), 12)) as p:
-        for result in tqdm.tqdm(
-            pooling_definition_starmap(
-                p,
-                parse_raster_data_and_create_stac_item,
-                raster_list,
-                source_path,
-                data,
-                categorical,
-                reference_date,
-                aditional_links,
-            ),
-            total=len(raster_list),
-            miniters=int(len(raster_list) / 5),
-        ):
-            result_parse.append(result)
+    out_stac_folder = os.path.join(out_path, "stac")
+    catalog.normalize_hrefs(out_stac_folder)
+    result_parse = run_imap_multiprocessing(
+        parse_raster_data_and_create_stac_item_star_arguments,
+        [
+            raster_list,
+            source_path,
+            data,
+            categorical,
+            reference_date,
+            aditional_links,
+            catalog,
+            out_stac_folder,
+        ],
+    )
     items = [ite[0] for ite in result_parse]
     stats = [ite[1] for ite in result_parse]
     # Add the list of items to the catalog.
@@ -362,13 +399,11 @@ def parse_training_data(
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
-    catalog.normalize_hrefs(os.path.join(out_path, "stac"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
-    # catalog.validate_all()
     # Save files if bool is set.
     if save_files:
-        catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
+        catalog.save_object()
     return catalog
 
 
