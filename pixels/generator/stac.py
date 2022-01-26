@@ -6,6 +6,7 @@ import zipfile
 from collections import Counter
 from multiprocessing import Pool
 
+import geopandas as gp
 import numpy as np
 import pystac
 import sentry_sdk
@@ -36,21 +37,29 @@ from pixels.utils import write_raster
 # Get logger
 logger = structlog.get_logger(__name__)
 
+WORKERS_LIMIT = 12
 
+
+# TODO: Make this accept multiple main args.
 def argument_generator(main_arg, *secondary_lists):
     """Make a argument that yields for every value in main_arg a list
-    with that value and all the values in secondary list."""
+    with that value and all the values in secondary list.
+    Usable for multiprocessing when you want to iterate over a list and them all the other arguments equal."""
     for val in main_arg:
         yield (val, *secondary_lists)
 
 
-def run_imap_multiprocessing(func, argument_list):
+def run_imap_multiprocessing(func, argument_list, ite_size=None):
     ite = argument_generator(*argument_list)
-    ite_size = len(argument_list[0])
-    num_processes = min(ite_size, 12)
+    if not ite_size:
+        ite_size = len(argument_list[0])
+    num_processes = min(ite_size, WORKERS_LIMIT)
     result_list_tqdm = []
+    # Open Pooling session for multiprocess.
     with Pool(processes=num_processes) as pool:
-
+        # Iteration over the pooling results. Each worker will return a value.
+        # All those values will be added to a list with all the results.
+        # Each of this returns is used by tqdm to keep track of overall progress.
         for result in tqdm(
             pool.imap(func=func, iterable=ite),
             total=ite_size,
@@ -94,7 +103,8 @@ def create_stac_item(
     try:
         # Validate item.
         item.validate()
-    except STACValidationError:
+    except STACValidationError as e:
+        logger.warning("Stac Item not validated:", e)
         return None
     if out_path and catalog:
         item.set_self_href(os.path.join(out_path, id_raster, f"{id_raster}.json"))
@@ -166,8 +176,53 @@ def parse_raster_data_and_create_stac_item(
     return item, stats
 
 
-def parse_raster_data_and_create_stac_item_star_arguments(arg):
+def parse_vector_data_and_create_stac_item(
+    tile, reference_date, source_path, aditional_links, out_stac_folder, catalog, crs
+):
+    id_raster = str(tile[0])
+    dict_data = gp.GeoSeries(tile[1].geometry).__geo_interface__
+    bbox = list(dict_data["bbox"])
+    footprint = dict_data["features"][0]["geometry"]
+    footprint["coordinates"] = np.array(footprint["coordinates"]).tolist()
+    datetime_var = None
+    # Ensure datetime var is set properly.
+    if datetime_var is None:
+        if reference_date is None:
+            raise TrainingDataParseError("Datetime could not be determined for stac.")
+        else:
+            datetime_var = reference_date
+    # Ensure datetime is object not string.
+    datetime_var = parser.parse(datetime_var)
+    out_meta = {}
+    # Add projection stac extension, assuming input crs has a EPSG id.
+    out_meta["proj:epsg"] = crs.to_epsg()
+    out_meta["stac_extensions"] = ["projection"]
+    # Make transform and crs json serializable.
+    out_meta["crs"] = {"init": "epsg:" + str(crs.to_epsg())}
+    # Create stac item.
+
+    item = create_stac_item(
+        id_raster,
+        footprint,
+        bbox,
+        datetime_var,
+        out_meta,
+        source_path,
+        media_type=pystac.MediaType.GEOJSON,
+        aditional_links=aditional_links,
+        out_path=out_stac_folder,
+        catalog=catalog,
+    )
+
+    return item
+
+
+def star_raster_parser(arg):
     return parse_raster_data_and_create_stac_item(*arg)
+
+
+def star_vector_parser(arg):
+    return parse_vector_data_and_create_stac_item(*arg)
 
 
 def parse_prediction_area(
@@ -202,7 +257,6 @@ def parse_prediction_area(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-    import geopandas as gp
 
     if source_path.startswith("s3"):
         STAC_IO.read_text_method = stac_s3_read_method
@@ -220,48 +274,23 @@ def parse_prediction_area(
     id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
     # For every tile geojson file create an item, add it to catalog.
-    size = len(tiles)
     out_stac_folder = os.path.join(os.path.dirname(source_path), "stac")
     catalog.normalize_hrefs(out_stac_folder)
-    for count in range(size):
-        tile = tiles.iloc[count : count + 1]
-        id_raster = str(tile.index.to_list()[0])
-        string_data = tile.geometry.to_json()
-        dict_data = json.loads(string_data)
-        bbox = dict_data["bbox"]
-        footprint = dict_data["features"][0]["geometry"]
-        datetime_var = None
-        # Ensure datetime var is set properly.
-        if datetime_var is None:
-            if reference_date is None:
-                raise TrainingDataParseError(
-                    "Datetime could not be determined for stac."
-                )
-            else:
-                datetime_var = reference_date
-        # Ensure datetime is object not string.
-        datetime_var = parser.parse(datetime_var)
-        out_meta = {}
-        # Add projection stac extension, assuming input crs has a EPSG id.
-        out_meta["proj:epsg"] = tile.crs.to_epsg()
-        out_meta["stac_extensions"] = ["projection"]
-        # Make transform and crs json serializable.
-        out_meta["crs"] = {"init": "epsg:" + str(tile.crs.to_epsg())}
-        # Create stac item.
-        item = create_stac_item(
-            id_raster,
-            footprint,
-            bbox,
-            datetime_var,
-            out_meta,
+
+    result_parse = run_imap_multiprocessing(
+        star_vector_parser,
+        [
+            tiles.iterrows(),
+            reference_date,
             source_path,
-            media_type=pystac.MediaType.GEOJSON,
-            aditional_links=aditional_links,
-            out_path=out_stac_folder,
-        )
-        if item:
-            # Add item to catalog.
-            catalog.add_item(item)
+            aditional_links,
+            out_stac_folder,
+            catalog,
+            tiles.crs,
+        ],
+        ite_size=len(tiles),
+    )
+    catalog.add_items(result_parse)
     # Normalize paths inside catalog.
     if aditional_links:
         catalog.add_link(pystac.Link("corresponding_y", aditional_links))
@@ -363,7 +392,7 @@ def parse_training_data(
     out_stac_folder = os.path.join(out_path, "stac")
     catalog.normalize_hrefs(out_stac_folder)
     result_parse = run_imap_multiprocessing(
-        parse_raster_data_and_create_stac_item_star_arguments,
+        star_raster_parser,
         [
             raster_list,
             source_path,
