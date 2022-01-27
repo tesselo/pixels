@@ -68,3 +68,13 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Sentry Release
+        uses: tesselo/release-action@main
+        with:
+          sentry_project: pixels
+          sentry_environment: 'production'
+          sentry_release: ${{ github.sha }}
+          code_dir: 'pixels'
+        env:
+          SENTRY_ORG: 'tesselo'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
