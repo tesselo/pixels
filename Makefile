@@ -36,6 +36,9 @@ coverage:
 
 check: pre-commit coverage
 
+
+open-coverage:
+	xdg-open reports/coverage-integration/index.html
 #
 #   Extended Reports
 #
