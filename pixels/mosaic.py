@@ -1,3 +1,4 @@
+import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy
@@ -21,6 +22,36 @@ from pixels.utils import compute_mask, timeseries_steps
 logger = structlog.get_logger(__name__)
 
 
+def calculate_start_date(end_date):
+    """
+    Calculates the start date range given the end_date
+
+    Parameters
+    ----------
+
+    end_date: str, datetime, list, tuple, dict
+    """
+
+    # TODO: remove these type checks after latest_pixels arguments sanitization
+    if isinstance(end_date, (str, datetime.date, datetime.datetime)):
+        if isinstance(end_date, str):
+            try:
+                end_datetime = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+            except ValueError:
+                raise PixelsException(f"Invalid end date: {end_date}")
+        else:
+            end_datetime = end_date
+
+        start_datetime = end_datetime - datetime.timedelta(days=31)
+        start_date = start_datetime.strftime("%Y-%m-%d")
+    else:
+        # We can't calculate the start_date, but current function calls
+        # are expecting this function to receive arrays or dictionaries
+        # See https://app.asana.com/0/1200570555980604/1201746409030114/f
+        start_date = LANDSAT_1_LAUNCH_DATE
+    return start_date
+
+
 def latest_pixel(
     geojson,
     end_date,
@@ -33,6 +64,7 @@ def latest_pixel(
     maxcloud=None,
     level=None,
     sensor=None,
+    start_date=None,
 ):
     """
     Get the latest pixel for the input items over the input fetures.
@@ -79,6 +111,12 @@ def latest_pixel(
         derived from associated Level-1C products. Ignored if platforms is not Sentinel 2.
     sensor: str, optional
         Sensor mode for Landsat 1-5. Must be one of be TM or MSS.
+    start_date : str, datetime, optional
+        A parseable date or datetime string. Represents the starting date of the
+        input imagery. Only images after that date will be used for creating
+        the output. Example "2020-12-1". The default is 31 days before start_date
+        when start_date is not an array or a dictionary, in that case it will be
+        LANDSAT_1_LAUNCH_DATE.
 
     Returns
     -------
@@ -93,14 +131,19 @@ def latest_pixel(
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
+    if start_date is None:
+        start_date = calculate_start_date(end_date)
+
     # Skip search if list of scenes was provided, otherwise assume input is a specific end_date to search with.
+    # TODO: do not reuse parameters for other than the documented in the docstring
+    # TODO: and with a purpose that does not fit the name of the argument
     if isinstance(end_date, (list, tuple)):
         logger.debug(f"Latest pixels for {len(end_date)} items.")
         items = end_date
     else:
         items = search_data(
             geojson=geojson,
-            start=LANDSAT_1_LAUNCH_DATE,
+            start=start_date,
             end=end_date,
             limit=limit,
             platforms=platforms,
@@ -114,7 +157,7 @@ def latest_pixel(
                 "No scenes in search response.",
                 funk="latest_pixel",
                 search_date_end=end_date,
-                search_date_start=LANDSAT_1_LAUNCH_DATE,
+                search_date_start=start_date,
             )
             return None, None, None
 
