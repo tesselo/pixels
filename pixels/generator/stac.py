@@ -5,6 +5,7 @@ import os
 import zipfile
 from collections import Counter
 from multiprocessing import Pool
+from typing import Iterable
 
 import geopandas as gp
 import numpy as np
@@ -15,7 +16,6 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac import STAC_IO
 from pystac.validation import STACValidationError
-from tqdm import tqdm
 
 from pixels import const
 from pixels.exceptions import PixelsException, TrainingDataParseError
@@ -34,40 +34,28 @@ from pixels.generator.stac_utils import (
 from pixels.mosaic import pixel_stack
 from pixels.utils import write_raster
 
-# Get logger
 logger = structlog.get_logger(__name__)
 
 WORKERS_LIMIT = 12
 
 
-# TODO: Make this accept multiple main args.
-def argument_generator(main_arg, *secondary_lists):
-    """Make a argument that yields for every value in main_arg a list
-    with that value and all the values in secondary list.
-    Usable for multiprocessing when you want to iterate over a list and them all the other arguments equal."""
-    for val in main_arg:
-        yield (val, *secondary_lists)
+def argument_generator(variable_arguments, static_arguments):
+    for arg in variable_arguments:
+        yield (arg, *static_arguments)
 
 
-def run_imap_multiprocessing(func, argument_list, ite_size=None):
-    ite = argument_generator(*argument_list)
-    if not ite_size:
-        ite_size = len(argument_list[0])
-    num_processes = min(ite_size, WORKERS_LIMIT)
-    result_list_tqdm = []
+def run_starmap_multiprocessing(
+    func: callable, variable_arguments: Iterable, static_arguments, iterator_size=None
+):
+    iterator = argument_generator(variable_arguments, static_arguments)
+    if not iterator_size:
+        iterator_size = len(variable_arguments)
+    num_processes = min(iterator_size, WORKERS_LIMIT)
     # Open Pooling session for multiprocess.
     with Pool(processes=num_processes) as pool:
-        # Iteration over the pooling results. Each worker will return a value.
-        # All those values will be added to a list with all the results.
-        # Each of this returns is used by tqdm to keep track of overall progress.
-        for result in tqdm(
-            pool.imap(func=func, iterable=ite),
-            total=ite_size,
-            miniters=int(ite_size / 5),
-        ):
-            result_list_tqdm.append(result)
+        result_list = pool.starmap(func=func, iterable=iterator)
 
-    return result_list_tqdm
+    return result_list
 
 
 def create_stac_item(
@@ -116,7 +104,7 @@ def create_stac_item(
     return item
 
 
-def parse_raster_data_and_create_stac_item(
+def create_stac_item_from_raster(
     path_item,
     source_path,
     data,
@@ -160,7 +148,6 @@ def parse_raster_data_and_create_stac_item(
     out_meta["transform"] = tuple(out_meta["transform"])
     out_meta["crs"] = out_meta["crs"].to_dict()
     out_meta["stats"] = stats
-    # Create stac item.
     item = create_stac_item(
         id_raster,
         footprint,
@@ -176,7 +163,7 @@ def parse_raster_data_and_create_stac_item(
     return item, stats
 
 
-def parse_vector_data_and_create_stac_item(
+def create_stac_item_from_vector(
     tile, reference_date, source_path, aditional_links, out_stac_folder, catalog, crs
 ):
     id_raster = str(tile[0])
@@ -185,13 +172,11 @@ def parse_vector_data_and_create_stac_item(
     footprint = dict_data["features"][0]["geometry"]
     footprint["coordinates"] = np.array(footprint["coordinates"]).tolist()
     datetime_var = None
-    # Ensure datetime var is set properly.
     if datetime_var is None:
         if reference_date is None:
             raise TrainingDataParseError("Datetime could not be determined for stac.")
         else:
             datetime_var = reference_date
-    # Ensure datetime is object not string.
     datetime_var = parser.parse(datetime_var)
     out_meta = {}
     # Add projection stac extension, assuming input crs has a EPSG id.
@@ -199,8 +184,6 @@ def parse_vector_data_and_create_stac_item(
     out_meta["stac_extensions"] = ["projection"]
     # Make transform and crs json serializable.
     out_meta["crs"] = {"init": "epsg:" + str(crs.to_epsg())}
-    # Create stac item.
-
     item = create_stac_item(
         id_raster,
         footprint,
@@ -215,14 +198,6 @@ def parse_vector_data_and_create_stac_item(
     )
 
     return item
-
-
-def star_raster_parser(arg):
-    return parse_raster_data_and_create_stac_item(*arg)
-
-
-def star_vector_parser(arg):
-    return parse_vector_data_and_create_stac_item(*arg)
 
 
 def parse_prediction_area(
@@ -276,11 +251,10 @@ def parse_prediction_area(
     # For every tile geojson file create an item, add it to catalog.
     out_stac_folder = os.path.join(os.path.dirname(source_path), "stac")
     catalog.normalize_hrefs(out_stac_folder)
-
-    result_parse = run_imap_multiprocessing(
-        star_vector_parser,
+    result_parse = run_starmap_multiprocessing(
+        create_stac_item_from_vector,
+        tiles.iterrows(),
         [
-            tiles.iterrows(),
             reference_date,
             source_path,
             aditional_links,
@@ -386,15 +360,13 @@ def parse_training_data(
     logger.debug("Found {} source rasters.".format(len(raster_list)))
     # For every raster in the zip file create an item, add it to catalog.
     global_stats = Counter()
-    # Parse the raster Data images in parallel.
-    # Added a progess bar. Using a step of the list size/5.
-    # Which means that at every 20% update it shows the progess.
+    # Parse the raster data images in parallel.
     out_stac_folder = os.path.join(out_path, "stac")
     catalog.normalize_hrefs(out_stac_folder)
-    result_parse = run_imap_multiprocessing(
-        star_raster_parser,
+    result_parse = run_starmap_multiprocessing(
+        create_stac_item_from_raster,
+        raster_list,
         [
-            raster_list,
             source_path,
             data,
             categorical,
