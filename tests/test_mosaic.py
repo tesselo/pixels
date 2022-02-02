@@ -6,7 +6,9 @@ from unittest import mock
 import numpy
 
 from pixels.algebra import parser
-from pixels.mosaic import latest_pixel, pixel_stack
+from pixels.const import LANDSAT_1_LAUNCH_DATE
+from pixels.exceptions import PixelsException
+from pixels.mosaic import calculate_start_date, latest_pixel, pixel_stack
 
 
 def mock_search_data(
@@ -79,6 +81,32 @@ def mock_search_data(
     return response
 
 
+class TestStartDates(unittest.TestCase):
+    def test_start_date_bad_format(self):
+        with self.assertRaisesRegex(PixelsException, "Invalid end date"):
+            calculate_start_date("the beginning of all times")
+
+    def test_start_date_string(self):
+        calculated_date = calculate_start_date("2022-01-31")
+        self.assertEqual(calculated_date, "2021-12-31")
+
+    def test_start_date_datetime(self):
+        calculated_date = calculate_start_date(datetime.datetime(2022, 1, 31))
+        self.assertEqual(calculated_date, "2021-12-31")
+
+    def test_start_date_date(self):
+        calculated_date = calculate_start_date(datetime.date(2022, 1, 31))
+        self.assertEqual(calculated_date, "2021-12-31")
+
+    def test_start_date_list(self):
+        calculated_date = calculate_start_date(["one", "two", "three"])
+        self.assertEqual(calculated_date, LANDSAT_1_LAUNCH_DATE)
+
+    def test_start_date_tuple(self):
+        calculated_date = calculate_start_date(("one", "two", "three"))
+        self.assertEqual(calculated_date, LANDSAT_1_LAUNCH_DATE)
+
+
 @mock.patch("pixels.mosaic.search_data", mock_search_data)
 class TestMosaic(unittest.TestCase):
     def setUp(self):
@@ -105,6 +133,16 @@ class TestMosaic(unittest.TestCase):
         }
 
     def test_latest_pixel(self):
+        # Test bad date
+        with self.assertRaisesRegex(PixelsException, "Invalid end date"):
+            latest_pixel(
+                self.geojson,
+                end_date="the beginning of all times",
+                scale=500,
+                bands=["B01", "B02"],
+                clip=False,
+            )
+
         # Test regular latest pixel.
         creation_args, first_end_date, stack = latest_pixel(
             self.geojson,
