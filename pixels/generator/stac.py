@@ -262,7 +262,7 @@ def parse_prediction_area(
             catalog,
             tiles.crs,
         ],
-        ite_size=len(tiles),
+        iterator_size=len(tiles),
     )
     catalog.add_items(result_parse)
     # Normalize paths inside catalog.
