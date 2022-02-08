@@ -307,7 +307,7 @@ class DataGenerator(keras.utils.Sequence):
         # Spliting the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:
             self.id_list = np.setdiff1d(self.original_id_list, self.id_list)
-            length = math.ceil(self.original_size * self.split)
+            length = math.floor(self.original_size * self.split)
             if length > len(self.id_list):
                 logger.warning("The requested length is bigger than the id list size.")
             self.id_list = self.id_list[:length]
