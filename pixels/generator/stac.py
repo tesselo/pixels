@@ -62,7 +62,7 @@ def create_stac_item(
     id_raster,
     footprint,
     bbox,
-    datetime_var,
+    datetime,
     out_meta,
     source_path,
     media_type=None,
@@ -70,12 +70,14 @@ def create_stac_item(
     out_path=None,
     catalog=None,
 ):
+    if isinstance(datetime, str):
+        datetime = parser.parse(datetime)
     # Initiate stac item.
     item = pystac.Item(
         id=id_raster,
         geometry=footprint,
         bbox=bbox,
-        datetime=datetime_var,
+        datetime=datetime,
         properties=out_meta,
     )
     # Register kind of asset as asset of item.
@@ -129,18 +131,15 @@ def create_stac_item_from_raster(
     (
         bbox,
         footprint,
-        datetime_var,
+        datetime,
         out_meta,
         stats,
     ) = get_bbox_and_footprint_and_stats(raster_file, categorical)
-    # Ensure datetime var is set properly.
-    if datetime_var is None:
-        if reference_date is None:
-            raise TrainingDataParseError("Datetime could not be determined for stac.")
-        else:
-            datetime_var = reference_date
-    # Ensure datetime is object not string.
-    datetime_var = parser.parse(datetime_var)
+
+    datetime = datetime or reference_date
+    if datetime is None:
+        raise TrainingDataParseError("Datetime could not be determined for stac.")
+
     # Add projection stac extension, assuming input crs has a EPSG id.
     out_meta["proj:epsg"] = out_meta["crs"].to_epsg()
     out_meta["stac_extensions"] = ["projection"]
@@ -152,7 +151,7 @@ def create_stac_item_from_raster(
         id_raster,
         footprint,
         bbox,
-        datetime_var,
+        datetime,
         out_meta,
         path_item,
         media_type=pystac.MediaType.GEOTIFF,
@@ -166,29 +165,27 @@ def create_stac_item_from_raster(
 def create_stac_item_from_vector(
     tile, reference_date, source_path, aditional_links, out_stac_folder, catalog, crs
 ):
+    if reference_date is None:
+        raise TrainingDataParseError("Datetime could not be determined for stac.")
+
     id_raster = str(tile[0])
     dict_data = gp.GeoSeries(tile[1].geometry).__geo_interface__
     bbox = list(dict_data["bbox"])
     footprint = dict_data["features"][0]["geometry"]
     footprint["coordinates"] = np.array(footprint["coordinates"]).tolist()
-    datetime_var = None
-    if datetime_var is None:
-        if reference_date is None:
-            raise TrainingDataParseError("Datetime could not be determined for stac.")
-        else:
-            datetime_var = reference_date
-    datetime_var = parser.parse(datetime_var)
-    out_meta = {}
+
     # Add projection stac extension, assuming input crs has a EPSG id.
-    out_meta["proj:epsg"] = crs.to_epsg()
-    out_meta["stac_extensions"] = ["projection"]
+    out_meta = {
+        "proj:epsg": crs.to_epsg(),
+        "stac_extensions": ["projection"],
+    }
     # Make transform and crs json serializable.
     out_meta["crs"] = {"init": "epsg:" + str(crs.to_epsg())}
     item = create_stac_item(
         id_raster,
         footprint,
         bbox,
-        datetime_var,
+        reference_date,
         out_meta,
         source_path,
         media_type=pystac.MediaType.GEOJSON,

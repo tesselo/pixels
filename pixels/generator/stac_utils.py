@@ -222,7 +222,7 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
         Bounding box of input raster.
     footprint : list
         Footprint of input raster.
-    datetime_var : datetime type
+    datetime : datetime type
         Datetime from image.
     out_meta : rasterio meta type
         Metadata from raster.
@@ -248,9 +248,8 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
                 ]
             ],
         }
-        # Try getting the datetime in the raster metadata. Set to None if not
-        # found.
-        datetime_var = ds.tags().get("datetime", None)
+
+        datetime = ds.tags().get("datetime")
         # Compute unique counts if requested.
         stats = None
         if categorical:
@@ -259,4 +258,4 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
                 int(key): int(val) for key, val in zip(unique_values, uniue_counts)
             }
 
-        return bbox, footprint, datetime_var, ds.meta, stats
+        return bbox, footprint, datetime, ds.meta, stats
