@@ -14,7 +14,6 @@ import sentry_sdk
 import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from pystac import STAC_IO
 from pystac.validation import STACValidationError
 
 from pixels import const
@@ -27,8 +26,6 @@ from pixels.generator.stac_utils import (
     list_files_in_s3,
     open_file_from_s3,
     save_dictionary,
-    stac_s3_read_method,
-    stac_s3_write_method,
     upload_files_s3,
 )
 from pixels.mosaic import pixel_stack
@@ -234,8 +231,6 @@ def parse_prediction_area(
     """
 
     if source_path.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
         data = open_file_from_s3(source_path)
         data = data["Body"]
     else:
@@ -334,8 +329,6 @@ def parse_training_data(
         # parse_collections_rasters
         if source_path.startswith("s3"):
             data = generator_utils.open_object_from_s3(source_path)
-            STAC_IO.read_text_method = stac_s3_read_method
-            STAC_IO.write_text_method = stac_s3_write_method
         else:
             data = source_path
         # Open zip file.
@@ -350,8 +343,6 @@ def parse_training_data(
     else:
         id_name = os.path.split(source_path)[-1]
         if source_path.startswith("s3"):
-            STAC_IO.read_text_method = stac_s3_read_method
-            STAC_IO.write_text_method = stac_s3_write_method
             raster_list = list_files_in_s3(source_path + "/", filetype="tif")
         else:
             raster_list = glob.glob(source_path + "/*.tif", recursive=True)
@@ -666,8 +657,6 @@ def build_catalog_from_items(
         catalog : pystac catalog
     """
     if path_to_items.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
         items_list = list_files_in_s3(path_to_items, filetype="_item.json")
     else:
         items_list = glob.glob(f"{path_to_items}/*{filetype}", recursive=True)
@@ -742,9 +731,6 @@ def build_collection_from_pixels(
     collection.make_all_links_absolute()
     # collection.normalize_hrefs(path_to_pixels)
     # collection.validate_all()
-    if path_to_pixels.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
     if save_files:
         collection.save(pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return collection
@@ -780,9 +766,6 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     # Batch enviroment variables.
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     # Read the catalog.
-    if y_catalog_path.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
     # Get the list of index for this batch.
     item_list = [
@@ -821,8 +804,6 @@ def create_x_catalog(x_folder, source_path=None):
     downloads_folder = os.path.join(x_folder, "data")
     x_catalogs = []
     if x_folder.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
         catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
         list_cats = list_files_in_s3(
             downloads_folder, filetype="timerange_images_index.json"
@@ -967,9 +948,6 @@ def create_and_collect(source_path, config_file):
         for child in existing_collection.get_children():
             if child not in final_collection.get_children():
                 final_collection.add_child(child)
-    if source_path.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
     final_collection.update_extent_from_items()
     final_collection.make_all_asset_hrefs_absolute()
     final_collection.make_all_links_absolute()
