@@ -18,7 +18,7 @@ from pixels.exceptions import PixelsException
 logger = structlog.get_logger(__name__)
 
 
-def stac_s3_write_method(uri, txt):
+def write_method(uri, txt):
     parsed = urlparse(uri)
     if parsed.scheme == "s3":
         bucket = parsed.netloc
@@ -29,7 +29,7 @@ def stac_s3_write_method(uri, txt):
         STAC_IO.default_write_text_method(uri, txt)
 
 
-def stac_s3_read_method(uri):
+def read_method(uri):
     parsed = urlparse(uri)
     if parsed.scheme == "s3":
         bucket = parsed.netloc
@@ -42,9 +42,6 @@ def stac_s3_read_method(uri):
 
 
 def get_catalog_length(catalog_path):
-    if catalog_path.startswith("s3"):
-        STAC_IO.read_text_method = stac_s3_read_method
-        STAC_IO.write_text_method = stac_s3_write_method
     # Try opening link as collection. If this fails, try opening it as catalog.
     try:
         collection = pystac.Collection.from_file(catalog_path)
