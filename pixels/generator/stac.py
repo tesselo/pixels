@@ -36,15 +36,34 @@ logger = structlog.get_logger(__name__)
 WORKERS_LIMIT = 12
 
 
-def argument_generator(variable_arguments, static_arguments):
-    for arg in variable_arguments:
-        yield (arg, *static_arguments)
+def argument_unfurller(variable_arguments, static_arguments):
+    """
+    Iterate one list, or several same size lists, and yield its row repeting the static arguments.
+
+    Parameters
+    ----------
+        variable_arguments : list, tuple of lists
+            Variables to iterate over.
+        static_arguments : any
+            Variables to repeat on every iteration.
+
+    Returns
+    -------
+        generator : tuple
+            Yields all the variable arguments and the static one.
+            (var_argA_0, var_argB_0, ..., static1, static2, ...)
+            (var_argA_1, var_argB_1, ..., static1, static2, ...)
+    """
+    if not isinstance(variable_arguments[0], (list, tuple)):
+        variable_arguments = [variable_arguments]
+    for arg in zip(*variable_arguments):
+        yield (*arg, *static_arguments)
 
 
 def run_starmap_multiprocessing(
     func: callable, variable_arguments: Iterable, static_arguments, iterator_size=None
 ):
-    iterator = argument_generator(variable_arguments, static_arguments)
+    iterator = argument_unfurller(variable_arguments, static_arguments)
     if not iterator_size:
         iterator_size = len(variable_arguments)
     num_processes = min(iterator_size, WORKERS_LIMIT)
