@@ -9,3 +9,4 @@ backoff
 structlog
 structlog-sentry
 click
+geopandas

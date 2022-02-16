@@ -9,11 +9,15 @@ affine==2.3.0
 asn1crypto==1.4.0
     # via scramp
 attrs==21.4.0
-    # via rasterio
+    # via
+    #   fiona
+    #   rasterio
 backoff==1.11.1
     # via -r requirements.in
 certifi==2021.10.8
     # via
+    #   fiona
+    #   pyproj
     #   rasterio
     #   sentry-sdk
 click==8.0.3
@@ -21,45 +25,68 @@ click==8.0.3
     #   -r requirements.in
     #   click-plugins
     #   cligj
+    #   fiona
     #   rasterio
 click-plugins==1.1.1
-    # via rasterio
+    # via
+    #   fiona
+    #   rasterio
 cligj==0.7.2
-    # via rasterio
+    # via
+    #   fiona
+    #   rasterio
+fiona==1.8.21
+    # via geopandas
+geopandas==0.10.2
+    # via -r requirements.in
 greenlet==1.1.2
     # via sqlalchemy
 h5py==2.10.0
     # via -r requirements.in
-numpy==1.22.1
+munch==2.5.0
+    # via fiona
+numpy==1.22.2
     # via
     #   h5py
+    #   pandas
     #   rasterio
     #   snuggs
-pg8000==1.23.0
+pandas==1.4.1
+    # via geopandas
+pg8000==1.24.0
     # via -r requirements.in
-pyparsing==3.0.6
+pyparsing==3.0.7
     # via
     #   -r requirements.in
     #   snuggs
+pyproj==3.3.0
+    # via geopandas
 pystac==0.5.4
     # via -r requirements.in
 python-dateutil==2.8.2
-    # via pystac
+    # via
+    #   pandas
+    #   pystac
+pytz==2021.3
+    # via pandas
 rasterio==1.2.10
     # via -r requirements.in
 scramp==1.4.1
     # via pg8000
-sentry-sdk==1.5.2
+sentry-sdk==1.5.5
     # via
     #   -r requirements.in
     #   structlog-sentry
+shapely==1.8.0
+    # via geopandas
 six==1.16.0
     # via
+    #   fiona
     #   h5py
     #   python-dateutil
 snuggs==1.4.7
     # via rasterio
-sqlalchemy==1.4.29
+sqlalchemy==1.4.31
     # via -r requirements.in
 structlog==21.5.0
     # via -r requirements.in
