@@ -14,6 +14,8 @@ from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
+from pixels.const import S2_BAND_RESOLUTIONS
+
 logger = structlog.get_logger(__name__)
 
 
@@ -328,3 +330,24 @@ class NumpyArrayEncoder(JSONEncoder):
             return obj.tolist()
 
         return JSONEncoder.default(self, obj)
+
+
+def is_sentinel_cog_bucket(source: str) -> bool:
+    """
+    Returns true if the source is a URI from the sentinel COG bucket
+    """
+    return "sentinel-cogs.s3.us-west-2.amazonaws.com" in source
+
+
+def cog_to_jp2_bucket(source: str) -> str:
+    """
+    Transforms a URI from the COG optimized bucket to the JP2 one
+    """
+    parts = source.split("/")
+
+    day = parts[-2].split("_")[2][-2:]
+    band = parts[-1].split(".tif")[0]
+    scene_count = parts[-2].split("_")[3]
+    resolution = S2_BAND_RESOLUTIONS[band]
+
+    return f"s3://sentinel-s2-l2a/tiles/{'/'.join(parts[4:-2])}/{day}/{scene_count}/R{resolution}m/{band}.jp2"

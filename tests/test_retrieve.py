@@ -1,10 +1,19 @@
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy
 import rasterio
+from rasterio import RasterioIOError
 
 from pixels.retrieve import retrieve
+
+
+def rasterio_open_mock(*args, **kwargs):
+    if args[0].startswith("https"):
+        raise RasterioIOError()
+    else:
+        raise ValueError(args[0])
 
 
 class TestRetrieve(unittest.TestCase):
@@ -128,3 +137,12 @@ class TestRetrieve(unittest.TestCase):
     def test_retrieve_discrete(self):
         result = retrieve(self.raster.name, self.geojson, discrete=True)
         self.assertEqual(result[1].shape, (56, 56))
+
+    @mock.patch("pixels.retrieve.rasterio.open", rasterio_open_mock)
+    def test_retrieve_cog_to_jp2(self):
+        with self.assertRaisesRegex(ValueError, "s3://sentinel-s2-l2a"):
+            retrieve(
+                "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+                "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif",
+                self.geojson,
+            )

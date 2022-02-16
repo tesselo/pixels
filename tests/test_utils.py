@@ -6,8 +6,10 @@ import numpy
 import rasterio
 
 from pixels.utils import (
+    cog_to_jp2_bucket,
     compute_transform,
     compute_wgs83_bbox,
+    is_sentinel_cog_bucket,
     timeseries_steps,
     write_raster,
 )
@@ -135,3 +137,26 @@ class TestUtils(unittest.TestCase):
             38.70957743561777,
         )
         numpy.testing.assert_almost_equal(bbox, expected)
+
+    def test_is_sentinel_cog_bucket(self):
+        self.assertFalse(
+            is_sentinel_cog_bucket(
+                "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R10m/B02.jp2"
+            )
+        )
+
+        self.assertTrue(
+            is_sentinel_cog_bucket(
+                "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+                "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif"
+            )
+        )
+
+    def test_cog_to_jp2_bucket(self):
+        expected = "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R20m/B06.jp2"
+        transformed = cog_to_jp2_bucket(
+            "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+            "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif"
+        )
+
+        self.assertEqual(expected, transformed)

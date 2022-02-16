@@ -8,7 +8,12 @@ from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
 from pixels.const import NODATA_VALUE
-from pixels.utils import compute_mask, compute_transform
+from pixels.utils import (
+    cog_to_jp2_bucket,
+    compute_mask,
+    compute_transform,
+    is_sentinel_cog_bucket,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -68,6 +73,16 @@ def retrieve(
         src = rasterio.open(source)
     except RasterioIOError as e:
         sentry_sdk.capture_exception(e)
+        if is_sentinel_cog_bucket(source):
+            return retrieve(
+                cog_to_jp2_bucket(source),
+                geojson,
+                scale,
+                discrete,
+                clip,
+                all_touched,
+                bands,
+            )
         return {}, None
 
     # Validate geojson by opening it with rasterio CRS class.
