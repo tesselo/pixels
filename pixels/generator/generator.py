@@ -289,29 +289,43 @@ class DataGenerator(keras.utils.Sequence):
             self.original_id_list.remove("relative_paths")
         else:
             self.relative_paths = False
-        self.id_list = self.original_id_list
+
         # Original size of dataset, all the images collections avaible.
         self.original_size = len(self.original_id_list)
         # This is the lenght of ids to use.
-        length = math.ceil(self.original_size * self.training_percentage)
+        training_length = math.ceil(self.original_size * self.training_percentage)
         # Spliting the dataset.
         # The spliting must be done in separate for random and not.
         # Otherwise the resulting list when not random has a random order.
         # And that makes it possible for overlaping ids in batch processes.
         if self.random_seed:
             np.random.seed(self.random_seed)
-            self.id_list = np.random.choice(self.id_list, length, replace=False)
+            training_id_list = np.random.choice(
+                self.original_id_list, training_length, replace=False
+            )
         else:
-            self.id_list = self.id_list[:length]
-        self.length = len(self.id_list)
+            training_id_list = self.original_id_list[:training_length]
+
         # Spliting the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:
-            self.id_list = np.setdiff1d(self.original_id_list, self.id_list)
-            length = math.floor(self.original_size * self.split)
-            if length > len(self.id_list):
-                logger.warning("The requested length is bigger than the id list size.")
-            self.id_list = self.id_list[:length]
-            self.length = len(self.id_list)
+            evaluation_id_list = np.setdiff1d(self.original_id_list, training_id_list)
+            requested_evaluation_length = (
+                math.floor(self.original_size * self.split) or 1
+            )
+
+            if requested_evaluation_length > len(evaluation_id_list):
+                logger.warning(
+                    "The requested evaluation data length is bigger than the total evaluation set. Using only full evaluation set."
+                )
+
+            evaluation_id_list = evaluation_id_list[:requested_evaluation_length]
+
+            self.lenght = len(evaluation_id_list)
+            self.id_list = evaluation_id_list
+        else:
+            self.length = len(training_id_list)
+            self.id_list = training_id_list
+
         # Shuffle data to help the fitting process.
         if self.shuffle:
             np.random.shuffle(self.id_list)
