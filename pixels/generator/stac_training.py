@@ -550,14 +550,14 @@ def predict_function_batch(
                         jump_pad_i_f = jump_pad
                         if i == 0:
                             jump_pad_i_i = 0
-                        if big_square_width - i < jump_width:
+                        if big_square_width - i <= jump_width:
                             jump_pad_i_f = 0
                         if big_square_width - i < width:
                             jump_pad_i_f = 0
                             jump_pad_i_i = 0
                         if j == 0:
                             jump_pad_j_i = 0
-                        if big_square_height - j < jump_height:
+                        if big_square_height - j <= jump_height:
                             jump_pad_j_f = 0
                         if big_square_height - j < height:
                             jump_pad_j_f = 0
