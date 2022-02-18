@@ -345,9 +345,9 @@ def cog_to_jp2_bucket(source: str) -> str:
     """
     parts = source.split("/")
 
-    day = parts[-2].split("_")[2][-2:]
+    day = int(parts[-2].split("_")[2][-2:])
     band = parts[-1].split(".tif")[0]
-    scene_count = parts[-2].split("_")[3]
+    scene_count = int(parts[-2].split("_")[3])
     resolution = S2_BAND_RESOLUTIONS[band]
 
     return f"s3://sentinel-s2-l2a/tiles/{'/'.join(parts[4:-2])}/{day}/{scene_count}/R{resolution}m/{band}.jp2"
