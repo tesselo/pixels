@@ -160,3 +160,11 @@ class TestUtils(unittest.TestCase):
         )
 
         self.assertEqual(expected, transformed)
+
+        expected = "s3://sentinel-s2-l2a/tiles/31/N/HA/2019/10/7/0/R20m/B11.jp2"
+        transformed = cog_to_jp2_bucket(
+            "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+            "sentinel-s2-l2a-cogs/31/N/HA/2019/10/S2B_31NHA_20191007_0_L2A/B11.tif"
+        )
+
+        self.assertEqual(expected, transformed)
