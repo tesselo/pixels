@@ -292,7 +292,7 @@ class DataGenerator(keras.utils.Sequence):
 
         # Original size of dataset, all the images collections avaible.
         self.original_size = len(self.original_id_list)
-        # This is the lenght of ids to use.
+        # This is the length of ids to use.
         training_length = math.ceil(self.original_size * self.training_percentage)
         # Spliting the dataset.
         # The spliting must be done in separate for random and not.
@@ -320,7 +320,7 @@ class DataGenerator(keras.utils.Sequence):
 
             evaluation_id_list = evaluation_id_list[:requested_evaluation_length]
 
-            self.lenght = len(evaluation_id_list)
+            self.length = len(evaluation_id_list)
             self.id_list = evaluation_id_list
         else:
             self.length = len(training_id_list)
