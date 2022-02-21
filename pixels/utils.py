@@ -375,7 +375,7 @@ def unwrap_arguments(variable_arguments: List[Iterable], static_arguments: List[
             (var_argA_1, var_argB_1, ..., static1, static2, ...)
     """
     for args in zip(*variable_arguments):
-        yield *args, *static_arguments
+        yield (*args, *static_arguments)
 
 
 def run_starmap_multiprocessing(
