@@ -11,6 +11,7 @@ from pixels.utils import (
     compute_wgs83_bbox,
     is_sentinel_cog_bucket,
     timeseries_steps,
+    unwrap_arguments,
     write_raster,
 )
 
@@ -168,3 +169,16 @@ class TestUtils(unittest.TestCase):
         )
 
         self.assertEqual(expected, transformed)
+
+    def test_unwrap_arguments(self):
+        expected = [(1, "hu", "ha"), (2, "hu", "ha"), (3, "hu", "ha")]
+        result = list(unwrap_arguments([(1, 2, 3)], ["hu", "ha"]))
+        self.assertEqual(expected, result)
+
+        expected = [(1, 4, "hu", "ha"), (2, 5, "hu", "ha"), (3, 6, "hu", "ha")]
+        result = list(unwrap_arguments([(1, 2, 3), (4, 5, 6)], ["hu", "ha"]))
+        self.assertEqual(expected, result)
+
+        expected = [(1, 4, "hu", "ha"), (2, 5, "hu", "ha"), (3, 6, "hu", "ha")]
+        result = list(unwrap_arguments([[1, 2, 3], [4, 5, 6]], ["hu", "ha"]))
+        self.assertEqual(expected, result)
