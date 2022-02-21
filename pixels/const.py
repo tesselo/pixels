@@ -410,3 +410,5 @@ LS_LOOKUP = {
     "qa_pixel": "QA_PIXEL",
     "qa_radsat": "QA_SAT",
 }
+
+WORKERS_LIMIT = 12

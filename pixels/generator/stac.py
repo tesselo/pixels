@@ -4,8 +4,6 @@ import json
 import os
 import zipfile
 from collections import Counter
-from multiprocessing import Pool
-from typing import Any, Iterable, List, Optional
 
 import geopandas as gp
 import numpy as np
@@ -29,51 +27,9 @@ from pixels.generator.stac_utils import (
     upload_files_s3,
 )
 from pixels.mosaic import pixel_stack
-from pixels.utils import write_raster
+from pixels.utils import run_starmap_multiprocessing, write_raster
 
 logger = structlog.get_logger(__name__)
-
-WORKERS_LIMIT = 12
-
-
-def unwrap_arguments(variable_arguments: List[Iterable], static_arguments: List[Any]):
-    """
-    Returns an iterator that will traverse over n sets of variable parameters
-    and 1 set of static parameters, resulting in an n+1 elements tuple per iteration.
-
-    Parameters
-    ----------
-        variable_arguments : list of iterables
-            Variables to iterate over.
-        static_arguments : list
-            Variables to repeat on every iteration.
-
-    Returns
-    -------
-        generator : tuple
-            Yields all the variable arguments and the static one.
-            (var_argA_0, var_argB_0, ..., static1, static2, ...)
-            (var_argA_1, var_argB_1, ..., static1, static2, ...)
-    """
-    for args in zip(*variable_arguments):
-        yield *args, *static_arguments
-
-
-def run_starmap_multiprocessing(
-    func: callable,
-    variable_arguments: Iterable,
-    static_arguments: List[Any],
-    iterator_size: Optional[int] = None,
-):
-    iterator = unwrap_arguments([variable_arguments], static_arguments)
-    if not iterator_size:
-        iterator_size = len(variable_arguments)
-    num_processes = min(iterator_size, WORKERS_LIMIT)
-    # Open Pooling session for multiprocess.
-    with Pool(processes=num_processes) as pool:
-        result_list = pool.starmap(func=func, iterable=iterator)
-
-    return result_list
 
 
 def create_stac_item(
