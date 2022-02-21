@@ -2,12 +2,19 @@
 """
 Execute a function from the pixels package from the commandline.
 """
-import importlib
 import os
 
 import click
 import sentry_sdk
 import structlog
+
+from pixels.generator.stac import (
+    build_catalog_from_items,
+    collect_from_catalog_subsection,
+    create_x_catalog,
+    parse_training_data,
+)
+from pixels.generator.stac_training import predict_function_batch, train_model_function
 
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(
@@ -23,14 +30,14 @@ logger = structlog.get_logger("runpixels")
 
 # List of modules and functions that can be specified in commandline input.
 ALLOWED_MODULES = ["pixels.generator.stac", "pixels.generator.stac_training"]
-ALLOWED_FUNCTIONS = [
-    "parse_training_data",
-    "collect_from_catalog_subsection",
-    "create_x_catalog",
-    "train_model_function",
-    "predict_function_batch",
-    "build_catalog_from_items",
-]
+ALLOWED_FUNCTIONS = {
+    "parse_training_data": parse_training_data,
+    "collect_from_catalog_subsection": collect_from_catalog_subsection,
+    "create_x_catalog": create_x_catalog,
+    "train_model_function": train_model_function,
+    "predict_function_batch": predict_function_batch,
+    "build_catalog_from_items": build_catalog_from_items,
+}
 
 
 @click.command()
@@ -52,20 +59,18 @@ def main(args):
                 module_name, ALLOWED_MODULES
             )
         )
-    module = importlib.import_module(module_name)
     # Get function to execute.
     funk_name = funk_path.split(".")[-1]
     logger.info("Function name {}.".format(funk_name))
-    if funk_name not in ALLOWED_FUNCTIONS:
+    if funk_name not in ALLOWED_FUNCTIONS.keys():
         raise ValueError(
             'Invalid input function. "{}" should be one of {}.'.format(
-                funk_name, ALLOWED_FUNCTIONS
+                funk_name, ALLOWED_FUNCTIONS.keys()
             )
         )
-    funk = getattr(module, funk_name)
     logger.info("Function args {}.".format(args[1:]))
     # Run function with rest of arguments.
-    funk(*args[1:])
+    ALLOWED_FUNCTIONS[funk_name](*args[1:])
 
 
 if __name__ == "__main__":
