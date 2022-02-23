@@ -10,6 +10,7 @@ from pixels.clouds import pixels_mask
 from pixels.const import (
     DISCRETE_BANDS,
     LANDSAT_1_LAUNCH_DATE,
+    MAX_COMPOSITE_BAND_WORKERS,
     NODATA_VALUE,
     S2_BANDS_REQUIRED_FOR_COMPOSITES,
 )
@@ -522,7 +523,8 @@ def composite(
         ]
 
         if pool:
-            with ThreadPoolExecutor(max_workers=len(band_list)) as executor:
+            max_workers = min(MAX_COMPOSITE_BAND_WORKERS, len(band_list))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(retrieve, *band) for band in band_list]
                 data = [future.result() for future in futures]
         else:
