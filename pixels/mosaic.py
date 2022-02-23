@@ -561,12 +561,11 @@ def composite(
                 light_clouds=light_clouds,
                 shadow_threshold=shadow_threshold,
             )
-            # Shadow mask only uses RGB, so limit to first three bands.
-            logger.debug(
-                "Layer masked count {} %".format(
-                    int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
-                )
+        logger.debug(
+            "Layer masked count {} %".format(
+                int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
             )
+        )
         # Create stack.
         if stack is None:
             # Set first return as stack.
