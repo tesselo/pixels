@@ -488,7 +488,7 @@ def composite(
         platforms=["SENTINEL_2"],
         maxcloud=maxcloud,
         level=level,
-        sort="cloud_cover",
+        sort=sort,
     )
 
     if not items:
