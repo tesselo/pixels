@@ -532,7 +532,7 @@ def composite(
             for band in band_list:
                 data.append(retrieve(*band))
         # Get creation args from first result.
-        if creation_args is None:
+        if not creation_args:
             creation_args = data[0][0]
         # Continue if this image was all nodata (retrieve returns None).
         if any([dat[1] is None for dat in data]):
