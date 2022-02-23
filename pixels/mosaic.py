@@ -573,9 +573,12 @@ def composite(
             stack = layer
             mask = layer_clouds
         else:
-            # Update nodata values in stack with new pixels.
+            # Update nodata values in stack with new pixels, but only if the
+            # new pixels are not nodata.
+            layer_data_mask = layer[0] != NODATA_VALUE
+            local_update_mask = mask & layer_data_mask
             for i in range(len(bands_copy)):
-                stack[i][mask] = data[i][1][mask]
+                stack[i][local_update_mask] = data[i][1][local_update_mask]
             # Update cloud mask.
             mask = mask & layer_clouds
 
