@@ -213,7 +213,7 @@ def parse_prediction_area(
         tiles = gp.read_file(data)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        logger.warning(f"Error in reading from shapefile: {e}")
+        raise PixelsException(f"Error in reading from shapefile: {e}")
     file_format = source_path.split(".")[-1]
     id_name = os.path.split(source_path)[-1].replace(f".{file_format}", "")
     catalog = pystac.Catalog(id=id_name, description=description)
