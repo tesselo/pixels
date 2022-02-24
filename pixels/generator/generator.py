@@ -144,11 +144,11 @@ class DataGenerator(keras.utils.Sequence):
         self.y_zip = None
         self.y_geojson = None
         self.class_weights = class_weights
+        if self.one_hot and self.class_weights:
+            self.class_weights = np.array(
+                [f / sum(class_weights.values()) for f in class_weights.values()]
+            )
         if self.mode != GENERATOR_PIXEL_MODEL:
-            if self.class_weights:
-                self.class_weights = np.array(
-                    [f / sum(class_weights.values()) for f in class_weights.values()]
-                )
             self.x_open_shape = (
                 self.timesteps,
                 self.num_bands,
@@ -645,7 +645,7 @@ class DataGenerator(keras.utils.Sequence):
         # Return X only (not train) or X and Y (train).
         if not self.train:
             return X
-        if self.class_weights is not None and self.mode in GENERATOR_Y_IMAGE_MODES:
+        if self.class_weights is not None and self.one_hot:
             # This assumes the encoding in one-hot.
             sample_weights = generator_utils.class_sample_weights_builder(
                 np.argmax(Y, axis=-1), self.class_weights
