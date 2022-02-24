@@ -289,7 +289,7 @@ def train_model_function(
     gen_args["path_collection_catalog"] = catalog_path
     gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
     dtgen = generator.DataGenerator(**gen_args)
-    if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+    if dtgen.one_hot:
         fit_args.pop("class_weight")
 
     # Train model, verbose level 2 prints one line per epoch to the log.
