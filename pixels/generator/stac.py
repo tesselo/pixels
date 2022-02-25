@@ -1,3 +1,4 @@
+import datetime
 import glob
 import io
 import json
@@ -27,7 +28,7 @@ from pixels.generator.stac_utils import (
     upload_files_s3,
 )
 from pixels.mosaic import pixel_stack
-from pixels.utils import run_starmap_multiprocessing, write_raster
+from pixels.utils import run_starmap_multiprocessing, timeseries_steps, write_raster
 
 logger = structlog.get_logger(__name__)
 
@@ -520,7 +521,7 @@ def prepare_pixels_config(
 
 
 def get_and_write_raster_from_item(
-    item, x_folder, input_config, discrete_training=True
+    item, x_folder, input_config, discrete_training=True, overwrite=False
 ):
     """
     Based on a pystac item get the images in timerange from item's bbox.
@@ -539,15 +540,40 @@ def get_and_write_raster_from_item(
     """
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, **input_config)
+    out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
+    # Check if all the timesteps have images already
+    if not overwrite:
+        timesteps = timeseries_steps(
+            config["start"],
+            config["end"],
+            config["interval"],
+            interval_step=config["interval_step"],
+        )
+        if out_path.startswith("s3"):
+            list_dates = list_files_in_s3(out_path, filetype=".tif")
+        else:
+            list_dates = glob.glob(f"{out_path}/**/*.tif", recursive=True)
+        list_dates = [os.path.basename(f).replace("tif", "") for f in list_dates]
+        list_dates = [datetime.date(f) for f in list_dates]
+        timesteps = [f for f in timesteps]
+        if len(timesteps) < len(list_dates):
+            return
+        elif len(list_dates) != 0:
+            timesteps_not_avaible = []
+            for timerange in timesteps:
+                check = False
+                for date in list_dates:
+                    if timerange[0] <= date <= timerange[1]:
+                        check = True
+                if not check:
+                    timesteps_not_avaible.append(timerange)
+            config["start"] = min(min(timesteps_not_avaible))
+            config["end"] = max(max(timesteps_not_avaible))
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = pixel_stack(**config)
     if not meta:
         logger.warning(f"No images for {str(item.id)}")
         return
-    # For a lack of out_path argument build one based on item name.
-    # The directory for the raster will be one folder paralel to the stac one
-    # called pixels.
-    out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     out_paths_tmp = []
     out_paths = []
     # Iterate over every timestep.
@@ -737,6 +763,15 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     # Remove geojson atribute from configuration.
     if "geojson" in input_config:
         input_config.pop("geojson")
+    overwrite = input_config.pop("overwrite", False)
+    # If there is no images in the collection set overwrite to True.
+    out_folder = os.path.join(x_folder, "data")
+    if x_folder.startswith("s3"):
+        list_files = list_files_in_s3(out_folder, filetype=".tif")
+    else:
+        list_files = glob.glob(f"{out_folder}/**/*.tif", recursive=True)
+    if len(list_files) == 0:
+        overwrite = True
     # Batch enviroment variables.
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     # Read the catalog.
@@ -751,7 +786,9 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         if count in item_list:
             check = True
             try:
-                get_and_write_raster_from_item(item, x_folder, input_config)
+                get_and_write_raster_from_item(
+                    item, x_folder, input_config, overwrite=overwrite
+                )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 logger.warning(
