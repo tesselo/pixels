@@ -120,6 +120,9 @@ The `pool_size` parameter determines how many images can be collected in
 parallel on the backend. This is still experimental and should be used with
 caution. Specifying `pool_size` to `1` is the safest option.
 
+The `overwrite` parameter is a boolean, determining if the images already downloaded
+are overwriten. It defaults to False.
+
 
 ### Logging level
 
