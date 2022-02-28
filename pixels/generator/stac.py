@@ -557,7 +557,7 @@ def get_and_write_raster_from_item(
         list_dates = [f.replace("_", "-") for f in list_dates]
         list_dates = [datetime.datetime.strptime(f, "%Y-%m-%d") for f in list_dates]
         list_dates = [f.date() for f in list_dates]
-        timesteps = [(f) for f in timesteps]
+        timesteps = [f for f in timesteps]
         if len(timesteps) < len(list_dates):
             return
         elif len(list_dates) != 0:
