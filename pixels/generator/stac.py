@@ -554,6 +554,7 @@ def get_and_write_raster_from_item(
         else:
             list_dates = glob.glob(f"{out_path}/**/*.tif", recursive=True)
         list_dates = [os.path.basename(f).replace("tif", "") for f in list_dates]
+        list_dates = [f.replace("_", "-") for f in list_dates]
         list_dates = [datetime.date(f) for f in list_dates]
         timesteps = [f for f in timesteps]
         if len(timesteps) < len(list_dates):
