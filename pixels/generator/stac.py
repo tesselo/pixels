@@ -553,9 +553,10 @@ def get_and_write_raster_from_item(
             list_dates = list_files_in_s3(out_path, filetype=".tif")
         else:
             list_dates = glob.glob(f"{out_path}/**/*.tif", recursive=True)
-        list_dates = [os.path.basename(f).replace("tif", "") for f in list_dates]
+        list_dates = [os.path.basename(f).replace(".tif", "") for f in list_dates]
         list_dates = [f.replace("_", "-") for f in list_dates]
-        list_dates = [datetime.date(f) for f in list_dates]
+        list_dates = [datetime.datetime.strptime(f, "%Y-%m-%d") for f in list_dates]
+        list_dates = [f.date() for f in list_dates]
         timesteps = [f for f in timesteps]
         if len(timesteps) < len(list_dates):
             return
@@ -568,8 +569,8 @@ def get_and_write_raster_from_item(
                         check = True
                 if not check:
                     timesteps_not_avaible.append(timerange)
-            config["start"] = min(min(timesteps_not_avaible))
-            config["end"] = max(max(timesteps_not_avaible))
+            config["start"] = str(min(min(timesteps_not_avaible)))
+            config["end"] = str(max(max(timesteps_not_avaible)))
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = pixel_stack(**config)
     if not meta:
