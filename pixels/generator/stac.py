@@ -520,7 +520,7 @@ def prepare_pixels_config(
     return config
 
 
-def check_existing_timesteps(timesteps, existing_files):
+def existing_timesteps_range(timesteps, existing_files):
     existing_files = [os.path.basename(f).replace(".tif", "") for f in existing_files]
     list_dates = [datetime.datetime.strptime(f, "%Y_%m_%d") for f in existing_files]
     list_dates = [f.date() for f in list_dates]
@@ -529,7 +529,7 @@ def check_existing_timesteps(timesteps, existing_files):
     end = str(max(max(timesteps)))
     # Assumption! if there is more dates in the images then the collection should be complete.
     if len(timesteps) < len(list_dates):
-        return
+        return None, None
     elif len(list_dates) != 0:
         timesteps_not_avaible = []
         for timerange in timesteps:
@@ -580,7 +580,9 @@ def get_and_write_raster_from_item(
             existing_files = list_files_in_s3(out_path, filetype=".tif")
         else:
             existing_files = glob.glob(f"{out_path}/**/*.tif", recursive=True)
-        start, end = check_existing_timesteps(timesteps, existing_files)
+        start, end = existing_timesteps_range(timesteps, existing_files)
+        if start is None:
+            return
         config["start"] = start
         config["end"] = end
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
