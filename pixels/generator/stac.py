@@ -520,6 +520,31 @@ def prepare_pixels_config(
     return config
 
 
+def check_existing_timesteps(timesteps, existing_files):
+    existing_files = [os.path.basename(f).replace(".tif", "") for f in existing_files]
+    list_dates = [datetime.datetime.strptime(f, "%Y_%m_%d") for f in existing_files]
+    list_dates = [f.date() for f in list_dates]
+    timesteps = list(timesteps)
+    start = str(min(min(timesteps)))
+    end = str(max(max(timesteps)))
+    # Assumption! if there is more dates in the images then the collection should be complete.
+    if len(timesteps) < len(list_dates):
+        return
+    elif len(list_dates) != 0:
+        timesteps_not_avaible = []
+        for timerange in timesteps:
+            check = False
+            for date in list_dates:
+                if timerange[0] <= date <= timerange[1]:
+                    check = True
+            if not check:
+                timesteps_not_avaible.append(timerange)
+        if len(timesteps_not_avaible) != 0:
+            start = str(min(min(timesteps_not_avaible)))
+            end = str(max(max(timesteps_not_avaible)))
+    return start, end
+
+
 def get_and_write_raster_from_item(
     item, x_folder, input_config, discrete_training=True, overwrite=False
 ):
@@ -543,34 +568,21 @@ def get_and_write_raster_from_item(
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     # Check if all the timesteps have images already
     if not overwrite:
+        # Timestep is a range of dates to build each image.
         timesteps = timeseries_steps(
             config["start"],
             config["end"],
             config["interval"],
             interval_step=config["interval_step"],
         )
+        # List all images already downloaded.
         if out_path.startswith("s3"):
-            list_dates = list_files_in_s3(out_path, filetype=".tif")
+            existing_files = list_files_in_s3(out_path, filetype=".tif")
         else:
-            list_dates = glob.glob(f"{out_path}/**/*.tif", recursive=True)
-        list_dates = [os.path.basename(f).replace(".tif", "") for f in list_dates]
-        list_dates = [f.replace("_", "-") for f in list_dates]
-        list_dates = [datetime.datetime.strptime(f, "%Y-%m-%d") for f in list_dates]
-        list_dates = [f.date() for f in list_dates]
-        timesteps = [f for f in timesteps]
-        if len(timesteps) < len(list_dates):
-            return
-        elif len(list_dates) != 0:
-            timesteps_not_avaible = []
-            for timerange in timesteps:
-                check = False
-                for date in list_dates:
-                    if timerange[0] <= date <= timerange[1]:
-                        check = True
-                if not check:
-                    timesteps_not_avaible.append(timerange)
-            config["start"] = str(min(min(timesteps_not_avaible)))
-            config["end"] = str(max(max(timesteps_not_avaible)))
+            existing_files = glob.glob(f"{out_path}/**/*.tif", recursive=True)
+        start, end = check_existing_timesteps(timesteps, existing_files)
+        config["start"] = start
+        config["end"] = end
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = pixel_stack(**config)
     if not meta:
