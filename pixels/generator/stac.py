@@ -521,6 +521,23 @@ def prepare_pixels_config(
 
 
 def existing_timesteps_range(timesteps, existing_files):
+    """
+    Checks the from already download images which asked timesteps are not
+    yet downloaded.
+
+    Parameters
+    ----------
+        timesteps : List of datetimes.date
+            List of timeranges to be collected.
+        existing_files : List of datetimes.date
+            List of dates allready collected.
+    Returns
+    -------
+        start : str
+            Collecting start date.
+        end : str
+            Collecting end date.
+    """
     existing_files = [os.path.basename(f).replace(".tif", "") for f in existing_files]
     list_dates = [datetime.datetime.strptime(f, "%Y_%m_%d") for f in existing_files]
     list_dates = [f.date() for f in list_dates]
