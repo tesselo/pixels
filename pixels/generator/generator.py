@@ -145,8 +145,9 @@ class DataGenerator(keras.utils.Sequence):
         self.y_geojson = None
         self.class_weights = class_weights
         if self.one_hot and self.class_weights:
+            weights_sum = sum(class_weights.values())
             self.class_weights = np.array(
-                [f / sum(class_weights.values()) for f in class_weights.values()]
+                [f / weights_sum for f in class_weights.values()]
             )
         if self.mode != GENERATOR_PIXEL_MODEL:
             self.x_open_shape = (
@@ -646,7 +647,6 @@ class DataGenerator(keras.utils.Sequence):
         if not self.train:
             return X
         if self.class_weights is not None and self.one_hot:
-            # This assumes the encoding in one-hot.
             sample_weights = generator_utils.class_sample_weights_builder(
                 np.argmax(Y, axis=-1), self.class_weights
             )
