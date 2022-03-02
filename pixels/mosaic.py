@@ -289,7 +289,7 @@ def pixel_stack(
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
-    retrieve_pool = True
+    retrieve_pool = False
 
     if mode == "all" or interval == "all":
         # For all mode, the date range is constructed around each scene, and
