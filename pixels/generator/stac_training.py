@@ -298,7 +298,7 @@ def train_model_function(
         X = []
         Y = []
         pixel_counter = 0
-        if "class_weights" in gen_args and dtgen.one_hot:
+        if gen_args.get("class_weights") and dtgen.one_hot:
             samples_weights = []
             for x, y, weight in dtgen:
                 X.append(x)
