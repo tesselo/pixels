@@ -601,6 +601,7 @@ def get_and_write_raster_from_item(
             existing_files = glob.glob(f"{out_path}/**/*.tif", recursive=True)
         start, end = existing_timesteps_range(timesteps, existing_files)
         if start is None:
+            logger.warning(f"All timesteps already downloaded for {str(item.id)}")
             return
         config["start"] = start
         config["end"] = end
