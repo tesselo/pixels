@@ -297,35 +297,25 @@ def train_model_function(
         # Stack all items into one array.
         X = []
         Y = []
+        samples_weights = []
         pixel_counter = 0
-        if gen_args.get("class_weights") and dtgen.one_hot:
-            samples_weights = []
-            for x, y, weight in dtgen:
-                X.append(x)
-                Y.append(y)
-                samples_weights.append(weight)
-                pixel_counter += y.shape[0]
-                if pixel_counter > TRAIN_WITH_ARRAY_LIMIT:
-                    logger.warning(
-                        "Training array limit reached, stopping collecting pixels. "
-                        f"{pixel_counter} > {TRAIN_WITH_ARRAY_LIMIT}"
-                    )
-                    break
-            samples_weights = np.hstack(samples_weights)
-            fit_args["sample_weight"] = samples_weights
-        else:
-            for x, y in dtgen:
-                X.append(x)
-                Y.append(y)
-                pixel_counter += y.shape[0]
-                if pixel_counter > TRAIN_WITH_ARRAY_LIMIT:
-                    logger.warning(
-                        "Training array limit reached, stopping collecting pixels. "
-                        f"{pixel_counter} > {TRAIN_WITH_ARRAY_LIMIT}"
-                    )
-                    break
+        for element in dtgen:
+            X.append(element[0])
+            Y.append(element[1])
+            if gen_args.get("class_weights") and dtgen.one_hot:
+                samples_weights.append(element[2])
+            pixel_counter += element[1].shape[0]
+            if pixel_counter > TRAIN_WITH_ARRAY_LIMIT:
+                logger.warning(
+                    "Training array limit reached, stopping collecting pixels. "
+                    f"{pixel_counter} > {TRAIN_WITH_ARRAY_LIMIT}"
+                )
+                break
         X = np.vstack(X)
         Y = np.vstack(Y)
+        if gen_args.get("class_weights") and dtgen.one_hot:
+            samples_weights = np.hstack(samples_weights)
+            fit_args["sample_weight"] = samples_weights
         # Fit model with data arrays.
         history = model.fit(
             X,
