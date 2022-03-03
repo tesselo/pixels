@@ -83,6 +83,7 @@ class DataGenerator(keras.utils.Sequence):
         normalization=None,
         shuffle=True,
         one_hot=True,
+        cloud_sorter=False,
     ):
         """
         Initial setup for the class.
@@ -102,6 +103,7 @@ class DataGenerator(keras.utils.Sequence):
         self.normalization = normalization
         self.shuffle = shuffle
         self.one_hot = one_hot
+        self.cloud_sorter = cloud_sorter
         if self.usage_type != GENERATOR_MODE_TRAINING:
             self.shuffle = False
 
@@ -397,7 +399,7 @@ class DataGenerator(keras.utils.Sequence):
         x_imgs = np.array([np.array(x) for x in x_imgs])
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
         # Only if data is from Sentinel-2.
-        if SENTINEL_2 in self.platforms:
+        if SENTINEL_2 in self.platforms and self.cloud_sorter:
             # Choose and order timesteps by level cloud cover density.
             x_imgs = filters.order_tensor_on_cloud_mask(
                 np.array(x_imgs), number_images=self.timesteps
