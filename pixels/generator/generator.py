@@ -375,6 +375,10 @@ class DataGenerator(keras.utils.Sequence):
         # Ensure all images are numpy arrays.
         x_imgs = np.array([np.array(x) for x in x_imgs])
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
+        # Choose and order timesteps by level cloud cover density.
+        x_imgs = filters.order_tensor_on_cloud_mask(
+            np.array(x_imgs), number_images=self.timesteps
+        )
         # Same process for y data.
         if self.train:
             if y_path.startswith("zip:"):
