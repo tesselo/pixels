@@ -559,6 +559,8 @@ def existing_timesteps_range(timesteps, existing_files):
         if len(timesteps_not_avaible) != 0:
             start = str(min(min(timesteps_not_avaible)))
             end = str(max(max(timesteps_not_avaible)))
+        else:
+            return None, None
     return start, end
 
 
