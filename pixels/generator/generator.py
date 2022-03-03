@@ -10,6 +10,7 @@ import numpy as np
 import structlog
 from tensorflow import keras
 
+from pixels.const import SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException
 from pixels.generator import filters, generator_augmentation_2D, generator_utils
 from pixels.generator.stac_utils import (
@@ -129,6 +130,9 @@ class DataGenerator(keras.utils.Sequence):
             if temp_dir:
                 temp_dir.cleanup()
         self.parse_collection()
+
+        # Check collection sources.
+        self.imagery_origin()
 
         # Handle image size.
         self.timesteps = timesteps
@@ -276,6 +280,23 @@ class DataGenerator(keras.utils.Sequence):
         self.collection_catalog = json.loads(collection_catalog_str)
         logger.info("Download of all data completed.")
 
+    def imagery_origin(self):
+        """
+        Reading the collection config to set used platforms and bands.
+        """
+        # Making this a list will help in future impletation with multiple sources.
+        self.platforms = []
+        self.bands = {}
+        if not self.path_collection_catalog.startswith("s3"):
+            logger.warning("These setting can only be set if collection made from P2.")
+            return
+        path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
+        path_collection_config = os.path.join(path_collection, "config.json")
+        collection_config = _load_dictionary(path_collection_config)
+        platform = collection_config["platforms"]
+        self.platforms.append(platform)
+        self.bands[platform] = collection_config["bands"]
+
     def parse_collection(self):
         """
         Seting class id list based on existing catalog dictionary.
@@ -375,10 +396,12 @@ class DataGenerator(keras.utils.Sequence):
         # Ensure all images are numpy arrays.
         x_imgs = np.array([np.array(x) for x in x_imgs])
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
-        # Choose and order timesteps by level cloud cover density.
-        x_imgs = filters.order_tensor_on_cloud_mask(
-            np.array(x_imgs), number_images=self.timesteps
-        )
+        # Only if data is from Sentinel-2.
+        if SENTINEL_2 in self.platforms:
+            # Choose and order timesteps by level cloud cover density.
+            x_imgs = filters.order_tensor_on_cloud_mask(
+                np.array(x_imgs), number_images=self.timesteps
+            )
         # Same process for y data.
         if self.train:
             if y_path.startswith("zip:"):
