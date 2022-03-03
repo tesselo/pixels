@@ -1,6 +1,5 @@
 import numpy
 import rasterio
-import sentry_sdk
 import structlog
 from rasterio.crs import CRS
 from rasterio.errors import RasterioIOError
@@ -72,8 +71,9 @@ def retrieve(
     try:
         src = rasterio.open(source)
     except RasterioIOError as e:
-        sentry_sdk.capture_exception(e)
+        logger.warning(f"Rasterio open failed for {source}: {str(e)}")
         if is_sentinel_cog_bucket(source):
+            logger.warning(f"Retrying retrieve for {source} in the JP2 bucket")
             return retrieve(
                 cog_to_jp2_bucket(source),
                 geojson,
