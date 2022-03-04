@@ -284,13 +284,15 @@ class DataGenerator(keras.utils.Sequence):
 
     def imagery_origin(self):
         """
-        Reading the collection config to set used platforms and bands.
+        Read the collection config to set used platforms and bands.
         """
         # Making this a list will help in future impletation with multiple sources.
         self.platforms = []
         self.bands = {}
         if not self.path_collection_catalog.startswith("s3"):
-            logger.warning("These setting can only be set if collection made from P2.")
+            logger.warning(
+                "Collection sources can only be set if collection made from P2."
+            )
             return
         path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
         path_collection_config = os.path.join(path_collection, "config.json")
@@ -398,9 +400,7 @@ class DataGenerator(keras.utils.Sequence):
         # Ensure all images are numpy arrays.
         x_imgs = np.array([np.array(x) for x in x_imgs])
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
-        # Only if data is from Sentinel-2.
         if SENTINEL_2 in self.platforms and self.cloud_sort:
-            # Choose and order timesteps by level cloud cover density.
             x_imgs = filters.order_tensor_on_cloud_mask(
                 np.array(x_imgs), number_images=self.timesteps
             )
