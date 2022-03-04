@@ -48,7 +48,9 @@ def _order_tensor_on_masks(image, mask_value, number_images=12):
 def order_tensor_on_cloud_mask(
     images,
     number_images,
-    bands_index={
+    bands_index=None,
+):
+    bands_index = bands_index or {
         "B02": 0,
         "B03": 1,
         "B04": 2,
@@ -56,8 +58,7 @@ def order_tensor_on_cloud_mask(
         "B8A": 7,
         "B11": 8,
         "B12": 9,
-    },
-):
+    }
     B02 = images[:, bands_index["B02"]]
     B03 = images[:, bands_index["B03"]]
     B04 = images[:, bands_index["B04"]]
