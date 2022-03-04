@@ -133,8 +133,10 @@ class DataGenerator(keras.utils.Sequence):
                 temp_dir.cleanup()
         self.parse_collection()
 
-        # Check collection sources.
-        self.imagery_origin()
+        # Image Origins.
+        self.platforms = set()
+        self.bands = {}
+        self.check_collection_sources()
 
         # Handle image size.
         self.timesteps = timesteps
@@ -282,13 +284,11 @@ class DataGenerator(keras.utils.Sequence):
         self.collection_catalog = json.loads(collection_catalog_str)
         logger.info("Download of all data completed.")
 
-    def imagery_origin(self):
+    def check_collection_sources(self):
         """
         Read the collection config to set used platforms and bands.
         """
         # Making this a list will help in future impletation with multiple sources.
-        self.platforms = []
-        self.bands = {}
         if not self.path_collection_catalog.startswith("s3"):
             logger.warning(
                 "Collection sources can only be set if collection made from P2."
@@ -298,7 +298,7 @@ class DataGenerator(keras.utils.Sequence):
         path_collection_config = os.path.join(path_collection, "config.json")
         collection_config = _load_dictionary(path_collection_config)
         platform = collection_config["platforms"]
-        self.platforms.append(platform)
+        self.platforms.add(platform)
         self.bands[platform] = collection_config["bands"]
 
     def parse_collection(self):
