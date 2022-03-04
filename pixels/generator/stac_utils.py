@@ -166,6 +166,14 @@ def check_file_in_s3(uri):
     return key in list_obj
 
 
+def check_file_exists(path_to_file):
+    if path_to_file.startswith("s3"):
+        file_check = check_file_in_s3(path_to_file)
+    else:
+        file_check = os.path.exists(path_to_file)
+    return file_check
+
+
 def upload_obj_s3(uri, obj):
     parsed = urlparse(uri)
     if parsed.scheme == "s3":

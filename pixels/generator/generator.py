@@ -15,6 +15,7 @@ from pixels.exceptions import InconsistentGeneratorDataException
 from pixels.generator import filters, generator_augmentation_2D, generator_utils
 from pixels.generator.stac_utils import (
     _load_dictionary,
+    check_file_exists,
     list_files_in_folder,
     open_file_from_s3,
 )
@@ -136,7 +137,7 @@ class DataGenerator(keras.utils.Sequence):
         # Image Origins.
         self.platforms = set()
         self.bands = {}
-        self.check_collection_sources()
+        self.init_collection_sources()
 
         # Handle image size.
         self.timesteps = timesteps
@@ -284,18 +285,16 @@ class DataGenerator(keras.utils.Sequence):
         self.collection_catalog = json.loads(collection_catalog_str)
         logger.info("Download of all data completed.")
 
-    def check_collection_sources(self):
+    def init_collection_sources(self):
         """
         Read the collection config to set used platforms and bands.
         """
         # Making this a list will help in future impletation with multiple sources.
-        if not self.path_collection_catalog.startswith("s3"):
-            logger.warning(
-                "Collection sources can only be set if collection made from P2."
-            )
-            return
         path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
         path_collection_config = os.path.join(path_collection, "config.json")
+        if not check_file_exists(path_collection_config):
+            logger.warning("Collection config file not found.")
+            return
         collection_config = _load_dictionary(path_collection_config)
         platform = collection_config["platforms"]
         self.platforms.add(platform)
