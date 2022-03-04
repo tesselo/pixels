@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python
 """
 Execute a function from the pixels package from the commandline.
 """
