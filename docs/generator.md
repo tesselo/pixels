@@ -132,7 +132,7 @@ be set to -9999 if a custom loss function is used in the model.
 
 Same as y_nan_value, legacy argument still used in the pipeline.
 
-`cloud_sorter`: bool
+`cloud_sort`: bool
 
 Boolean to order x_imgs by cloud density.
 
