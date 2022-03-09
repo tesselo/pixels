@@ -360,7 +360,7 @@ class DataGenerator(keras.utils.Sequence):
         # can be called.
         return math.ceil(self.length / self.batch_number)
 
-    def get_data(self, index, only_images=True):
+    def get_data(self, index, metadata=False):
         """
         Get the img and metadata based on the index paths.
         If it is a training set, returns X and Y. If not only returns X.
@@ -369,6 +369,8 @@ class DataGenerator(keras.utils.Sequence):
         ----------
             index : int
                 Index value on id_list to fetch the data.
+            metadata: bool
+                Determines if the metadata will be fetched
 
         Returns
         -------
@@ -403,46 +405,44 @@ class DataGenerator(keras.utils.Sequence):
             x_imgs = filters.order_tensor_on_cloud_mask(
                 np.array(x_imgs), number_images=self.timesteps
             )
-        # Same process for y data.
-        if self.train:
-            if y_path.startswith("zip:"):
-                if self.y_zip is None:
-                    # Open zip for y training:
-                    source_zip_path = y_path.split("!/")[0]
-                    if source_zip_path.startswith("zip://s3"):
-                        zip_file = generator_utils.open_object_from_s3(
-                            source_zip_path.split("zip://")[-1]
-                        )
-                    else:
-                        zip_file = source_zip_path
-                    self.y_zip = zipfile.ZipFile(zip_file, "r")
-                file_inside_zip = y_path.split("!/")[-1]
-                y_img, y_meta = generator_utils.read_raster_inside_opened_zip(
-                    file_inside_zip, self.y_zip
-                )
-            elif y_path.endswith("geojson") and self.mode in GENERATOR_Y_VALUE_MODES:
-                import geopandas as gp
 
-                if self.y_geojson is None:
-                    if y_path.startswith("s3"):
-                        data = open_file_from_s3(y_path)
-                        y_path = data["Body"]
-                    self.y_geojson = gp.read_file(y_path)
-                id_x = int([f for f in x_id.split("_") if f.isnumeric()][0])
-                y_img = self.y_geojson.iloc[id_x]["class"]
-                y_meta = None
-            else:
-                y_img, y_meta = generator_utils.read_raster_file(y_path)
-            y_img = np.array(y_img)
-            if only_images:
-                return x_imgs, y_img
-            return x_imgs, y_img, x_meta, y_meta
-        # Current shapes:
-        # X -> (Timesteps, num_bands, width, height)
-        # Y -> (num_classes, width, height)
-        if only_images:
+        if not self.train:
+            if metadata:
+                return x_imgs, x_meta
             return x_imgs, None
-        return x_imgs, x_meta
+
+        if y_path.startswith("zip:"):
+            if self.y_zip is None:
+                # Open zip for y training:
+                source_zip_path = y_path.split("!/")[0]
+                if source_zip_path.startswith("zip://s3"):
+                    zip_file = generator_utils.open_object_from_s3(
+                        source_zip_path.split("zip://")[-1]
+                    )
+                else:
+                    zip_file = source_zip_path
+                self.y_zip = zipfile.ZipFile(zip_file, "r")
+            file_inside_zip = y_path.split("!/")[-1]
+            y_img, y_meta = generator_utils.read_raster_inside_opened_zip(
+                file_inside_zip, self.y_zip
+            )
+        elif y_path.endswith("geojson") and self.mode in GENERATOR_Y_VALUE_MODES:
+            import geopandas as gp
+
+            if self.y_geojson is None:
+                if y_path.startswith("s3"):
+                    data = open_file_from_s3(y_path)
+                    y_path = data["Body"]
+                self.y_geojson = gp.read_file(y_path)
+            id_x = int([f for f in x_id.split("_") if f.isnumeric()][0])
+            y_img = self.y_geojson.iloc[id_x]["class"]
+            y_meta = None
+        else:
+            y_img, y_meta = generator_utils.read_raster_file(y_path)
+        y_img = np.array(y_img)
+        if metadata:
+            return x_imgs, y_img, x_meta, y_meta
+        return x_imgs, y_img
 
     def get_meta(self, index):
         """
@@ -548,7 +548,7 @@ class DataGenerator(keras.utils.Sequence):
         return np.array(X), np.array(Y)
 
     def get_and_process(self, index):
-        x_imgs, y_img = self.get_data(index, only_images=True)
+        x_imgs, y_img = self.get_data(index, metadata=False)
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
         # Make padded timesteps, with nan_value.
