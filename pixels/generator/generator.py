@@ -567,8 +567,8 @@ class DataGenerator(keras.utils.Sequence):
                     )
                 )
         # Choose and order timesteps by level of nan_value density.
-        x_imgs = filters._order_tensor_on_masks(
-            np.array(x_imgs), self.x_nan_value, number_images=self.timesteps
+        x_imgs = filters.order_tensor_on_masks(
+            np.array(x_imgs), self.x_nan_value, max_images=self.timesteps
         )
         if self.mode in GENERATOR_X_IMAGE_MODES:
             # This gets the data to be used in image models.
