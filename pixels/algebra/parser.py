@@ -201,13 +201,14 @@ class FormulaParser(object):
                 const.ALGEBRA_PIXEL_TYPE_NUMPY
             )
 
-    def evaluate(self, data={}, formula=None):
+    def evaluate(self, data=None, formula=None):
         """
         Evaluate the input data using the current formula expression stack.
 
         The formula is stored as attribute and can be re-evaluated with several
         input data sets on an existing parser.
         """
+        data = data or {}
         if formula:
             self.set_formula(formula)
 
