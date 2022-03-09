@@ -11,7 +11,7 @@ import structlog
 from tensorflow import keras
 
 from pixels.const import SENTINEL_2
-from pixels.exceptions import InconsistentGeneratorDataException
+from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
 from pixels.generator import filters, generator_augmentation_2D, generator_utils
 from pixels.generator.stac_utils import (
     _load_dictionary,
@@ -274,9 +274,7 @@ class DataGenerator(keras.utils.Sequence):
                 "zip://", ""
             ).replace(".zip!", "")
         if y_path_file.endswith("geojson"):
-            y_path_file = generator_utils.download_object_from_s3(
-                y_path_file, download_dir
-            )
+            generator_utils.download_object_from_s3(y_path_file, download_dir)
         bucket_name = self.path_collection_catalog.split("/")[2]
         # Change paths in collection catalog.
         collection_catalog_str = collection_catalog_str.replace(
@@ -581,8 +579,13 @@ class DataGenerator(keras.utils.Sequence):
             if self.train and self.mode in GENERATOR_Y_IMAGE_MODES:
                 y_tensor = np.swapaxes(y_tensor, 0, 1)
                 y_tensor = np.swapaxes(y_tensor, 1, 2)
-        if self.mode == GENERATOR_PIXEL_MODEL:
+        elif self.mode == GENERATOR_PIXEL_MODEL:
             x_tensor, y_tensor = self.process_pixels(x_imgs, Y=y_img)
+        else:
+            raise PixelsException(
+                f"Pixels mode {self.mode} not supported in get_and_process"
+            )
+
         # For multiclass problems, convert the Y data to categorical.
         if self.num_classes > 1 and self.train and self.one_hot:
             # Convert data to one-hot encoding. This assumes class DN numbers to
