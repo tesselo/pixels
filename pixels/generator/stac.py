@@ -464,6 +464,10 @@ def prepare_pixels_config(
         config : dict
             Dictionary containing the parameters to pass on to pixels.
     """
+    # Check valid mode.
+    if mode not in ["all", "latest_pixel", "composite"]:
+        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
+
     if item is str:
         item = pystac.read_file(item)
     geojson = build_geometry_geojson(item)
@@ -484,9 +488,6 @@ def prepare_pixels_config(
     elif not end:
         # If no end data is specified, use the date from the stac item.
         end = item.datetime.date().isoformat()
-    # Check valid mode.
-    if mode not in ["all", "latest_pixel", "composite"]:
-        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
     # Ensure platforms is a list. The input can be provided as a single string
     # if only one platform is required.
     if platforms is not None and not isinstance(platforms, (list, tuple)):
@@ -828,7 +829,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 logger.warning(
-                    f"Error in collect_from_catalog_subsection. Runing get_and_write_raster_from_item: {e}"
+                    f"Error in collect_from_catalog_subsection. Running get_and_write_raster_from_item: {e}"
                 )
         elif check is True:
             break
