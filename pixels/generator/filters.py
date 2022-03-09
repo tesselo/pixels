@@ -23,33 +23,52 @@ def _make_mask_on_value(img, mask_value):
     return mask_img
 
 
-def _order_tensor_on_masks(image, mask_value, number_images=12):
+def order_tensor_on_masks(images, mask_value, max_images=12):
     """
     Order a set of images based on a mask count.
 
     Parameters
     ----------
-        img : array
+        images : array
             Image array.
         mask_value : float, int
             Value to create mask.
+        max_images : int
+            The maximum number of images to return
 
     Returns
     -------
         image : numpy array
             The ordered set of images.
     """
-    mask_img = _make_mask_on_value(image, mask_value)
+    mask_img = _make_mask_on_value(images, mask_value)
     mask_count = np.sum(mask_img, axis=(1, 2, 3))
-    ind = np.sort(np.argsort(mask_count)[:number_images])
-    return np.array(image[ind])
+    ind = np.sort(np.argsort(mask_count)[:max_images])
+    return np.array(images[ind])
 
 
 def order_tensor_on_cloud_mask(
     images,
-    number_images,
+    max_images,
     bands_index=None,
 ):
+    """
+    Order a set of images based on a cloud mask.
+
+    Parameters
+    ----------
+        images : array
+            Image array.
+        max_images : int
+            The maximum number of images to return
+        bands_index: dict
+            A dictionary with the cloud bands
+
+    Returns
+    -------
+        image : numpy array
+            The ordered set of images.
+    """
     bands_index = bands_index or {
         "B02": 0,
         "B03": 1,
@@ -80,5 +99,5 @@ def order_tensor_on_cloud_mask(
         shadow_threshold=0.2,
     )
     mask_count = np.sum(mask_img, axis=(1, 2))
-    ind = np.sort(np.argsort(mask_count)[:number_images])
+    ind = np.sort(np.argsort(mask_count)[:max_images])
     return np.array(images[ind])
