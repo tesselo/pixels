@@ -111,8 +111,9 @@ def load_model_from_file(model_configuration_file):
 
 
 def load_existing_model_from_file(
-    model_uri, loss="nan_mean_squared_error_loss", loss_arguments={}
+    model_uri, loss="nan_mean_squared_error_loss", loss_arguments=None
 ):
+    loss_arguments = loss_arguments or {}
     # Load model data from S3 if necessary.
     if model_uri.startswith("s3"):
         obj = open_file_from_s3(model_uri)["Body"]
@@ -152,6 +153,7 @@ class Custom_Callback_SaveModel_S3(tf.keras.callbacks.Callback):
     def __init__(self, passed_epochs, path):
         self.passed_epochs = passed_epochs
         self.path = path
+        super().__init__()
 
     def on_epoch_end(self, epoch, logs=None):
         epoch_number = epoch + self.passed_epochs + 1
