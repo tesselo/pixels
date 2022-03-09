@@ -22,7 +22,7 @@ from pixels.generator.stac_utils import (
 
 logger = structlog.get_logger(__name__)
 
-# S3 class instanciation.
+# S3 class instantiation.
 s3 = boto3.client("s3")
 
 # Mode Definitions
@@ -211,7 +211,7 @@ class DataGenerator(keras.utils.Sequence):
                     self.batch_number * self.timesteps,
                     self.num_classes,
                 )
-        # Cross checking.
+        # Cross-checking.
         if (
             self.y_nan_value
             and self.mode in GENERATOR_Y_IMAGE_MODES
@@ -289,7 +289,7 @@ class DataGenerator(keras.utils.Sequence):
         """
         Read the collection config to set used platforms and bands.
         """
-        # Making this a list will help in future impletation with multiple sources.
+        # Making this a list will help in future implementation with multiple sources.
         path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
         path_collection_config = os.path.join(path_collection, "config.json")
         if not check_file_exists(path_collection_config):
@@ -302,7 +302,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def parse_collection(self):
         """
-        Seting class id list based on existing catalog dictionary.
+        Set class id list based on existing catalog dictionary.
         """
         if self.usage_type in [GENERATOR_MODE_PREDICTION, GENERATOR_MODE_TRAINING]:
             self.training_percentage = self.split
@@ -315,14 +315,14 @@ class DataGenerator(keras.utils.Sequence):
         else:
             self.relative_paths = False
 
-        # Original size of dataset, all the images collections avaible.
+        # Original size of dataset, all the images collections available.
         self.original_size = len(self.original_id_list)
         # This is the length of ids to use.
         training_length = math.ceil(self.original_size * self.training_percentage)
-        # Spliting the dataset.
-        # The spliting must be done in separate for random and not.
-        # Otherwise the resulting list when not random has a random order.
-        # And that makes it possible for overlaping ids in batch processes.
+        # Split the dataset.
+        # The splitting must be done in separate for random and not.
+        # Otherwise, the resulting list when not random has a random order.
+        # And that makes it possible for overlapping ids in batch processes.
         if self.random_seed:
             np.random.seed(self.random_seed)
             training_id_list = np.random.choice(
@@ -331,7 +331,7 @@ class DataGenerator(keras.utils.Sequence):
         else:
             training_id_list = self.original_id_list[:training_length]
 
-        # Spliting the dataset to unused data.
+        # Split the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:
             evaluation_id_list = np.setdiff1d(self.original_id_list, training_id_list)
             requested_evaluation_length = (
@@ -362,7 +362,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def get_data(self, index, only_images=True):
         """
-        Get the img and meta data based on the index paths.
+        Get the img and metadata based on the index paths.
         If it is a training set, returns X and Y. If not only returns X.
 
         Parameters
@@ -376,10 +376,10 @@ class DataGenerator(keras.utils.Sequence):
                 Array with loaded X images(Timesteps, num_bands, width, height).
             y_img : numpy tensor
                 Array with loaded Y images(num_classes, width, height).
-            x_meta: array of dictonaries
-                Array containg all the X metadata dictionaries.
-            y_meta: dictonary
-                Dictionary with Y metada.
+            x_meta: array of dictionaries
+                Array containing all the X metadata dictionaries.
+            y_meta: dict
+                Dictionary with Y metadata.
         """
         # Get the collected id from the index list and its catalog from the
         # index dictionary.
@@ -469,7 +469,7 @@ class DataGenerator(keras.utils.Sequence):
         ]
         # Fill missing pixels to the standard, with the NaN value of the object.
         if self.mode in GENERATOR_2D_MODES:
-            # In 2D mode we dont want to fill missing timesteps.
+            # In 2D mode we don't want to fill missing timesteps.
             self.x_open_shape = (x_tensor.shape[0], *self.x_open_shape[1:])
         if x_tensor.shape != self.x_open_shape:
             x_tensor = generator_utils.fill_missing_dimensions(

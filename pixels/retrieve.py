@@ -27,7 +27,7 @@ def retrieve(
     bands=None,
 ):
     """
-    Get pixels from a source raster over the a geojson feature collection.
+    Get pixels from a source raster over a geojson feature collection.
 
     Parameters
     ----------

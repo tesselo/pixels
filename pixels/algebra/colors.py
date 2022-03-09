@@ -53,7 +53,7 @@ def rescale_to_channel_range(data, dfrom, dto, dover=None):
 
 def colorize(data, colormap):
     """
-    Creates an python image from pixel values of a GDALRaster.
+    Creates a python image from pixel values of a GDALRaster.
 
     The input is a dictionary that maps pixel values to RGBA UInt8 colors.
     If an interpolation interval is given, the values are. Example colormap:

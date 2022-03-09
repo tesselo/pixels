@@ -46,8 +46,9 @@ def search_data(
     """
     Search for satellite images in an area of interest, for a given time interval,
     according to specificities such as the percentage of cloud cover, satellite or
-    level of image processing. Returns links to download bands for each scene
-    resulting in the search.
+    level of image processing.
+
+    Return links to download bands for each scene resulting in the search.
 
     Parameters
     ----------
@@ -82,7 +83,7 @@ def search_data(
             Defines the ordering of the results. By default, sensing time is used, ordering
             the images from the most recent date to the oldest. Another option to order the
             results is the cloud cover which are ordered from the least cloudy to the
-            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
+            cloudiest. Allowed values are "sensing_time" and "cloud_cover".
     Returns
     -------
         result : list
@@ -141,7 +142,7 @@ def execute_query(
             values from different platforms according to the combination of the other
             parameters.
         maxcloud : int, optional
-            Maximun accepted cloud coverage in images. If not provided returns records with
+            Maximum accepted cloud coverage in images. If not provided returns records with
             up to 100% cloud coverage.
         scene : str, optional
             The product id to search for a specific scene. Ignored if not provided.
@@ -159,7 +160,7 @@ def execute_query(
             Defines the ordering of the results. By default, sensing time is used, ordering
             the images from the most recent date to the oldest. Another option to order the
             results is the cloud cover which are ordered from the least cloudy to the
-            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
+            cloudiest. Allowed values are "sensing_time" and "cloud_cover".
 
     Returns
     -------
@@ -240,7 +241,7 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
             Defines the ordering of the results. By default, sensing time is used, ordering
             the images from the most recent date to the oldest. Another option to order the
             results is the cloud cover which are ordered from the least cloudy to the
-            cloudiest. Allowed valeus are "sensing_time" and "cloud_cover".
+            cloudiest. Allowed values are "sensing_time" and "cloud_cover".
 
     Returns
     -------
@@ -291,7 +292,7 @@ def get_bands(response, level):
     Returns
     -------
         result : list
-            List of dictionaries with scenes and bands with respectives links.
+            List of dictionaries with scenes and bands with the respective links.
     """
     result = []
     for value in response:
@@ -314,12 +315,12 @@ def format_sentinel_band(value):
     Parameters
     ----------
         value : dict
-            Dictionary with characteristics of a scene (product id, sensing time, etc).
+            Dictionary with characteristics of a scene (product id, sensing time, etc.).
 
     Returns
     -------
         data : dict
-            Dictionary of each bands url.
+            Dictionary of each band url.
     """
     mgr = value["mgrs_tile"]
     utm_zone = mgr[:2]
@@ -374,12 +375,12 @@ def format_ls_c1_band(value):
     Parameters
     ----------
         value : dict
-            Dictionary with characteristics of a scene (product id, sensing time, etc).
+            Dictionary with characteristics of a scene (product id, sensing time, etc.).
 
     Returns
     -------
         data : dict
-            Dictionary of each bands url.
+            Dictionary of each band url.
     """
     plat = value["spacecraft_id"]
     product_id = value["product_id"]
@@ -454,12 +455,12 @@ def format_ls_c2_bands(value):
     Parameters
     ----------
         value : dict
-            Dictionary with characteristics of a scene (product id, sensing time, assets, etc).
+            Dictionary with characteristics of a scene (product id, sensing time, assets, etc.).
 
     Returns
     -------
         bands_links : dict
-            Dictionary of each bands url.
+            Dictionary of each band url.
     """
 
     bands_links = {}

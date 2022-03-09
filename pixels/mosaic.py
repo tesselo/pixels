@@ -104,7 +104,7 @@ def latest_pixel(
     pool : boolean, optional
         If True, thread pooling is used to request the image data.
     maxcloud : int, optional
-        Maximun accepted cloud coverage in images. If not provided returns records with
+        Maximum accepted cloud coverage in images. If not provided returns records with
         up to 100% cloud coverage.
     level : str, optional
         The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
@@ -170,7 +170,7 @@ def latest_pixel(
     # Get data for each item.
     for item in items:
         logger.debug(item["product_id"])
-        # Track first end date (highest priority image in stack).
+        # Track first end date (the highest priority image in stack).
         if first_end_date is None:
             first_end_date = str(items[0]["sensing_time"].date())
         # Prepare band list.
@@ -454,7 +454,7 @@ def composite(
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
-    # Currently limit to S2 and L2A.
+    # Currently, limited to S2 and L2A.
     if len(platforms) > 1 or platforms[0] != "SENTINEL_2" or level != "L2A":
         raise PixelsException(
             "For composites platforms and level must be Sentinel-2 L2A."

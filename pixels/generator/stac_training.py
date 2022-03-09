@@ -57,7 +57,7 @@ def create_pystac_item(
     datetime_var,
     meta,
     path_item,
-    aditional_links,
+    additional_links,
     href_path,
 ):
     out_meta = {}
@@ -82,12 +82,12 @@ def create_pystac_item(
             media_type=pystac.MediaType.GEOTIFF,
         ),
     )
-    if aditional_links:
-        if isinstance(aditional_links, dict):
-            for key in aditional_links.keys():
-                item.add_link(pystac.Link(key, aditional_links[key]))
+    if additional_links:
+        if isinstance(additional_links, dict):
+            for key in additional_links.keys():
+                item.add_link(pystac.Link(key, additional_links[key]))
         else:
-            item.add_link(pystac.Link("x_catalog", aditional_links))
+            item.add_link(pystac.Link("x_catalog", additional_links))
     item.set_self_href(href_path)
     # Validate item.
     item.validate()
@@ -125,7 +125,7 @@ def load_existing_model_from_file(
     if hasattr(tf.keras.losses, loss):
         model = tf.keras.models.load_model(model_uri)
     elif loss in ALLOWED_CUSTOM_LOSSES:
-        # Handle custome loss functions when loading the model.
+        # Handle custom loss functions when loading the model.
         custom_loss = getattr(losses, loss)
         model = tf.keras.models.load_model(
             model_uri,
@@ -177,7 +177,7 @@ def train_model_function(
     generator_arguments_uri,
 ):
     """
-    From a catalog and the cnfigurations files build a model and train on the
+    From a catalog and the configurations files build a model and train on the
     given data. Save the model.
 
     Parameters
@@ -185,13 +185,13 @@ def train_model_function(
         catalog_uri : pystac catalog
             Catalog with the information where to download data.
         model_config_uri : path to json file
-            File of dictonary containing the model configuration.
+            File of dictionary containing the model configuration.
         model_compile_arguments_uri : path to json file
-            File of dictonary containing the compilation arguments.
+            File of dictionary containing the compilation arguments.
         model_fit_arguments_uri : path to json file
-            File of dictonary containing the fit arguments.
+            File of dictionary containing the fit arguments.
         generator_arguments_uri : path to json file
-            File of dictonary containing the generator configuration.
+            File of dictionary containing the generator configuration.
     Returns
     -------
         model : tensorflow trained model
@@ -252,7 +252,7 @@ def train_model_function(
     eval_split = gen_args.pop("eval_split", 0)
     if "training_percentage" not in gen_args:
         gen_args["training_percentage"] = gen_args["split"]
-    # Load the class weigths from the Y catalog if requested. Class weights can
+    # Load the class weights from the Y catalog if requested. Class weights can
     # be passed as a dictionary with the class weights. In this case these
     # will be passed on and not altered. If the class weights key is present,
     # the class weights will be extracted from the Y catalog.
@@ -262,7 +262,7 @@ def train_model_function(
         else:
             # Open x catalog.
             x_catalog = _load_dictionary(catalog_uri)
-            # Get origin files zip link from dictonary.
+            # Get origin files zip link from dictionary.
             origin_files = [
                 dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
             ][0]["href"]
@@ -284,7 +284,7 @@ def train_model_function(
     else:
         fit_args["class_weight"] = None
     gen_args["class_weights"] = fit_args["class_weight"]
-    # Instanciate generator.
+    # Instantiate generator.
     catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
     gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
@@ -405,7 +405,7 @@ def predict_function_batch(
     items_per_job,
 ):
     """
-    From a trained model and the cnfigurations files build the predictions on
+    From a trained model and the configurations files build the predictions on
     the given data. Save the predictions and pystac items representing them.
 
     Parameters
@@ -413,7 +413,7 @@ def predict_function_batch(
         model_uri : keras model h5
             Trained model.
         generator_config_uri : path to json file
-            File of dictonary containing the generator configuration.
+            File of dictionary containing the generator configuration.
         collection_uri : str, path
             Collection with the information from the input data.
         items_per_job : int
@@ -435,7 +435,7 @@ def predict_function_batch(
         model_uri, compile_args["loss"], loss_arguments
     )
 
-    # Instanciate generator, forcing generator to prediction mode.
+    # Instantiate generator, forcing generator to prediction mode.
     gen_args["batch_number"] = 1
     gen_args["usage_type"] = generator.GENERATOR_MODE_PREDICTION
     gen_args["dtype"] = model.input.dtype.name
@@ -454,7 +454,7 @@ def predict_function_batch(
     catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
     dtgen = generator.DataGenerator(**gen_args)
-    # Get parent folder for prediciton.
+    # Get parent folder for prediction.
     predict_path = os.path.dirname(generator_config_uri)
     # Get jobs array.
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
@@ -515,7 +515,7 @@ def predict_function_batch(
                 jumping_height = height - (dtgen.padding * 2)
                 jump_width = int(jumping_width * jumping_ratio)
                 jump_height = int(jumping_height * jumping_ratio)
-                # Instanciate empty result matrix.
+                # Instantiate empty result matrix.
                 prediction = np.full(
                     (
                         num_imgs,
@@ -545,11 +545,11 @@ def predict_function_batch(
                                 res = data[:, :, -height:, -width:, :]
                                 j = big_square_height - (height - dtgen.padding)
                                 i = big_square_height - (width - dtgen.padding)
-                        # If 2D mode break aditional dimension.
+                        # If 2D mode break additional dimension.
                         if dtgen.mode == generator.GENERATOR_2D_MODEL:
                             res = res[:, 0]
                         pred = model.predict(res)
-                        # Merge all predicitons
+                        # Merge all predictions
                         jump_pad_j_i = jump_pad
                         jump_pad_j_f = jump_pad
                         jump_pad_i_i = jump_pad
@@ -625,7 +625,7 @@ def predict_function_batch(
                             + jumping_height_pred
                             - jump_pad_i_f,
                         ] = summed_pred
-                        # Summed secction of iteration on each pixel.
+                        # Summed section of iteration on each pixel.
                         summed_iteration = np.sum([aux_sum, pred_sum], axis=0)
                         pred_num_it[
                             :,
@@ -698,14 +698,14 @@ def predict_function_batch(
 
         # If requested, rescale the probabilities to integers from 0 to 255.
         # This keeps a reasonable precision and reduces the data size
-        # substancially.
+        # substantially.
         if rescale_probabilities and (dtgen.num_classes == 1 or extract_probabilities):
             prediction = np.rint(prediction * 255).astype("uint8")
             # Override the nodata value and the datatype.
             meta["nodata"] = None
             meta["dtype"] = "uint8"
 
-        # Conditions to be met when the probablities are to be extracted.
+        # Conditions to be met when the probabilities are to be extracted.
         if extract_probabilities:
             # When probabilities are to be extracted the number of bands is the number of classes.
             meta["count"] = dtgen.num_classes

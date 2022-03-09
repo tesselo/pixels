@@ -97,14 +97,14 @@ def apply_augmentation_to_image(img, augmentation_index):
 
 
 def apply_augmentation_to_stack(imgs, augmentation_index):
-    # Do the augmentations on images (number_occurences, bands, height, width).
+    # Do the augmentations on images (number_occurrences, bands, height, width).
     time_aug_imgs = []
-    for number_occurences in imgs:
+    for number_occurrences in imgs:
         aug_img = []
-        for bands in number_occurences:
+        for bands in number_occurrences:
             aug_img.append(apply_augmentation_to_image(bands, augmentation_index))
         time_aug_imgs.append(aug_img)
-    # Revert shapes back to (number_occurences, height, width, bands)
+    # Revert shapes back to (number_occurrences, height, width, bands)
     time_aug_imgs = np.array(time_aug_imgs)
     time_aug_imgs = np.swapaxes(
         time_aug_imgs,
@@ -174,8 +174,8 @@ def do_augmentation_on_batch(
         Y : numpy array
             Goal image in training.
         augmentation_index : int or list
-            Set the number of augmentations. If list, does the augmentatios
-            with the keys on the list, if int, does all the keys up to that.
+            Set the number of augmentations. If it is a list, does the augmentations
+            with the keys on the list, if it is an int, does all the keys up to that.
             keys:
                 0: No augmentation
                 1, 2, 3: flips
@@ -234,7 +234,7 @@ def generator_2D(X, Y, mask, num_time=12, cloud_cover=0.7, prediction_mode=False
     # Pad array wit zeros to ensure 12 time steps.
     if X.shape[0] < num_time:
         X = np.vstack((X, np.zeros((num_time - X.shape[0], *X.shape[1:]))))
-    # Limit X to 12 time steps incase there are more.
+    # Limit X to 12 time steps in case there are more.
     X = X[:num_time]
     # Return data.
     return np.array([X]), np.array([Y])
@@ -261,7 +261,7 @@ def generator_single_2D(X, Y, mask, num_time=12, cloud_cover=0.7):
     # Pad array wit zeros to ensure 12 time steps.
     # if X.shape[0] < num_time:
     #    X = np.vstack((X, np.zeros((num_time - X.shape[0], *X.shape[1:]))))
-    # Limit X to 12 time steps incase there are more.
+    # Limit X to 12 time steps in case there are more.
     # X = X[:num_time]
     # Return data.
     return np.array(X), np.array(Y)

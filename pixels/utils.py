@@ -83,13 +83,13 @@ def compute_mask(
     value_column_name : str or None, optional
         Name of the value attribute in the geojson that is used as burn value.
     all_touched : bool or None, optional
-        Wether to use the all touched rasterization mode or not.
+        Determines whether to use the all touched rasterization mode or not.
 
 
     Returns
     -------
     mask : ndarray
-        The rasterized data, a boolean mask or a integer value from the value
+        The rasterized data, a boolean mask or an integer value from the value
         column.
     """
     # Create a list of geometries, if requested with a burn value.
@@ -208,7 +208,7 @@ def timeseries_steps(start, end, interval, interval_step=1):
         A list of date tuples. Each tuple is of length two, representing the
         start and end date of a single interval.
     """
-    # Convert input to dates if provided as str.
+    # Convert input into dates if provided as str.
     if isinstance(start, str):
         start = parser.parse(start)
     if isinstance(end, str):
@@ -233,7 +233,7 @@ def write_raster(
     """
     Convert a numpy array into a raster object.
 
-    Given a numpy array and necessary metadata, create either an raster on disk
+    Given a numpy array and necessary metadata, create either a raster on disk
     or return the raster in memory as a binary IO buffer. To create a file on
     disk, provide an output path.
 
@@ -251,7 +251,7 @@ def write_raster(
     dtype : str, optional
         Data type string specifying the output datatype.
     overviews : bool, optional
-        Shall internal overviews be created for the new raster.
+        Determines if the internal overviews will be created for the new raster.
     tags : dict, optional
         A dictionary of tags to be added to the raster file. The namespace for
         all tags will be "tesselo".
@@ -288,7 +288,7 @@ def write_raster(
     # Determine overview factors.
     factors = [(2 ** a) for a in range(1, 7) if (2 ** a) < data.shape[-1]]
     # factors = [2, 4, 8, 16, 32, 64]
-    # If a path is given write a image file on that path
+    # If a path is given write an image file on that path
     if out_path:
         with rasterio.open(out_path, "w", **out_meta) as dst:
             # Set the given metadata tags.
