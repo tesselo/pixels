@@ -99,6 +99,8 @@ def upload_files_s3(path, file_type=".json", delete_folder=True):
             Path to folder containing the files to be uploaded.
         file_type : str, optional
             Filetype to upload, set to json.
+        delete_folder: bool
+            Determines if the origin folder should be deleted
     Returns
     -------
 
