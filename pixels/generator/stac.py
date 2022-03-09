@@ -608,7 +608,7 @@ def get_and_write_raster_from_item(
         config["end"] = end
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     meta, dates, results = pixel_stack(**config)
-    if not meta:
+    if not dates:
         logger.warning(f"No images for {str(item.id)}")
         return
     out_paths_tmp = []
@@ -636,15 +636,10 @@ def get_and_write_raster_from_item(
         )
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
-    try:
-        x_cat = parse_training_data(
-            out_path, False, save_files=True, additional_links=item.get_self_href()
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        logger.warning(
-            f"Error in parse_training_data data inside get_and_write_raster_from_item: {e}"
-        )
+    x_cat = parse_training_data(
+        out_path, False, save_files=True, additional_links=item.get_self_href()
+    )
+
     # Build an intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     # Ensure no duplicates get on the dictionary.

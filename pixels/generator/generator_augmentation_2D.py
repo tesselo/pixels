@@ -25,13 +25,15 @@ def set_standard_shape(tensor, sizex=360, sizey=360):
     """
     Set input data from any shape to (*dims, sizex, sizey)
     """
-    shp = tensor.shape
+    shape = tensor.shape
     size_tuple = (sizex, sizey)
-    for i in range(len(shp)):
-        curent_pair = shp[i : i + 2]
-        if curent_pair == size_tuple:
+    shape_len = len(shape)
+    end = 0
+    for i in range(shape_len):
+        current_pair = shape[i : i + 2]
+        if current_pair == size_tuple:
             end = i + 2
-    if end < len(shp):
+    if end < shape_len:
         tensor = np.swapaxes(tensor, end - 1, end)
         tensor = np.swapaxes(tensor, end - 2, end - 1)
         tensor = set_standard_shape(tensor, sizex, sizey)

@@ -155,10 +155,10 @@ def multiclass_builder(Y, class_definition, max_number, y_nan_value=None):
         # Linear division of value with class_definition classes.
         multiclass_y = Y / (max_number / class_definition)
     else:
+        class_number = 0
         class_definition = np.sort(np.unique(class_definition))
         multiclass_y = np.copy(Y)
         # Make brackets of classes.
-        class_number = 0
         multiclass_y[Y <= class_definition[0]] = class_number
         for value in class_definition[1:]:
             down_value = class_definition[class_number]
