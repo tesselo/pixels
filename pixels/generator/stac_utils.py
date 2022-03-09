@@ -83,7 +83,7 @@ def _load_dictionary(path_file):
             input_config = json_file.read()
             try:
                 dictionary = ast.literal_eval(input_config)
-            except:
+            except ValueError:
                 dictionary = json.loads(str(input_config))
     return dictionary
 
