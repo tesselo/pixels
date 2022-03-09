@@ -162,9 +162,9 @@ def check_file_in_s3(uri):
     key = parsed.path[1:]
     # List objects with that key.
     s3 = boto3.client("s3")
-    theObjs = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
-    list_obj = [ob["Key"] for ob in theObjs["Contents"]]
-    # Ensure key is in list.
+    objects = s3.list_objects_v2(Bucket=bucket, Prefix=os.path.dirname(key))
+    list_obj = [ob["Key"] for ob in objects["Contents"]]
+
     return key in list_obj
 
 
@@ -192,9 +192,9 @@ def list_files_in_s3(uri, filetype="tif"):
         key = parsed.path[1:]
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
-        theObjs = paginator.paginate(Bucket=bucket, Prefix=key)
+        objects = paginator.paginate(Bucket=bucket, Prefix=key)
         # Get list of objects if there are any.
-        mult_obj = [ob["Contents"] for ob in theObjs if "Contents" in ob]
+        mult_obj = [ob["Contents"] for ob in objects if "Contents" in ob]
         list_obj = []
         for obj in mult_obj:
             ob = [
@@ -203,7 +203,7 @@ def list_files_in_s3(uri, filetype="tif"):
                 if f["Key"].endswith(filetype)
             ]
             list_obj = list_obj + ob
-    return list_obj
+        return list_obj
 
 
 def check_for_squared_pixels(rst):
