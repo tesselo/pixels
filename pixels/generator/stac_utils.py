@@ -96,7 +96,7 @@ def upload_files_s3(path, file_type=".json", delete_folder=True):
     Parameters
     ----------
         path : str
-            Path to folder containing the files you wan to upload.
+            Path to folder containing the files to be uploaded.
         file_type : str, optional
             Filetype to upload, set to json.
     Returns
@@ -149,7 +149,7 @@ def check_file_in_s3(uri):
     uri: str
         The S3 uri to check if file exists. Example: s3://my-bucket/config.json
     """
-    # Split the S3 uri into compoments.
+    # Split the S3 uri into components.
     parsed = urlparse(uri)
     # Ensure input is a s3 uri.
     if parsed.scheme != "s3":
@@ -191,7 +191,7 @@ def list_files_in_s3(uri, filetype="tif"):
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
         theObjs = paginator.paginate(Bucket=bucket, Prefix=key)
-        # Get list of objects if thre are any.
+        # Get list of objects if there are any.
         mult_obj = [ob["Contents"] for ob in theObjs if "Contents" in ob]
         list_obj = []
         for obj in mult_obj:
@@ -258,9 +258,9 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
         # Compute unique counts if requested.
         stats = None
         if categorical:
-            unique_values, uniue_counts = np.unique(ds.read(), return_counts=True)
+            unique_values, unique_counts = np.unique(ds.read(), return_counts=True)
             stats = {
-                int(key): int(val) for key, val in zip(unique_values, uniue_counts)
+                int(key): int(val) for key, val in zip(unique_values, unique_counts)
             }
 
         return bbox, footprint, datetime, ds.meta, stats

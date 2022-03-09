@@ -103,7 +103,7 @@ S2_BANDS = [
     "B11",
     "B12",
 ]
-# At L2A Band 10 does no longer exist, as its only an atmosphere band. The SCL
+# At L2A Band 10 does no longer exist, as it is only an atmosphere band. The SCL
 # layer is a scene class layer produced by the Sen2Cor algorithm. It contains
 # a simple cloud mask amongst other classes.
 S2_BANDS_L2A = [
@@ -150,7 +150,7 @@ DISCRETE_BANDS = ["SCL"]
 # Bands for composite mode.
 S2_BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
 
-# Create const dict for band correpondence for each platform
+# Create const dict for band correspondence for each platform
 BANDS_CORRESPONDENCE_S2 = {
     BAND_COASTAL: "B01",
     BAND_BLUE: "B02",
@@ -248,7 +248,7 @@ BANDS_CORRESPONDENCE_L1_L2_L3 = {
 }
 
 
-# Create a dict with all bands correpondence according to platform
+# Create a dict with all bands correspondence according to platform
 BANDS_CORRESPONDENCE_ALL = {
     SENTINEL_2: BANDS_CORRESPONDENCE_S2,
     LANDSAT_8: BANDS_CORRESPONDENCE_L8,

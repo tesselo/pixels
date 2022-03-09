@@ -41,7 +41,7 @@ def create_stac_item(
     out_meta,
     source_path,
     media_type=None,
-    aditional_links=None,
+    additional_links=None,
     out_path=None,
     catalog=None,
 ):
@@ -63,8 +63,8 @@ def create_stac_item(
             media_type=media_type,
         ),
     )
-    if aditional_links:
-        item.add_link(pystac.Link("corresponding_y", aditional_links))
+    if additional_links:
+        item.add_link(pystac.Link("corresponding_y", additional_links))
     try:
         # Validate item.
         item.validate()
@@ -87,7 +87,7 @@ def create_stac_item_from_raster(
     data,
     categorical,
     reference_date,
-    aditional_links,
+    additional_links,
     catalog,
     out_path=None,
 ):
@@ -130,7 +130,7 @@ def create_stac_item_from_raster(
         out_meta,
         path_item,
         media_type=pystac.MediaType.GEOTIFF,
-        aditional_links=aditional_links,
+        additional_links=additional_links,
         out_path=out_path,
         catalog=catalog,
     )
@@ -138,7 +138,7 @@ def create_stac_item_from_raster(
 
 
 def create_stac_item_from_vector(
-    tile, reference_date, source_path, aditional_links, out_stac_folder, catalog, crs
+    tile, reference_date, source_path, additional_links, out_stac_folder, catalog, crs
 ):
     if reference_date is None:
         raise TrainingDataParseError("Datetime could not be determined for stac.")
@@ -164,7 +164,7 @@ def create_stac_item_from_vector(
         out_meta,
         source_path,
         media_type=pystac.MediaType.GEOJSON,
-        aditional_links=aditional_links,
+        additional_links=additional_links,
         out_path=out_stac_folder,
         catalog=catalog,
     )
@@ -177,12 +177,12 @@ def parse_prediction_area(
     save_files=False,
     description="",
     reference_date=None,
-    aditional_links=None,
+    additional_links=None,
 ):
     """
     From a geojson build a stac catalog.
 
-    If a "datetime" tag is found in the metadata of the rastes, that value is
+    If a "datetime" tag is found in the metadata of the rasters, that value is
     extracted and passed as date to the catalog items.
 
     Parameters
@@ -196,8 +196,8 @@ def parse_prediction_area(
         reference_date : str, optional
             Date or datetime string. Used as the date on catalog items if not
             found in the input files.
-        aditional_links : str, href
-            Aditionl links to other catalogs.
+        additional_links : str, href
+            Additional links to other catalogs.
 
     Returns
     -------
@@ -227,7 +227,7 @@ def parse_prediction_area(
         [
             reference_date,
             source_path,
-            aditional_links,
+            additional_links,
             out_stac_folder,
             catalog,
             tiles.crs,
@@ -236,8 +236,8 @@ def parse_prediction_area(
     )
     catalog.add_items(result_parse)
     # Normalize paths inside catalog.
-    if aditional_links:
-        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
+    if additional_links:
+        catalog.add_link(pystac.Link("corresponding_y", additional_links))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
     # Save files if bool is set.
@@ -252,7 +252,7 @@ def parse_training_data(
     save_files=False,
     description="",
     reference_date=None,
-    aditional_links=None,
+    additional_links=None,
 ):
     """
     From a zip files of rasters or a folder build a stac catalog.
@@ -276,8 +276,8 @@ def parse_training_data(
         reference_date : str, optional
             Date or datetime string. Used as the date on catalog items if not
             found in the input files.
-        aditional_links : str, href
-            Aditionl links to other catalogs.
+        additional_links : str, href
+            Additional links to other catalogs.
 
     Returns
     -------
@@ -298,7 +298,7 @@ def parse_training_data(
             save_files=save_files,
             description=description,
             reference_date=reference_date,
-            aditional_links=aditional_links,
+            additional_links=additional_links,
         )
     if source_path.endswith(".zip"):
         # parse_collections_rasters
@@ -337,7 +337,7 @@ def parse_training_data(
             data,
             categorical,
             reference_date,
-            aditional_links,
+            additional_links,
             catalog,
             out_stac_folder,
         ],
@@ -364,8 +364,8 @@ def parse_training_data(
         # Store stats as class weights.
         catalog.extra_fields["class_weight"] = global_stats
     # Normalize paths inside catalog.
-    if aditional_links:
-        catalog.add_link(pystac.Link("corresponding_y", aditional_links))
+    if additional_links:
+        catalog.add_link(pystac.Link("corresponding_y", additional_links))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
     # Save files if bool is set.
@@ -426,7 +426,7 @@ def prepare_pixels_config(
     discrete_training=True,
 ):
     """
-    Based on a item build a config file to use on pixels.
+    Based on an item build a config file to use on pixels.
 
     Parameters
     ----------
@@ -446,7 +446,7 @@ def prepare_pixels_config(
         pool_size: int, optional
         level : str, optional
             The processing level. Only valid if platforms is S2.
-        platform: str or list, optional
+        platforms: str or list, optional
             The platforms to use in this collection.
         limit: int, optional
             Limit the number of images per search.
@@ -527,10 +527,10 @@ def existing_timesteps_range(timesteps, existing_files):
 
     Parameters
     ----------
-        timesteps : List of datetimes.date
+        timesteps : List of datetime.date
             List of timeranges to be collected.
-        existing_files : List of datetimes.date
-            List of dates allready collected.
+        existing_files : List of datetime.date
+            List of dates already collected.
     Returns
     -------
         start : str
@@ -580,7 +580,7 @@ def get_and_write_raster_from_item(
     Returns
     -------
         x_cat : str
-            Catalog containg the collected info.
+            Catalog containing the collected info.
     """
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, **input_config)
@@ -637,14 +637,14 @@ def get_and_write_raster_from_item(
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
     try:
         x_cat = parse_training_data(
-            out_path, False, save_files=True, aditional_links=item.get_self_href()
+            out_path, False, save_files=True, additional_links=item.get_self_href()
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.warning(
             f"Error in parse_training_data data inside get_and_write_raster_from_item: {e}"
         )
-    # Build a intermediate index catalog for the full one.
+    # Build an intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     # Ensure no duplicates get on the dictionary.
     # Only a temporary solution since this whole pipeline is to change.
@@ -674,10 +674,10 @@ def build_catalog_from_items(
     filetype="_item.json",
     id_name="predictions",
     description="",
-    aditional_links="",
+    additional_links="",
 ):
     """
-    From a path containing pystac items build a pystact catalog.
+    From a path containing pystac items build a pystac catalog.
 
     Parameters
     ----------
@@ -686,7 +686,7 @@ def build_catalog_from_items(
         filetype : str, optional
         id_name : str, optional
         description : str, optional
-        aditional_links : str, optional
+        additional_links : str, optional
 
     Returns
     -------
@@ -706,8 +706,8 @@ def build_catalog_from_items(
         # Add item to catalog.
         catalog.add_item(item)
     # Normalize paths inside catalog.
-    if aditional_links:
-        catalog.add_link(pystac.Link("corresponding_source", aditional_links))
+    if additional_links:
+        catalog.add_link(pystac.Link("corresponding_source", additional_links))
     catalog.set_self_href(os.path.join(os.path.dirname(items_list[0]), "catalog.json"))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
@@ -723,10 +723,10 @@ def build_collection_from_pixels(
     collection_title="",
     collection_description="",
     save_files=False,
-    aditional_links=None,
+    additional_links=None,
 ):
     """
-    From a list of catalogs build a pystact collection.
+    From a list of catalogs build a pystac collection.
 
     Parameters
     ----------
@@ -762,8 +762,8 @@ def build_collection_from_pixels(
     collection.update_extent_from_items()
     collection.set_self_href(path_to_pixels + "/collection.json")
     collection.make_all_asset_hrefs_absolute()
-    if aditional_links:
-        collection.add_link(pystac.Link("origin_files", aditional_links))
+    if additional_links:
+        collection.add_link(pystac.Link("origin_files", additional_links))
     collection.make_all_links_absolute()
     # collection.normalize_hrefs(path_to_pixels)
     # collection.validate_all()
@@ -782,7 +782,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         y_catalog_path : pystac catalog path
             Catalog with the information where to download data.
         config_file : path to json file
-            File or dictonary containing the pixels configuration.
+            File or dictionary containing the pixels configuration.
         items_per_job : int
             Number of items per jobs.
     """
@@ -796,7 +796,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         f = open(config_file)
         input_config = json.load(f)
     x_folder = os.path.dirname(config_file)
-    # Remove geojson atribute from configuration.
+    # Remove geojson attribute from configuration.
     if "geojson" in input_config:
         input_config.pop("geojson")
     overwrite = input_config.pop("overwrite", False)
@@ -808,7 +808,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         list_files = glob.glob(f"{out_folder}/**/*.tif", recursive=True)
     if len(list_files) == 0:
         overwrite = True
-    # Batch enviroment variables.
+    # Batch environment variables.
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     # Read the catalog.
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
@@ -883,11 +883,11 @@ def create_x_catalog(x_folder, source_path=None):
         collection_id="x_collection_"
         + os.path.split(os.path.dirname(downloads_folder))[-1],
         path_to_pixels=downloads_folder,
-        aditional_links=source_path,
+        additional_links=source_path,
     )
 
 
-def collect_from_catalog(y_catalog, config_file, aditional_links=None):
+def collect_from_catalog(y_catalog, config_file, additional_links=None):
     """
     From a catalog containing the Y training data and a pixels configuration
     file collect pixels and build X collection stac.
@@ -897,7 +897,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         y_catalog : pystac catalog
             Catalog with the information where to download data.
         config_file : dict or path to json file
-            File or dictonary containing the pixels configuration.
+            File or dictionary containing the pixels configuration.
     Returns
     -------
         x_collection : pystac collection
@@ -913,7 +913,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         f = open(config_file)
         input_config = json.load(f)
     x_folder = os.path.dirname(config_file)
-    # Remove geojson atribute from configuration.
+    # Remove geojson attribute from configuration.
     if "geojson" in input_config:
         input_config.pop("geojson")
     # Iterate over every item in the input data, run pixels and save results to
@@ -940,7 +940,7 @@ def collect_from_catalog(y_catalog, config_file, aditional_links=None):
         save_files=True,
         collection_id=f"x_collection_{os.path.split(os.path.dirname(downloads_folder))[-1]}",
         path_to_pixels=downloads_folder,
-        aditional_links=aditional_links,
+        additional_links=additional_links,
     )
 
     return x_collection
@@ -957,7 +957,7 @@ def create_and_collect(source_path, config_file):
         source_path : str
             Path to zip file or folder containing rasters.
         config_file : dict or path to json file
-            File or dictonary containing the pixels configuration.
+            File or dictionary containing the pixels configuration.
     Returns
     -------
         final_collection : pystac collection
@@ -971,7 +971,7 @@ def create_and_collect(source_path, config_file):
     logger.info("Collecting data using pixels.")
     # Build the X catalogs.
     x_collection = collect_from_catalog(
-        y_catalog, config_file, aditional_links=source_path
+        y_catalog, config_file, additional_links=source_path
     )
     # Collection paths
     existing_collection_path = os.path.join(
@@ -990,7 +990,7 @@ def create_and_collect(source_path, config_file):
     else:
         file_check = os.path.exists(existing_collection_path)
     if file_check:
-        # Read old colection, merge them together
+        # Read old collection, merge them together
         existing_collection = pystac.Catalog.from_file(existing_collection_path)
         for child in existing_collection.get_children():
             if child not in final_collection.get_children():

@@ -15,7 +15,7 @@ def get_index_bands(idx, satellite):
             'bai','chlorogreen'].
         satellite : str
             The satellite platform from Landsat collection or Sentinel 2. The str or list
-            must contain one or a combinations of the of the following values: 'SENTINEL_2',
+            must contain one or a combinations of the following values: 'SENTINEL_2',
             'LANDSAT_1', 'LANDSAT_2', 'LANDSAT_3', 'LANDSAT_4', 'LANDSAT_5', 'LANDSAT_7' or
             'LANDSAT_8'. If ignored, it returns values from different platforms according to
             the combination of the other parameters.

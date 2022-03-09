@@ -20,7 +20,8 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=None, scaling=100
         dat = Y[0]
         dat = np.squeeze(dat)
         img_c = dat.shape[0]
-        # If the second dimension is an image size do not squeeze. Prevent squezing on sinlge image inputs. (N, 360, 360, bands), prevents failing if N==1
+        # If the second dimension is an image size do not squeeze.
+        # Prevent squeezing on single image inputs. (N, 360, 360, bands), prevents failing if N==1
         if np.array(X).shape[1] != img_c:
             X = X.reshape(np.prod(X.shape[:2]), *X.shape[2:])
     # Export Y and RGB as images.

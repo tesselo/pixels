@@ -51,7 +51,7 @@ class FormulaParser(object):
 
     def __init__(self):
         """
-        Setup the Backus Normal Form (BNF) parser logic.
+        Set up the Backus Normal Form (BNF) parser logic.
         """
         # Set an empty formula attribute
         self.formula = None
@@ -196,7 +196,7 @@ class FormulaParser(object):
             if not isinstance(var, numpy.ndarray):
                 with var.open() as rst:
                     self.variable_map[key] = rst.read().ravel()
-            # Ensure all input data in in the algebra pixel type.
+            # Ensure all input data in the algebra pixel type.
             self.variable_map[key] = self.variable_map[key].astype(
                 const.ALGEBRA_PIXEL_TYPE_NUMPY
             )
