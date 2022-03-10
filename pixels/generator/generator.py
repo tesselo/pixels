@@ -401,7 +401,7 @@ class DataGenerator(keras.utils.Sequence):
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
         if SENTINEL_2 in self.platforms and self.cloud_sort:
             x_imgs = filters.order_tensor_on_cloud_mask(
-                np.array(x_imgs), number_images=self.timesteps
+                np.array(x_imgs), max_images=self.timesteps
             )
 
         if not self.train:
