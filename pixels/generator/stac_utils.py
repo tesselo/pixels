@@ -139,7 +139,7 @@ def list_files_in_folder(uri, filetype="tif"):
     if parsed.scheme == "s3":
         return list_files_in_s3(uri, filetype=filetype)
     else:
-        return glob.glob(f"{uri}/**{filetype}", recursive=True)
+        return glob.glob(f"{uri}/**/*{filetype}", recursive=True)
 
 
 def check_file_in_s3(uri):
