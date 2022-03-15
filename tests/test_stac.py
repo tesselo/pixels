@@ -277,6 +277,6 @@ class TestUtils(unittest.TestCase):
         # A link to the zip training file is present.
         self.assertIn({"rel": "origin_files", "href": self.zip_file.name}, links)
         # Number of links is as expected.
-        self.assertEqual(len(links), 12)
+        self.assertEqual(len(links), 6)
         # Cleanup.
         shutil.rmtree(target)
