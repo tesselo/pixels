@@ -1,5 +1,5 @@
 # List of aws images https://github.com/aws/deep-learning-containers/blob/master/available_images.md
-FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.3.1-gpu-py37-cu102-ubuntu18.04
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.7.0-gpu-py38-cu112-ubuntu20.04-e3
 
 # Fetch-and-run setup.
 # https://aws.amazon.com/blogs/compute/creating-a-simple-fetch-and-run-aws-batch-job/
