@@ -7,11 +7,9 @@ import backoff
 import boto3
 import numpy as np
 import rasterio
-import structlog
 
 from pixels.generator.stac_utils import check_for_squared_pixels
-
-logger = structlog.get_logger(__name__)
+from pixels.log import logger
 
 
 def open_object_from_s3(source_path):

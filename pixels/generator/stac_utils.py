@@ -10,12 +10,10 @@ import numpy as np
 import pystac
 import rasterio
 import sentry_sdk
-import structlog
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException
-
-logger = structlog.get_logger(__name__)
+from pixels.log import logger
 
 
 def write_method(uri, txt):

@@ -6,7 +6,6 @@ import tempfile
 import h5py
 import numpy as np
 import pystac
-import structlog
 import tensorflow as tf
 from rasterio import Affine
 
@@ -19,6 +18,7 @@ from pixels.generator.stac_utils import (
     upload_files_s3,
     upload_obj_s3,
 )
+from pixels.log import logger
 from pixels.utils import NumpyArrayEncoder, write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
@@ -35,8 +35,6 @@ ALLOWED_CUSTOM_LOSSES = [
 EVALUATION_PERCENTAGE_LIMIT = 0.2
 EVALUATION_SAMPLE_LIMIT = 2000
 TRAIN_WITH_ARRAY_LIMIT = 1e8
-
-logger = structlog.get_logger(__name__)
 
 
 def _save_and_write_tif(out_path, img, meta):
