@@ -154,6 +154,8 @@ def multiclass_builder(Y, class_definition, max_number, y_nan_value=None):
     if isinstance(class_definition, int):
         # Linear division of value with class_definition classes.
         multiclass_y = Y / (max_number / class_definition)
+        multiclass_y[multiclass_y > class_definition] = class_definition
+        nan_class_value = class_definition
     else:
         class_number = 0
         class_definition = np.sort(np.unique(class_definition))
@@ -165,8 +167,9 @@ def multiclass_builder(Y, class_definition, max_number, y_nan_value=None):
             class_number += 1
             multiclass_y[np.logical_and(Y > down_value, Y <= value)] = class_number
         multiclass_y[Y > class_definition[-1]] = class_number + 1
+        nan_class_value = class_number + 2
     # Make last class the nan_values.
-    multiclass_y[nan_mask] = class_number + 2
+    multiclass_y[nan_mask] = nan_class_value
     return multiclass_y.astype("int")
 
 
