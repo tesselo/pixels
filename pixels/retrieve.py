@@ -1,20 +1,18 @@
 import numpy
 import rasterio
-import structlog
 from rasterio.crs import CRS
 from rasterio.errors import RasterioIOError
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, reproject
 
 from pixels.const import NODATA_VALUE
+from pixels.log import logger
 from pixels.utils import (
     cog_to_jp2_bucket,
     compute_mask,
     compute_transform,
     is_sentinel_cog_bucket,
 )
-
-logger = structlog.get_logger(__name__)
 
 
 def retrieve(
@@ -66,7 +64,7 @@ def retrieve(
         The extracted pixel array, with a shape (bands, height, width). The
         pixels value is returned as None, if there is no data in the result.
     """
-    logger.debug("Retrieving {}".format(source))
+    logger.debug(f"Retrieving {source}")
 
     try:
         src = rasterio.open(source)
@@ -97,7 +95,7 @@ def retrieve(
                 "Can not auto-determine target scale because"
                 "the geom crs does not match the source crs."
             )
-    logger.debug("Source CRS is {}.".format(src.crs))
+    logger.debug(f"Source CRS is {src.crs}.")
 
     # If no band indices were provided, process all bands.
     if bands is None:
@@ -107,7 +105,7 @@ def retrieve(
 
     # Prepare target raster transform from the geometry input.
     transform, width, height = compute_transform(geojson, scale)
-    logger.debug("Target array shape is ({}, {})".format(height, width))
+    logger.debug(f"Target array shape is ({height}, {width})")
 
     projection_args = {
         "dst_transform": transform,
