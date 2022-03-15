@@ -10,7 +10,7 @@ jsonschema==3.2.0
 geopandas
 pyproj==3.2.1
 h5py
-tensorflow-addons==0.12.1
+tensorflow-addons==0.16.1
 sentry-sdk
 rasterio
 backoff
