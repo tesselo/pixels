@@ -1,5 +1,4 @@
 import datetime
-import glob
 import io
 import json
 import os
@@ -22,7 +21,7 @@ from pixels.generator.stac_utils import (
     _load_dictionary,
     check_file_in_s3,
     get_bbox_and_footprint_and_stats,
-    list_files_in_s3,
+    list_files_in_folder,
     open_file_from_s3,
     save_dictionary,
     upload_files_s3,
@@ -317,10 +316,7 @@ def parse_training_data(
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
-        if source_path.startswith("s3"):
-            raster_list = list_files_in_s3(source_path + "/", filetype="tif")
-        else:
-            raster_list = glob.glob(source_path + "/*.tif", recursive=True)
+        raster_list = list_files_in_folder(source_path + "/", filetype="tif")
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
     logger.debug("Found {} source rasters.".format(len(raster_list)))
@@ -596,10 +592,7 @@ def get_and_write_raster_from_item(
             interval_step=config["interval_step"],
         )
         # List all images already downloaded.
-        if out_path.startswith("s3"):
-            existing_files = list_files_in_s3(out_path, filetype=".tif")
-        else:
-            existing_files = glob.glob(f"{out_path}/**/*.tif", recursive=True)
+        existing_files = list_files_in_folder(out_path + "/", filetype="tif")
         start, end = existing_timesteps_range(timesteps, existing_files)
         if start is None:
             logger.warning(f"All timesteps already downloaded for {str(item.id)}")
@@ -688,10 +681,7 @@ def build_catalog_from_items(
     -------
         catalog : pystac catalog
     """
-    if path_to_items.startswith("s3"):
-        items_list = list_files_in_s3(path_to_items, filetype="_item.json")
-    else:
-        items_list = glob.glob(f"{path_to_items}/*{filetype}", recursive=True)
+    items_list = list_files_in_folder(path_to_items, filetype="_item.json")
     # Abort here if there are no items to create a catalog.
     if not items_list:
         logger.warning(f"No items found to create catalog for {path_to_items}.")
@@ -798,10 +788,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     overwrite = input_config.pop("overwrite", False)
     # If there is no images in the collection set overwrite to True.
     out_folder = os.path.join(x_folder, "data")
-    if x_folder.startswith("s3"):
-        list_files = list_files_in_s3(out_folder, filetype=".tif")
-    else:
-        list_files = glob.glob(f"{out_folder}/**/*.tif", recursive=True)
+    list_files = list_files_in_folder(out_folder, filetype=".tif")
     if len(list_files) == 0:
         overwrite = True
     # Batch environment variables.
@@ -846,18 +833,10 @@ def create_x_catalog(x_folder, source_path=None):
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")
     x_catalogs = []
-    if x_folder.startswith("s3"):
-        catalogs_path_list = list_files_in_s3(downloads_folder, filetype="catalog.json")
-        list_cats = list_files_in_s3(
-            downloads_folder, filetype="timerange_images_index.json"
-        )
-    else:
-        list_cats = glob.glob(
-            f"{downloads_folder}/**/timerange_images_index.json", recursive=True
-        )
-        catalogs_path_list = glob.glob(
-            f"{downloads_folder}/**/**/catalog.json", recursive=True
-        )
+    catalogs_path_list = list_files_in_folder(downloads_folder, filetype="catalog.json")
+    list_cats = list_files_in_folder(
+        downloads_folder, filetype="timerange_images_index.json"
+    )
     if not list_cats:
         raise PixelsException(f"Trying to build an empty catalog from {x_folder}")
 
