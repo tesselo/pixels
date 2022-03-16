@@ -20,8 +20,6 @@ click
 pygeos
 h5py==2.10.0
 tqdm
-
-# The following libraries require python3.8
-numpy<1.19
-pandas<1.4.0
-urllib3<1.26
+numpy
+pandas
+urllib3
