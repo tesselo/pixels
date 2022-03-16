@@ -36,9 +36,7 @@ h5py==3.6.0
     # via tensorflow
 idna==3.3
     # via requests
-importlib-metadata==4.11.2
-    # via markdown
-keras==2.7.0
+keras==2.8.0
     # via tensorflow
 keras-preprocessing==1.1.2
     # via tensorflow
@@ -90,13 +88,13 @@ tensorboard-data-server==0.6.1
     # via tensorboard
 tensorboard-plugin-wit==1.8.1
     # via tensorboard
-tensorflow==2.7.0
-    # via -r ./batch/docker/tensorflow_requirements.in
-tensorflow-estimator==2.7.0
-    # via tensorflow
+tensorflow==2.8.0
+    # via -r tensorflow_requirements.in
 tensorflow-io-gcs-filesystem==0.24.0
     # via tensorflow
 termcolor==1.1.0
+    # via tensorflow
+tf-estimator-nightly==2.8.0.dev2021122109
     # via tensorflow
 typing-extensions==4.1.1
     # via tensorflow
@@ -108,11 +106,8 @@ wheel==0.37.1
     # via
     #   astunparse
     #   tensorboard
-    #   tensorflow
 wrapt==1.13.3
     # via tensorflow
-zipp==3.7.0
-    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
