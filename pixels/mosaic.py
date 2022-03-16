@@ -3,7 +3,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy
 import sentry_sdk
-import structlog
 from rasterio.errors import RasterioIOError
 
 from pixels.clouds import pixels_mask
@@ -15,12 +14,10 @@ from pixels.const import (
     S2_BANDS_REQUIRED_FOR_COMPOSITES,
 )
 from pixels.exceptions import PixelsException
+from pixels.log import logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
-
-# Get logger
-logger = structlog.get_logger(__name__)
 
 
 def calculate_start_date(end_date):
@@ -217,9 +214,7 @@ def latest_pixel(
         # Continue to next scene if retrieval of bands failed.
         if failed_retrieve:
             logger.warning(
-                "Failed retrieval of bands for {}, continuing.".format(
-                    item["product_id"]
-                )
+                f"Failed retrieval of bands for {item['product_id']}, continuing."
             )
             continue
 
@@ -317,7 +312,7 @@ def pixel_stack(
             )
             return None, None, None
 
-        logger.info("Getting {} scenes for this stack.".format(len(response)))
+        logger.info(f"Getting {len(response)} scenes for this stack.")
 
         dates = [
             (
@@ -384,13 +379,11 @@ def pixel_stack(
         ]
 
     if mode != "all":
-        logger.info(
-            "Getting {} {} {} images for this stack.".format(len(dates), interval, mode)
-        )
+        logger.info(f"Getting {len(dates)} {interval} {mode} images for this stack.")
 
     # Get pixels.
     pool_size = min(len(dates), pool_size)
-    logger.info("Processing pool size is {}.".format(pool_size))
+    logger.info(f"Processing pool size is {pool_size}.")
 
     result = []
     if pool_size > 1:
@@ -449,7 +442,7 @@ def composite(
     """
     Get the composite over the input features.
     """
-    logger.info("Compositing pixels from {} to {}".format(start, end))
+    logger.info(f"Compositing pixels from {start} to {end}")
     bands = bands or ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):

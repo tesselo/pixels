@@ -1,8 +1,10 @@
+import binascii
 import io
 import math
+import os
 from json import JSONEncoder
 from multiprocessing import Pool
-from typing import Any, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import numpy
 import rasterio
@@ -394,3 +396,47 @@ def run_starmap_multiprocessing(
         result_list = pool.starmap(func=func, iterable=iterator)
 
     return result_list
+
+
+class BoundLogger:
+    def __init__(
+        self, bind=None, context: Optional[Dict[str, str]] = None, log_id=None
+    ):
+        """
+        Parameters
+        ----------
+            bind: ref
+                The object to associate the logger with
+            context: dict
+                Contains a dictionary with the human names and
+                the attribute names of the instance that we
+                want to print in every logging message.
+            log_id: str
+                An ID for this logger, generated if None
+        """
+        self.bind = bind or self
+        # Unique and fast id for the instance
+        self.log_id = log_id or str(binascii.hexlify(os.urandom(4)))
+        self.logger = structlog.get_logger(self.log_id)
+
+        self.context = context or {}
+
+    def _log_context(self):
+        context = {"log_id": self.log_id}
+
+        for name, key in self.context.items():
+            context["name"] = getattr(self.bind, key)
+
+        return context
+
+    def debug(self, message, **kwargs):
+        self.logger.debug(message, **self._log_context(), **kwargs)
+
+    def info(self, message, **kwargs):
+        self.logger.info(message, **self._log_context(), **kwargs)
+
+    def warning(self, message, **kwargs):
+        self.logger.warning(message, **self._log_context(), **kwargs)
+
+    def error(self, message, **kwargs):
+        self.logger.error(message, **self._log_context(), **kwargs)

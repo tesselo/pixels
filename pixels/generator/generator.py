@@ -7,7 +7,6 @@ from multiprocessing import Pool
 
 import boto3
 import numpy as np
-import structlog
 from tensorflow import keras
 
 from pixels.const import SENTINEL_2
@@ -19,8 +18,8 @@ from pixels.generator.stac_utils import (
     list_files_in_folder,
     open_file_from_s3,
 )
-
-logger = structlog.get_logger(__name__)
+from pixels.log import logger
+from pixels.utils import BoundLogger
 
 # S3 class instantiation.
 s3 = boto3.client("s3")
@@ -46,7 +45,7 @@ GENERATOR_Y_VALUE_MODES = [
 ]
 
 
-class DataGenerator(keras.utils.Sequence):
+class DataGenerator(keras.utils.Sequence, BoundLogger):
     """
     Defining class for generator.
     """
@@ -107,6 +106,11 @@ class DataGenerator(keras.utils.Sequence):
         self.cloud_sort = cloud_sort
         if self.usage_type != GENERATOR_MODE_TRAINING:
             self.shuffle = False
+
+        super().__init__(
+            log_id=logger.log_id,
+            context={"mode": "mode", "usage_type": "usage_type", "data_type": "dtype"},
+        )
 
         # Multiclass transform.
         self.class_definitions = class_definitions
@@ -237,10 +241,10 @@ class DataGenerator(keras.utils.Sequence):
     def download_and_parse_data(self, download_dir):
         # Data can only be downloaded from s3.
         if not self.path_collection_catalog.startswith("s3"):
-            logger.warning("Data can only be downloaded if on S3.")
+            self.warning("Data can only be downloaded if on S3.")
             return
 
-        logger.info("Download all data")
+        self.info("Download all data")
         # List all collected images in pixelsdata folder.
         list_of_tifs = list_files_in_folder(
             os.path.dirname(self.path_collection_catalog), filetype="tif"
@@ -281,7 +285,7 @@ class DataGenerator(keras.utils.Sequence):
             f"s3://{bucket_name}", download_dir
         )
         self.collection_catalog = json.loads(collection_catalog_str)
-        logger.info("Download of all data completed.")
+        self.info("Download of all data completed.")
 
     def init_collection_sources(self):
         """
@@ -291,7 +295,7 @@ class DataGenerator(keras.utils.Sequence):
         path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
         path_collection_config = os.path.join(path_collection, "config.json")
         if not check_file_exists(path_collection_config):
-            logger.warning("Collection config file not found.")
+            self.warning("Collection config file not found.")
             return
         collection_config = _load_dictionary(path_collection_config)
         platform = collection_config["platforms"]
@@ -337,7 +341,7 @@ class DataGenerator(keras.utils.Sequence):
             )
 
             if requested_evaluation_length > len(evaluation_id_list):
-                logger.warning(
+                self.warning(
                     "The requested evaluation data length is bigger than the total evaluation set. Using only full evaluation set."
                 )
 

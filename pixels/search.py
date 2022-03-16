@@ -1,4 +1,3 @@
-import structlog
 from dateutil.parser import parse
 
 from pixels.config.db_config import create_db_engine_pixels, create_db_engine_pxsearch
@@ -23,9 +22,8 @@ from pixels.const import (
     S2_L2A_URL,
     SENTINEL_2,
 )
+from pixels.log import logger
 from pixels.utils import compute_wgs83_bbox
-
-logger = structlog.get_logger(__name__)
 
 pixels_db_engine = create_db_engine_pixels()
 pxsearch_db_engine = create_db_engine_pxsearch()

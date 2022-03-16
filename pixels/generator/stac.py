@@ -9,7 +9,6 @@ import geopandas as gp
 import numpy as np
 import pystac
 import sentry_sdk
-import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac.validation import STACValidationError
@@ -26,10 +25,9 @@ from pixels.generator.stac_utils import (
     save_dictionary,
     upload_files_s3,
 )
+from pixels.log import logger
 from pixels.mosaic import pixel_stack
 from pixels.utils import run_starmap_multiprocessing, timeseries_steps, write_raster
-
-logger = structlog.get_logger(__name__)
 
 
 def create_stac_item(
@@ -68,7 +66,7 @@ def create_stac_item(
         # Validate item.
         item.validate()
     except STACValidationError as e:
-        logger.warning("Stac Item not validated:", e)
+        logger.warning("Stac Item not validated:", exception=e)
         return None
     if out_path and catalog:
         item.set_self_href(os.path.join(out_path, id_raster, f"{id_raster}.json"))
@@ -283,7 +281,7 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-    logger.debug("Building stac catalog for {}.".format(source_path))
+    logger.debug(f"Building stac catalog for {source_path}.")
     data = None
     # If input is string, convert to boolean.
     if isinstance(categorical, str):
@@ -319,7 +317,7 @@ def parse_training_data(
         raster_list = list_files_in_folder(source_path + "/", filetype="tif")
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
-    logger.debug("Found {} source rasters.".format(len(raster_list)))
+    logger.debug(f"Found {len(raster_list)} source rasters.")
     # For every raster in the zip file create an item, add it to catalog.
     global_stats = Counter()
     # Parse the raster data images in parallel.
