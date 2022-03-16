@@ -36,7 +36,7 @@ h5py==3.6.0
     # via tensorflow
 idna==3.3
     # via requests
-importlib-metadata==4.11.2
+importlib-metadata==4.11.3
     # via markdown
 keras==2.7.0
     # via tensorflow
@@ -46,7 +46,7 @@ libclang==13.0.0
     # via tensorflow
 markdown==3.3.6
     # via tensorboard
-numpy==1.22.2
+numpy==1.22.3
     # via
     #   h5py
     #   keras-preprocessing
@@ -100,7 +100,7 @@ termcolor==1.1.0
     # via tensorflow
 typing-extensions==4.1.1
     # via tensorflow
-urllib3==1.26.8
+urllib3==1.26.9
     # via requests
 werkzeug==2.0.3
     # via tensorboard
@@ -109,7 +109,7 @@ wheel==0.37.1
     #   astunparse
     #   tensorboard
     #   tensorflow
-wrapt==1.13.3
+wrapt==1.14.0
     # via tensorflow
 zipp==3.7.0
     # via importlib-metadata
