@@ -45,6 +45,8 @@ Then there are 3 current model types on use, each one making a different generat
   - `3D_Model`→ An image with multiple time steps. X output shape: (N, time steps, height, width, number of bands)
   - `2D_Model`→ One image model. X output shape: (N, height, width, number of bands).
   - `Pixel_Model`→ Model pixel based. X output shape: (N, time steps, number of bands)
+  - `RESNET_3D_Model`→ A Pixel with framed context with multiple time steps. X output shape: (N, time steps, 3, 3, number of bands)
+  - `RESNET_2D_Model`→ A Pixel with framed context. X output shape: (N, 3, 3, number of bands).
 
 ### Image
 
