@@ -38,11 +38,26 @@ GENERATOR_RESNET_IMG_2D_MODEL = "RESNET_IMG_2D_Model"
 GENERATOR_RESNET_IMG_3D_MODEL = "RESNET_IMG_3D_Model"
 
 # Groups of modes.
-GENERATOR_2D_MODES = [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL, GENERATOR_RESNET_IMG_2D_MODEL]
-GENERATOR_3D_MODES = [GENERATOR_3D_MODEL, GENERATOR_RESNET_3D_MODEL, GENERATOR_RESNET_IMG_3D_MODEL]
-GENERATOR_RESNET_IMG_MODES = [GENERATOR_RESNET_IMG_3D_MODEL, GENERATOR_RESNET_IMG_2D_MODEL]
+GENERATOR_2D_MODES = [
+    GENERATOR_2D_MODEL,
+    GENERATOR_RESNET_2D_MODEL,
+    GENERATOR_RESNET_IMG_2D_MODEL,
+]
+GENERATOR_3D_MODES = [
+    GENERATOR_3D_MODEL,
+    GENERATOR_RESNET_3D_MODEL,
+    GENERATOR_RESNET_IMG_3D_MODEL,
+]
+GENERATOR_RESNET_IMG_MODES = [
+    GENERATOR_RESNET_IMG_3D_MODEL,
+    GENERATOR_RESNET_IMG_2D_MODEL,
+]
 GENERATOR_UNET_MODEL = [GENERATOR_2D_MODEL, GENERATOR_3D_MODEL]
-GENERATOR_X_IMAGE_MODES = [*GENERATOR_3D_MODES, *GENERATOR_2D_MODES, *GENERATOR_RESNET_IMG_MODES]
+GENERATOR_X_IMAGE_MODES = [
+    *GENERATOR_3D_MODES,
+    *GENERATOR_2D_MODES,
+    *GENERATOR_RESNET_IMG_MODES,
+]
 GENERATOR_Y_IMAGE_MODES = [*GENERATOR_UNET_MODEL, *GENERATOR_RESNET_IMG_MODES]
 GENERATOR_Y_VALUE_MODES = [
     GENERATOR_RESNET_2D_MODEL,
@@ -516,11 +531,35 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 )
         return x_tensor, y_tensor
 
-    def process_resnet_img(self, X, Y=None)
+    def process_resnet_img(self, X, Y=None):
         """
         Processing of data on Resnet img mode.
         """
-        return
+        padded_x_img = np.pad(
+            X,
+            (
+                (0, 0),
+                (1, 1),
+                (1, 1),
+                (0, 0),
+            ),
+            mode="edge",
+        )
+        if Y is not None:
+            Y = np.squeeze(Y)
+            y_pixels = []
+        x_train_imgs = []
+        for h in range(self.height):
+            for w in range(self.width):
+                if Y is not None:
+                    y_pixel = Y[h, w]
+                    if y_pixel == self.y_nan_value:
+                        continue
+                    y_pixels.append(y_pixel)
+
+                x_train_img = padded_x_img[:, h : h + 3, w : w + 3, :]
+                x_train_imgs.append(x_train_img)
+        return np.array(x_train_imgs), np.array(y_pixels)
 
     def process_pixels(self, X, Y=None):
         """
@@ -602,7 +641,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 f"Pixels mode {self.mode} not supported in get_and_process"
             )
         if self.mode in GENERATOR_RESNET_IMG_MODES:
-            x_tensor, y_tensor = self.process_resnet_img(x_imgs, Y=y_img)
+            x_tensor, y_tensor = self.process_resnet_img(x_tensor, Y=y_tensor)
         # For multiclass problems, convert the Y data to categorical.
         if self.num_classes > 1 and self.train and self.one_hot:
             # Convert data to one-hot encoding. This assumes class DN numbers to
@@ -666,6 +705,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if self.mode in [
             *GENERATOR_2D_MODES,
             GENERATOR_PIXEL_MODEL,
+            *GENERATOR_RESNET_IMG_MODES,
         ]:
             X = np.vstack(X)
             if self.train:
