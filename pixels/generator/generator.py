@@ -534,6 +534,20 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
     def process_resnet_img(self, X, Y=None):
         """
         Processing of data on Resnet img mode.
+
+        Parameters
+        ----------
+            X : numpy tensor
+                Tensor containing the collected X images.
+            Y : numpy tensor
+                Tensor containing the collected Y images.
+
+        Returns
+        -------
+            x_train_imgs : numpy tensor
+                Tensor with every framed pixel.
+            y_pixels : numpy tensor
+                Tensor with every valid pixel.
         """
         padded_x_img = np.pad(
             X,
@@ -545,9 +559,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             ),
             mode="edge",
         )
+        y_pixels = []
         if Y is not None:
             Y = np.squeeze(Y)
-            y_pixels = []
         x_train_imgs = []
         for h in range(self.height):
             for w in range(self.width):
