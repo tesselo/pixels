@@ -291,7 +291,6 @@ def train_model_function(
     dtgen = generator.DataGenerator(**gen_args)
     if dtgen.one_hot:
         fit_args.pop("class_weight")
-
     # Train model, verbose level 2 prints one line per epoch to the log.
     if train_with_array:
         # Stack all items into one array.
