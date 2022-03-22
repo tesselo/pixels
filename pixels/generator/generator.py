@@ -31,17 +31,23 @@ GENERATOR_MODE_EVALUATION = "evaluation"
 GENERATOR_3D_MODEL = "3D_Model"
 GENERATOR_2D_MODEL = "2D_Model"
 GENERATOR_PIXEL_MODEL = "Pixel_Model"
+GENERATOR_PIXEL_VECTOR_MODEL = "Pixel_Vector_Model"
 GENERATOR_RESNET_2D_MODEL = "RESNET_2D_Model"
 GENERATOR_RESNET_3D_MODEL = "RESNET_3D_Model"
+GENERATOR_RESNET_IMG_2D_MODEL = "RESNET_IMG_2D_Model"
+GENERATOR_RESNET_IMG_3D_MODEL = "RESNET_IMG_3D_Model"
 
 # Groups of modes.
-GENERATOR_2D_MODES = [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL]
-GENERATOR_3D_MODES = [GENERATOR_3D_MODEL, GENERATOR_RESNET_3D_MODEL]
-GENERATOR_X_IMAGE_MODES = [*GENERATOR_3D_MODES, *GENERATOR_2D_MODES]
-GENERATOR_Y_IMAGE_MODES = [GENERATOR_3D_MODEL, GENERATOR_2D_MODEL]
+GENERATOR_2D_MODES = [GENERATOR_2D_MODEL, GENERATOR_RESNET_2D_MODEL, GENERATOR_RESNET_IMG_2D_MODEL]
+GENERATOR_3D_MODES = [GENERATOR_3D_MODEL, GENERATOR_RESNET_3D_MODEL, GENERATOR_RESNET_IMG_3D_MODEL]
+GENERATOR_RESNET_IMG_MODES = [GENERATOR_RESNET_IMG_3D_MODEL, GENERATOR_RESNET_IMG_2D_MODEL]
+GENERATOR_UNET_MODEL = [GENERATOR_2D_MODEL, GENERATOR_3D_MODEL]
+GENERATOR_X_IMAGE_MODES = [*GENERATOR_3D_MODES, *GENERATOR_2D_MODES, *GENERATOR_RESNET_IMG_MODES]
+GENERATOR_Y_IMAGE_MODES = [*GENERATOR_UNET_MODEL, *GENERATOR_RESNET_IMG_MODES]
 GENERATOR_Y_VALUE_MODES = [
     GENERATOR_RESNET_2D_MODEL,
     GENERATOR_RESNET_3D_MODEL,
+    GENERATOR_PIXEL_VECTOR_MODEL,
 ]
 
 
@@ -218,7 +224,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         # Cross-checking.
         if (
             self.y_nan_value
-            and self.mode in GENERATOR_Y_IMAGE_MODES
+            and self.mode in GENERATOR_UNET_MODEL
             and self.num_classes > 1
             and not self.class_definitions
         ):
@@ -510,6 +516,12 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 )
         return x_tensor, y_tensor
 
+    def process_resnet_img(self, X, Y=None)
+        """
+        Processing of data on Resnet img mode.
+        """
+        return
+
     def process_pixels(self, X, Y=None):
         """
         Processing of data on Pixel mode.
@@ -589,7 +601,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             raise PixelsException(
                 f"Pixels mode {self.mode} not supported in get_and_process"
             )
-
+        if self.mode in GENERATOR_RESNET_IMG_MODES:
+            x_tensor, y_tensor = self.process_resnet_img(x_imgs, Y=y_img)
         # For multiclass problems, convert the Y data to categorical.
         if self.num_classes > 1 and self.train and self.one_hot:
             # Convert data to one-hot encoding. This assumes class DN numbers to
