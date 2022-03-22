@@ -775,28 +775,27 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             X = X.astype(self.dtype)
             if self.train:
                 Y = Y.astype(self.dtype)
-        x_shape_wrong = False
-        y_shape_wrong = False
+        wrong_x_shape = False
+        wrong_y_shape = False
         if len(X.shape) != len(self.expected_x_shape):
-            x_shape_wrong = True
+            wrong_x_shape = True
         if len(Y.shape) != len(self.expected_y_shape):
-            y_shape_wrong = True
-        if x_shape_wrong or y_shape_wrong:
+            wrong_y_shape = True
+        if wrong_x_shape or wrong_y_shape:
             x_id = self.id_list[index]
             catalog = self.collection_catalog[x_id]
             x_paths = list(np.unique(catalog["x_paths"]))
             x_paths = np.unique([os.path.dirname(f) for f in x_paths])[0]
             y_path = catalog["y_path"]
             self.warning(f"Item at index {index} did not manage to make it trough.")
-            if x_shape_wrong:
+            if wrong_x_shape:
                 self.warning(f"X files failed: {x_paths}.")
-            if y_shape_wrong:
+            if wrong_y_shape:
                 self.warning(f"Y file failed: {y_path}.")
             if index == len(self) - 1:
                 new_index = index - 1
             else:
                 new_index = index + 1
-            # If it goes bad, go to the next item .
             if self.class_weights is not None:
                 X, Y, sample_weights = self.__getitem__(new_index)
             elif not self.train:
