@@ -686,6 +686,10 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                         (Batch_number * timesteps, width, height, num_bands).
                     Pixel_Model:
                         (Batch_number * width * height, timesteps, num_bands).
+                    RESNET_IMG_3D_Model:
+                        (Batch_number, timesteps, frame_width, frame_height, num_bands).
+                    RESNET_IMG_2D_Model:
+                        (Batch_number * timesteps, frame_width, frame_height, num_bands).
             Y : numpy tensor (optional)
                 Array with loaded Y images(num_classes, width, height).
                     3D_Model:
@@ -694,6 +698,10 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                         (Batch_number * timestep, width, height, num_classes).
                     Pixel_Model:
                         (Batch_number * width * height, num_classes).
+                    RESNET_IMG_3D_Model:
+                        (Batch_number * frame_width * frame_height, num_classes).
+                    RESNET_IMG_2D_Model:
+                        (Batch_number * timesteps * frame_width * frame_height, num_bands).
         """
         # Build a list of indexes to grab.
         list_indexes = [
