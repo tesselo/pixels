@@ -483,7 +483,7 @@ def predict_function_batch(
     for item in item_range:
         # Get metadata from index, and create paths.
         meta = dtgen.get_meta(item)
-        if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+        if dtgen.mode in generator.GENERATOR_Y_IMAGE_MODES:
             # If the generator output is bigger than model shape, do a jumping window.
             big_square_width = dtgen.expected_x_shape[width_index]
             big_square_height = dtgen.expected_x_shape[height_index]
