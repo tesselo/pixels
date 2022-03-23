@@ -36,6 +36,12 @@ EVALUATION_PERCENTAGE_LIMIT = 0.2
 EVALUATION_SAMPLE_LIMIT = 2000
 TRAIN_WITH_ARRAY_LIMIT = 1e8
 
+MODE_PREDICTION_PER_PIXEL = [
+    generator.GENERATOR_PIXEL_MODEL,
+    *generator.GENERATOR_RESNET_MODES,
+]
+MODE_PREDICTION_PER_IMAGE = generator.GENERATOR_UNET_MODEL
+
 
 def _save_and_write_tif(out_path, img, meta):
     out_path_tif = out_path
@@ -464,7 +470,7 @@ def predict_function_batch(
     item_range = range(item_list_min, item_list_max)
     logger.info(f"Predicting generator range from {item_list_min} to {item_list_max}.")
     model_upsampling = 1
-    if dtgen.mode in generator.GENERATOR_Y_IMAGE_MODES:
+    if dtgen.mode in MODE_PREDICTION_PER_IMAGE:
         # Index img number based on mode.
         if dtgen.mode in generator.GENERATOR_3D_MODES:
             width_index = 3
@@ -485,8 +491,13 @@ def predict_function_batch(
         meta = dtgen.get_meta(item)
         if dtgen.mode in generator.GENERATOR_Y_IMAGE_MODES:
             # If the generator output is bigger than model shape, do a jumping window.
-            big_square_width = dtgen.expected_x_shape[width_index]
-            big_square_height = dtgen.expected_x_shape[height_index]
+            if dtgen.mode in generator.GENERATOR_RESNET_MODES:
+                big_square_width = dtgen.width
+                big_square_height = dtgen.height
+            else:
+                big_square_width = dtgen.expected_x_shape[width_index]
+                big_square_height = dtgen.expected_x_shape[height_index]
+
             big_square_width_result = (big_square_width * model_upsampling) - (
                 dtgen.padding * 2
             )
@@ -648,6 +659,7 @@ def predict_function_batch(
         if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
             data = dtgen[item]
             prediction = model.predict(data)
+        if dtgen.mode in MODE_PREDICTION_PER_PIXEL:
             image_shape = (meta["height"], meta["width"], dtgen.num_classes)
             prediction = np.array(prediction.reshape(image_shape))
 
@@ -658,10 +670,7 @@ def predict_function_batch(
         meta["count"] = 1
 
         # Ensure the class axis is the first one.
-        if dtgen.mode in [
-            generator.GENERATOR_PIXEL_MODEL,
-            *generator.GENERATOR_RESNET_MODES,
-        ]:
+        if dtgen.mode in MODE_PREDICTION_PER_PIXEL:
             prediction = prediction.swapaxes(1, 2)
             prediction = prediction.swapaxes(0, 1)
         else:
@@ -681,7 +690,7 @@ def predict_function_batch(
         if dtgen.num_classes > 1 and not extract_probabilities:
             # Apply argmax to reduce the one-hot model output into class numbers.
             # Pick axis for argmax calculation based on 1D vs 2D or 3D.
-            axis = 0 if dtgen.mode == generator.GENERATOR_PIXEL_MODEL else 1
+            axis = 0 if dtgen.mode in MODE_PREDICTION_PER_PIXEL else 1
             prediction = np.argmax(prediction, axis=axis)
             # Ensure the maximum number of classes is not surpassed.
             if np.max(prediction) > 255:
@@ -690,7 +699,7 @@ def predict_function_batch(
                 )
             # Rasterio expects shape to have the band number first. So expand
             # prediction shape from (height, width) to (1, height, width).
-            if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
+            if dtgen.mode in MODE_PREDICTION_PER_PIXEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
             # Ensure prediction has a writable type. For now, we assume there
             # will not be more than 255 classes and use unit8. The default
@@ -711,7 +720,7 @@ def predict_function_batch(
         if extract_probabilities:
             # When probabilities are to be extracted the number of bands is the number of classes.
             meta["count"] = dtgen.num_classes
-            if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
+            if dtgen.mode in MODE_PREDICTION_PER_PIXEL:
                 prediction = prediction.reshape(*(1, *prediction.shape))
 
         # Clip between the given range and rescale it to uint8.
