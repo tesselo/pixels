@@ -658,7 +658,10 @@ def predict_function_batch(
         meta["count"] = 1
 
         # Ensure the class axis is the first one.
-        if dtgen.mode == generator.GENERATOR_PIXEL_MODEL:
+        if dtgen.mode in [
+            generator.GENERATOR_PIXEL_MODEL,
+            *generator.GENERATOR_RESNET_MODES,
+        ]:
             prediction = prediction.swapaxes(1, 2)
             prediction = prediction.swapaxes(0, 1)
         else:
