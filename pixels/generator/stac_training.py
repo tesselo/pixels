@@ -464,9 +464,9 @@ def predict_function_batch(
     item_range = range(item_list_min, item_list_max)
     logger.info(f"Predicting generator range from {item_list_min} to {item_list_max}.")
     model_upsampling = 1
-    if dtgen.mode in [generator.GENERATOR_3D_MODEL, generator.GENERATOR_2D_MODEL]:
+    if dtgen.mode in generator.GENERATOR_Y_IMAGE_MODES:
         # Index img number based on mode.
-        if dtgen.mode == generator.GENERATOR_3D_MODEL:
+        if dtgen.mode in generator.GENERATOR_3D_MODES:
             width_index = 3
             height_index = 2
         else:
