@@ -779,8 +779,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         wrong_y_shape = False
         if len(X.shape) != len(self.expected_x_shape):
             wrong_x_shape = True
-        if len(Y.shape) != len(self.expected_y_shape):
-            wrong_y_shape = True
+        if self.train:
+            if len(Y.shape) != len(self.expected_y_shape):
+                wrong_y_shape = True
         if wrong_x_shape or wrong_y_shape:
             x_id = self.id_list[index]
             catalog = self.collection_catalog[x_id]
