@@ -113,6 +113,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         shuffle=True,
         one_hot=True,
         cloud_sort=False,
+        framed_window=3,
     ):
         """
         Initial setup for the class.
@@ -183,6 +184,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.y_height = y_height
         self.padding = padding
         self.y_padding = y_padding
+        if framed_window % 2 == 0:
+            framed_window += 1
+        self.framed_window = framed_window
         self.y_zip = None
         self.y_geojson = None
         self.class_weights = class_weights
@@ -248,12 +252,12 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 self.expected_x_shape = (
                     self.batch_number,
                     self.timesteps,
-                    3,
-                    3,
+                    self.framed_window,
+                    self.framed_window,
                     self.num_bands,
                 )
                 self.expected_y_shape = (
-                    self.batch_number * 3 * 3,
+                    self.batch_number,
                     self.num_classes,
                 )
         else:
@@ -579,12 +583,13 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_pixels : numpy tensor
                 Tensor with every valid pixel.
         """
+        pad_size = (self.framed_window - 1) / 2
         padded_x_img = np.pad(
             X,
             (
                 (0, 0),
-                (1, 1),
-                (1, 1),
+                (pad_size, pad_size),
+                (pad_size, pad_size),
                 (0, 0),
             ),
             mode="edge",
@@ -601,7 +606,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                         continue
                     y_pixels.append(y_pixel)
 
-                x_train_img = padded_x_img[:, h : h + 3, w : w + 3, :]
+                x_train_img = padded_x_img[
+                    :, h : h + self.framed_window, w : w + self.framed_window, :
+                ]
                 x_train_imgs.append(x_train_img)
         return np.array(x_train_imgs), np.array(y_pixels)
 

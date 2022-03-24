@@ -107,6 +107,12 @@ Padding mode, from numpy.pad().
 
 Default : "edge"
 
+`framed_window`: int
+
+Size of frame around pixel in ResNET.
+
+Default : 3
+
 `augmentation`: int
 
 Number of augmentation to do.
