@@ -595,14 +595,12 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             mode="edge",
         )
         y_pixels = []
-        if Y is not None:
-            Y = np.squeeze(Y)
         x_train_imgs = []
-        for h in range(self.height):
-            for w in range(self.width):
+        for h in range(self.height * self.upsampling):
+            for w in range(self.width * self.upsampling):
                 if Y is not None:
-                    y_pixel = Y[h, w]
-                    if y_pixel == self.y_nan_value:
+                    y_pixel = Y[h, w, :]
+                    if np.all(y_pixel == self.y_nan_value):
                         continue
                     y_pixels.append(y_pixel)
 
