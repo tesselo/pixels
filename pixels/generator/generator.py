@@ -583,7 +583,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_pixels : numpy tensor
                 Tensor with every valid pixel.
         """
-        pad_size = (self.framed_window - 1) / 2
+        pad_size = int((self.framed_window - 1) / 2)
         padded_x_img = np.pad(
             X,
             (
