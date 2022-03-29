@@ -270,17 +270,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 self.batch_number,
                 self.num_classes,
             )
-        # Cross-checking.
-        if (
-            self.y_nan_value
-            and self.mode in GENERATOR_UNET_MODEL
-            and self.num_classes > 1
-            and not self.class_definitions
-        ):
-            if self.y_nan_value not in np.arange(self.num_classes):
-                raise InconsistentGeneratorDataException(
-                    "For image classification the y_nan_value must be one the classes."
-                )
 
     @property
     def train(self):
@@ -556,6 +545,15 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 y_tensor = generator_utils.multiclass_builder(
                     y_tensor, self.class_definitions, self.y_max_value, self.y_nan_value
                 )
+            # Using last class for nan-values.
+            if (
+                self.y_nan_value
+                and self.mode in GENERATOR_UNET_MODEL
+                and self.num_classes > 1
+                and not self.class_definitions
+            ):
+                if self.y_nan_value not in np.arange(self.num_classes):
+                    y_tensor[y_tensor == self.y_nan_value] = self.num_classes - 1
             # Limit the size to the maximum expected.
             y_tensor = y_tensor[: self.num_classes, : self.y_height, : self.y_width]
             # Fill the gaps with nodata if the array is too small.
