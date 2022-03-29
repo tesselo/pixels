@@ -74,7 +74,7 @@ Number of bands in the X images.
 
 `num_classes`: int
 
-Number of classes in Y data.
+Number of classes in Y data. If the mode is Y-Image and there are nan_values to ignore, then the number of classes must include an additional last class for nan_values.
 
 ### Image Processing
 
