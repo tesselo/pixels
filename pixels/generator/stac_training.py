@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 import pystac
 import tensorflow as tf
+import tensorflow_addons as tfa
 from rasterio import Affine
 
 from pixels.generator import generator, losses
@@ -243,6 +244,10 @@ def train_model_function(
         # Handle custom loss case.
         if hasattr(tf.keras.losses, compile_args["loss"]):
             model.compile(**compile_args)
+        elif hasattr(tfa.losses, compile_args["loss"]):
+            loss_name = compile_args.pop("loss", None)
+            loss_addon = getattr(tfa.losses, loss_name)
+            model.compile(loss=loss_addon(**loss_arguments), **compile_args)
         elif compile_args["loss"] in ALLOWED_CUSTOM_LOSSES:
             # Get custom loss function.
             custom_loss = getattr(losses, compile_args.pop("loss"))
