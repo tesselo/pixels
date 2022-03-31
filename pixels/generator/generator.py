@@ -606,7 +606,13 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                     :, h : h + self.framed_window, w : w + self.framed_window, :
                 ]
                 x_train_imgs.append(x_train_img)
-        return np.array(x_train_imgs), np.array(y_pixels)
+        x_train_imgs = np.array(x_train_imgs)
+        y_pixels = np.array(y_pixels)
+        x_train_imgs, unique_indexes = np.unique(
+            x_train_imgs, axis=0, return_index=True
+        )
+        y_pixels = y_pixels[unique_indexes]
+        return x_train_imgs, y_pixels
 
     def process_pixels(self, X, Y=None):
         """
