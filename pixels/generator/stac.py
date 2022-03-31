@@ -515,6 +515,20 @@ def prepare_pixels_config(
     return config
 
 
+def create_time_bubbles(timesteps, timesteps_not_avaible):
+    bubbles = []
+    bubble = []
+    for timestep in timesteps:
+        if timestep in timesteps_not_avaible:
+            bubble.append(timestep)
+        elif len(bubble) > 0:
+            bubbles.append(bubble)
+            bubble = []
+    if len(bubble) > 0:
+        bubbles.append(bubble)
+    return bubbles
+
+
 def existing_timesteps_range(timesteps, existing_files):
     """
     Checks the from already download images which asked timesteps are not
@@ -540,22 +554,26 @@ def existing_timesteps_range(timesteps, existing_files):
     start = str(min(min(timesteps)))
     end = str(max(max(timesteps)))
     # Assumption! if there is more dates in the images then the collection should be complete.
-    if len(timesteps) < len(list_dates):
-        return None, None
-    elif len(list_dates) != 0:
+    if len(list_dates) != 0:
         timesteps_not_avaible = []
         for timerange in timesteps:
             check = False
             for date in list_dates:
                 if timerange[0] <= date <= timerange[1]:
                     check = True
+                    list_dates.remove(date)
             if not check:
                 timesteps_not_avaible.append(timerange)
-        if len(timesteps_not_avaible) != 0:
+        if len(timesteps) > len(timesteps_not_avaible):
+            time_bubbles = create_time_bubbles(timesteps, timesteps_not_avaible)
+        if len(time_bubbles) == 1:
             start = str(min(min(timesteps_not_avaible)))
             end = str(max(max(timesteps_not_avaible)))
-        else:
+        elif len(time_bubbles) == 0:
             return None, None
+        else:
+            start = [min(f[0]) for f in time_bubbles]
+            end = [max(f[-1]) for f in time_bubbles]
     return start, end
 
 
@@ -595,10 +613,25 @@ def get_and_write_raster_from_item(
         if start is None:
             logger.warning(f"All timesteps already downloaded for {str(item.id)}")
             return
-        config["start"] = start
-        config["end"] = end
-    # Run pixels and get the dates, the images (as numpy) and the raster meta.
-    meta, dates, results = pixel_stack(**config)
+        if isinstance(start, str):
+            meta, dates, results = pixel_stack(**config)
+        else:
+            meta = []
+            dates = []
+            results = []
+            for st, en in zip(start, end):
+                config["start"] = st
+                config["end"] = en
+                outcome = pixel_stack(**config)
+                meta.append(outcome[0])
+                dates.append(outcome[1])
+                results.append(outcome[2])
+            meta = np.vstack(meta)
+            dates = np.vstack(dates)
+            results = np.vstack(results)
+    else:
+        # Run pixels and get the dates, the images (as numpy) and the raster meta.
+        meta, dates, results = pixel_stack(**config)
     if not dates:
         logger.warning(f"No images for {str(item.id)}")
         return
