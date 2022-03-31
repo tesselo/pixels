@@ -128,7 +128,7 @@ def load_existing_model_from_file(
         f = h5py.File(bio_, "r")
         model_uri = f
     # Construct model object.
-    if hasattr(tf.keras.losses, loss):
+    if hasattr(tf.keras.losses, loss) or hasattr(tfa.losses, loss):
         model = tf.keras.models.load_model(model_uri)
     elif loss in ALLOWED_CUSTOM_LOSSES:
         # Handle custom loss functions when loading the model.
