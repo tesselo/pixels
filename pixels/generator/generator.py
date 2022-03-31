@@ -607,11 +607,12 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 ]
                 x_train_imgs.append(x_train_img)
         x_train_imgs = np.array(x_train_imgs)
-        y_pixels = np.array(y_pixels)
-        x_train_imgs, unique_indexes = np.unique(
-            x_train_imgs, axis=0, return_index=True
-        )
-        y_pixels = y_pixels[unique_indexes]
+        if self.train:
+            y_pixels = np.array(y_pixels)
+            x_train_imgs, unique_indexes = np.unique(
+                x_train_imgs, axis=0, return_index=True
+            )
+            y_pixels = y_pixels[unique_indexes]
         return x_train_imgs, y_pixels
 
     def process_pixels(self, X, Y=None):
