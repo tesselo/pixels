@@ -640,11 +640,12 @@ def get_and_write_raster_from_item(
                 config["start"] = st
                 config["end"] = en
                 outcome = pixel_stack(**config)
+                if isinstance(outcome[0], dict):
+                    meta = outcome[0]
                 if outcome[1] is not None:
                     dates.append(outcome[1])
                     results.append(outcome[2])
             if dates:
-                meta = outcome[0]
                 dates = np.concatenate(dates).tolist()
                 results = np.concatenate(results)
     else:
