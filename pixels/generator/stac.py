@@ -630,21 +630,23 @@ def get_and_write_raster_from_item(
             logger.warning(f"All timesteps already downloaded for {str(item.id)}")
             return
         if isinstance(start, str):
+            config["start"] = start
+            config["end"] = end
             meta, dates, results = pixel_stack(**config)
         else:
-            meta = []
             dates = []
             results = []
             for st, en in zip(start, end):
                 config["start"] = st
                 config["end"] = en
                 outcome = pixel_stack(**config)
-                meta.append(outcome[0])
-                dates.append(outcome[1])
-                results.append(outcome[2])
-            meta = np.vstack(meta)
-            dates = np.vstack(dates)
-            results = np.vstack(results)
+                if outcome[1] is not None:
+                    dates.append(outcome[1])
+                    results.append(outcome[2])
+            if dates:
+                meta = outcome[0]
+                dates = np.concatenate(dates).tolist()
+                results = np.concatenate(results)
     else:
         # Run pixels and get the dates, the images (as numpy) and the raster meta.
         meta, dates, results = pixel_stack(**config)
