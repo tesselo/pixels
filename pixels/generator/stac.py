@@ -515,11 +515,27 @@ def prepare_pixels_config(
     return config
 
 
-def create_time_bubbles(timesteps, timesteps_not_avaible):
+def create_time_bubbles(timesteps, timesteps_not_available):
+    """
+    Creates joining groups of timesteps. It assumes that both inputs
+    are ordered by time.
+
+    Parameters
+    ----------
+        timesteps : List of datetime.date
+            List of timeranges to be collected.
+        timesteps_not_available : List of datetime.date
+            List of timeranges not collected.
+    Returns
+    -------
+        bubbles : list of timeranges
+            List of groups of joining timesteps_not_available.
+
+    """
     bubbles = []
     bubble = []
     for timestep in timesteps:
-        if timestep in timesteps_not_avaible:
+        if timestep in timesteps_not_available:
             bubble.append(timestep)
         elif len(bubble) > 0:
             bubbles.append(bubble)
@@ -555,7 +571,7 @@ def existing_timesteps_range(timesteps, existing_files):
     end = str(max(max(timesteps)))
     # Assumption! if there is more dates in the images then the collection should be complete.
     if len(list_dates) != 0:
-        timesteps_not_avaible = []
+        timesteps_not_available = []
         for timerange in timesteps:
             check = False
             for date in list_dates:
@@ -563,12 +579,12 @@ def existing_timesteps_range(timesteps, existing_files):
                     check = True
                     list_dates.remove(date)
             if not check:
-                timesteps_not_avaible.append(timerange)
-        if len(timesteps) > len(timesteps_not_avaible):
-            time_bubbles = create_time_bubbles(timesteps, timesteps_not_avaible)
+                timesteps_not_available.append(timerange)
+        if len(timesteps) > len(timesteps_not_available):
+            time_bubbles = create_time_bubbles(timesteps, timesteps_not_available)
         if len(time_bubbles) == 1:
-            start = str(min(min(timesteps_not_avaible)))
-            end = str(max(max(timesteps_not_avaible)))
+            start = str(min(min(timesteps_not_available)))
+            end = str(max(max(timesteps_not_available)))
         elif len(time_bubbles) == 0:
             return None, None
         else:
