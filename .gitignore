@@ -1,4 +1,6 @@
+# Tesselo stuff
 sen2cor/
+.env.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
