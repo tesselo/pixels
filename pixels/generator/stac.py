@@ -636,22 +636,23 @@ def get_and_write_raster_from_item(
         else:
             dates = []
             results = []
+            meta = None
             for st, en in zip(start, end):
                 config["start"] = st
                 config["end"] = en
-                outcome = pixel_stack(**config)
-                if isinstance(outcome[0], dict):
-                    meta = outcome[0]
-                if outcome[1] is not None:
-                    dates.append(outcome[1])
-                    results.append(outcome[2])
+                output_meta, date, result = pixel_stack(**config)
+                if isinstance(output_meta, dict):
+                    meta = output_meta
+                if date is not None:
+                    dates.append(date)
+                    results.append(result)
             if dates:
                 dates = np.concatenate(dates).tolist()
                 results = np.concatenate(results)
     else:
         # Run pixels and get the dates, the images (as numpy) and the raster meta.
         meta, dates, results = pixel_stack(**config)
-    if not dates:
+    if not dates or meta is None:
         logger.warning(f"No images for {str(item.id)}")
         return
     out_paths_tmp = []
