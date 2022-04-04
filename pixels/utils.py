@@ -1,4 +1,3 @@
-import binascii
 import io
 import math
 import os
@@ -416,7 +415,7 @@ class BoundLogger:
         """
         self.bind = bind or self
         # Unique and fast id for the instance
-        self.log_id = log_id or str(binascii.hexlify(os.urandom(4)))
+        self.log_id = log_id or os.urandom(4).hex()
         self.logger = structlog.get_logger(self.log_id)
 
         self.context = context or {}
