@@ -175,7 +175,7 @@ def execute_query(
             schema="data",
             mgrs_tile="",
             granule_id="",
-            links="links",
+            links=", links",
         )
         engine = pxsearch_db_engine
     else:
@@ -249,7 +249,7 @@ def build_query(
         platforms = [platforms]
 
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url, {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), bbox)"
 
     # Check inputs.
     if start is not None:
