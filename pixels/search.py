@@ -13,7 +13,6 @@ from pixels.const import (
     LANDSAT_5,
     LANDSAT_7,
     LANDSAT_8,
-    LANDSAT_SERIES,
     LS_BANDS_NAMES,
     LS_LOOKUP,
     S2_BANDS,
@@ -95,7 +94,6 @@ def search_data(
 
     results = [dict(row) for row in db_result]
     scenes_result = get_bands(results, level=level)
-
     # Convert cloud cover into float to allow json serialization of the output.
     for dat in scenes_result:
         dat["cloud_cover"] = float(dat["cloud_cover"])
@@ -105,12 +103,6 @@ def search_data(
         for dat in scenes_result:
             if "links" in dat:
                 del dat["links"]
-
-    # Filter real time products for landsat
-    if sensor in LANDSAT_SERIES:
-        scenes_result = [
-            dat for dat in scenes_result if "_01_RT" not in dat["product_id"]
-        ]
 
     logger.debug(f"Found {len(scenes_result)} in search.")
 
@@ -166,8 +158,9 @@ def execute_query(
             a sqlalchemy engine cursor to query execution.
 
     """
+    collection = "landsat-c2l2-sr" if level == "L2" else None
     query = build_query(
-        start, end, platforms, maxcloud, scene, sensor, level, limit, sort
+        start, end, platforms, maxcloud, scene, sensor, level, limit, sort, collection
     )
     # Getting bounds.
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
@@ -182,7 +175,7 @@ def execute_query(
             schema="data",
             mgrs_tile="",
             granule_id="",
-            links=", links",
+            links="links",
         )
         engine = pxsearch_db_engine
     else:
@@ -202,7 +195,9 @@ def execute_query(
     return connection.execute(formatted_query)
 
 
-def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, sort):
+def build_query(
+    start, end, platforms, maxcloud, scene, sensor, level, limit, sort, collection
+):
     """
     Format and add parameters to query template.
 
@@ -240,6 +235,9 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
             the images from the most recent date to the oldest. Another option to order the
             results is the cloud cover which are ordered from the least cloudy to the
             cloudiest. Allowed values are "sensing_time" and "cloud_cover".
+        collection : str
+            Defines collection (1 or 2) and type of product ( Surface reflectance - SR
+            or Surface Temperature - ST).
 
     Returns
     -------
@@ -251,7 +249,7 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
         platforms = [platforms]
 
     # SQL query template.
-    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), bbox)"
+    query = "SELECT spacecraft_id, sensor_id, product_id, {granule_id} sensing_time, {mgrs_tile} cloud_cover, wrs_path, wrs_row, base_url, {links} FROM {schema}.imagery WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), bbox)"
 
     # Check inputs.
     if start is not None:
@@ -270,6 +268,8 @@ def build_query(start, end, platforms, maxcloud, scene, sensor, level, limit, so
         query += " AND sensor_id = '{}' ".format(sensor)
     if is_level_valid(level, platforms):
         query += " AND granule_id LIKE '{}%'".format(level)
+    if collection is not None:
+        query += " AND collection_id = '{}' ".format(collection)
     if sort is not None:
         sort_order = "ASC" if sort == "cloud_cover" else "DESC"
         query += " ORDER BY {} {}".format(sort, sort_order)
@@ -448,7 +448,7 @@ def is_level_valid(level, platforms):
 
 def format_ls_c2_bands(value):
     """
-        Get  links to download landsat collection 02 bands. from assets data.
+        Get  links to download landsat collection 02 bands from assets data.
 
     Parameters
     ----------
