@@ -13,6 +13,10 @@ dev_install: install
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
+docker_install:
+	pip install -r ./batch/docker/tensorflow_requirements.txt
+	pip install -r ./batch/docker/requirements.txt
+
 upgrade_dependencies:
 	pip install pip-tools
 	pip-compile --upgrade --output-file ./requirements.txt requirements.in
