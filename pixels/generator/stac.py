@@ -695,6 +695,8 @@ def get_and_write_raster_from_item(
             "y_path": str(item.assets[item.id].href),
             "stac_catalog": stac_catalog_path,
             "discrete_training": discrete_training,
+            "y_stats": item.properties["stats"],
+            "nodata": item.properties["nodata"],
         }
     }
     # Write file and send to s3.
@@ -893,21 +895,47 @@ def create_x_catalog(x_folder, source_path=None):
 
     # Open all index catalogs and merge them.
     index_catalog = {}
+    stats_collection_dict = dict()
+    value_counts = dict()
     for cat in list_cats:
         cat_dict = _load_dictionary(cat)
         index_catalog.update(cat_dict)
+        if "y_stats" in cat_dict:
+            for value in cat_dict["y_stats"]:
+                if value == cat_dict["nodata"]:
+                    continue
+                if value not in value_counts:
+                    value_counts[value] = cat_dict["y_stats"][value]
+                else:
+                    value_counts[value] = (
+                        value_counts[value] + cat_dict["y_stats"][value]
+                    )
     # FIXME: it is still unknown if the following line has any effect
     cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
     save_dictionary(cat_path, index_catalog)
+    # The following line are to build the stats out of the Tesselo custom json.
+    stats_collection_dict["value_counts"] = value_counts
+    n_samples = np.sum([value_counts[f] for f in value_counts])
+    n_classes = len(value_counts)
+    class_dict = dict()
+    for key in value_counts:
+        class_weight = n_samples / (n_classes * value_counts[key])
+        class_dict[key] = class_weight
+    stats_collection_dict["class_weights"] = class_dict
+    stats_collection_dict_path = os.path.join(downloads_folder, "collection_stats.json")
+    save_dictionary(stats_collection_dict_path, stats_collection_dict)
     stats_collection_dict = dict()
     value_counts = dict()
     # On each catalog add to collection and check for stats.
+    # The following loop is to allow existing collections build this stats file.
+    # Should be delete in a few months.
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         y_path = x_cat.get_links("corresponding_y")[0].get_href()
         y_item = pystac.Item.from_file(y_path)
         if "stats" in y_item.properties:
+            x_cat.properties["stats"] = y_item.properties["stats"]
             for value in y_item.properties["stats"]:
                 if value == y_item.properties["nodata"]:
                     continue
