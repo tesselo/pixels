@@ -900,9 +900,34 @@ def create_x_catalog(x_folder, source_path=None):
     cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
     save_dictionary(cat_path, index_catalog)
+    stats_collection_dict = dict()
+    value_counts = dict()
+    # On each catalog add to collection and check for stats.
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
+        y_path = x_cat.get_links("corresponding_y")[0].get_href()
+        y_item = pystac.Item.from_file(y_path)
+        if "stats" in y_item.properties:
+            for value in y_item.properties["stats"]:
+                if value == y_item.properties["nodata"]:
+                    continue
+                if value not in value_counts:
+                    value_counts[value] = y_item.properties["stats"][value]
+                else:
+                    value_counts[value] = (
+                        value_counts[value] + y_item.properties["stats"][value]
+                    )
         x_catalogs.append(x_cat)
+    stats_collection_dict["value_counts"] = value_counts
+    n_samples = np.sum([value_counts[f] for f in value_counts])
+    n_classes = len(value_counts)
+    class_dict = dict()
+    for key in value_counts:
+        class_weight = n_samples / (n_classes * value_counts[key])
+        class_dict[key] = class_weight
+    stats_collection_dict["class_weights"] = class_dict
+    stats_collection_dict_path = os.path.join(downloads_folder, "collection_stats.json")
+    save_dictionary(stats_collection_dict_path, stats_collection_dict)
     build_collection_from_pixels(
         x_catalogs,
         save_files=True,
