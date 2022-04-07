@@ -594,8 +594,15 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         )
         y_pixels = []
         x_train_imgs = []
-        for h in range(pad_size, self.height * self.upsampling):
-            for w in range(pad_size, self.width * self.upsampling):
+        moving_window_start = 0
+        moving_window_end_h = self.height * self.upsampling
+        moving_window_end_w = self.width * self.upsampling
+        if self.train:
+            moving_window_start += pad_size
+            moving_window_end_h -= pad_size
+            moving_window_end_w -= pad_size
+        for h in range(moving_window_start, moving_window_end_h):
+            for w in range(moving_window_start, moving_window_end_w):
                 if Y is not None:
                     y_pixel = Y[h, w, :]
                     if np.all(y_pixel == self.y_nan_value):
