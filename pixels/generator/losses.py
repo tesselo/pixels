@@ -21,10 +21,11 @@ def nan_mean_squared_error_loss(nan_value=np.nan):
     return loss
 
 
-def nan_categorical_crossentropy_loss(nan_value=np.nan):
+def nan_categorical_crossentropy_loss(nan_value=np.nan, class_with_nan=None):
     # Create a loss function
     def loss(y_true, y_pred):
-        indices = tf.where(tf.not_equal(y_true, nan_value))
+        sparse = tf.math.argmax(y_true, axis=-1)
+        indices = tf.where(tf.not_equal(sparse, class_with_nan))
         return tf.keras.losses.categorical_crossentropy(
             tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
         )
