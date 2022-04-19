@@ -13,14 +13,13 @@ from rasterio import Affine
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import (
-    _load_dictionary,
     list_files_in_folder,
     open_file_from_s3,
     upload_files_s3,
     upload_obj_s3,
 )
 from pixels.log import logger
-from pixels.utils import NumpyArrayEncoder, write_raster
+from pixels.utils import NumpyArrayEncoder, load_dictionary, write_raster
 
 ALLOWED_CUSTOM_LOSSES = [
     "nan_mean_squared_error_loss",
@@ -205,9 +204,9 @@ def train_model_function(
             Model trained with catalog data.
     """
     # Load the generator arguments.
-    gen_args = _load_dictionary(generator_arguments_uri)
-    compile_args = _load_dictionary(model_compile_arguments_uri)
-    fit_args = _load_dictionary(model_fit_arguments_uri)
+    gen_args = load_dictionary(generator_arguments_uri)
+    compile_args = load_dictionary(model_compile_arguments_uri)
+    fit_args = load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
     train_with_array = gen_args.pop("train_with_array", None)
@@ -272,7 +271,7 @@ def train_model_function(
             class_weight = fit_args["class_weight"]
         else:
             # Open x catalog.
-            x_catalog = _load_dictionary(catalog_uri)
+            x_catalog = load_dictionary(catalog_uri)
             # Get origin files zip link from dictionary.
             origin_files = [
                 dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
@@ -282,7 +281,7 @@ def train_model_function(
                 os.path.dirname(origin_files), "stac", "catalog.json"
             )
             # Open y catalog.
-            y_catalog = _load_dictionary(str(y_catalog_uri))
+            y_catalog = load_dictionary(str(y_catalog_uri))
             # Get stats from y catalog.
             class_weight = y_catalog["class_weight"]
         # Ensure class weights have integer keys.
@@ -429,8 +428,8 @@ def predict_function_batch(
         items_per_job : int
             Number of items per jobs.
     """
-    gen_args = _load_dictionary(generator_config_uri)
-    compile_args = _load_dictionary(
+    gen_args = load_dictionary(generator_config_uri)
+    compile_args = load_dictionary(
         os.path.join(os.path.dirname(model_uri), "compile_arguments.json")
     )
     # Load arguments for loss functions and force nan_value from generator.

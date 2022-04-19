@@ -1,10 +1,13 @@
+import ast
 import io
+import json
 import math
 import os
 from json import JSONEncoder
 from multiprocessing import Pool
 from typing import Any, Dict, Iterable, List, Optional
 
+import boto3
 import numpy
 import rasterio
 import sentry_sdk
@@ -439,3 +442,33 @@ class BoundLogger:
 
     def error(self, message, **kwargs):
         self.logger.error(message, **self._log_context(), **kwargs)
+
+
+def open_file_from_s3(source_path):
+    s3_path = source_path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    path = s3_path.replace(bucket + "/", "")
+    s3 = boto3.client("s3")
+    try:
+        data = s3.get_object(Bucket=bucket, Key=path)
+    except s3.exceptions.NoSuchKey as e:
+        sentry_sdk.capture_exception(e)
+        logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
+        data = None
+    return data
+
+
+def load_dictionary(path_file):
+    # Open config file and load as dict.
+    if path_file.startswith("s3"):
+        my_str = open_file_from_s3(path_file)["Body"].read()
+        new_str = my_str.decode("utf-8")
+        dictionary = json.loads(new_str)
+    else:
+        with open(path_file, "r") as json_file:
+            input_config = json_file.read()
+            try:
+                dictionary = ast.literal_eval(input_config)
+            except ValueError:
+                dictionary = json.loads(str(input_config))
+    return dictionary
