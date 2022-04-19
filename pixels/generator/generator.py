@@ -12,14 +12,9 @@ from tensorflow import keras
 from pixels.const import SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
 from pixels.generator import filters, generator_augmentation_2D, generator_utils
-from pixels.generator.stac_utils import (
-    _load_dictionary,
-    check_file_exists,
-    list_files_in_folder,
-    open_file_from_s3,
-)
+from pixels.generator.stac_utils import check_file_exists, list_files_in_folder
 from pixels.log import logger
-from pixels.utils import BoundLogger
+from pixels.utils import BoundLogger, load_dictionary, open_file_from_s3
 
 # S3 class instantiation.
 s3 = boto3.client("s3")
@@ -156,7 +151,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
 
         self.path_collection_catalog = path_collection_catalog
         # Open the indexing dictionary.
-        self.collection_catalog = _load_dictionary(self.path_collection_catalog)
+        self.collection_catalog = load_dictionary(self.path_collection_catalog)
 
         if download_data:
             temp_dir = None
@@ -341,7 +336,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if not check_file_exists(path_collection_config):
             self.warning("Collection config file not found.")
             return
-        collection_config = _load_dictionary(path_collection_config)
+        collection_config = load_dictionary(path_collection_config)
         platform = collection_config["platforms"]
         self.platforms.add(platform)
         self.bands[platform] = collection_config["bands"]

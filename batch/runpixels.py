@@ -7,7 +7,7 @@ import os
 import click
 import sentry_sdk
 
-from pixels.generator.predictions_utils import merge_prediction
+from pixels.generator.prediction_utils import merge_prediction
 from pixels.generator.stac import (
     build_catalog_from_items,
     collect_from_catalog_subsection,
@@ -31,7 +31,7 @@ if "SENTRY_DSN" in os.environ:
 ALLOWED_MODULES = [
     "pixels.generator.stac",
     "pixels.generator.stac_training",
-    "pixels.generator.predictions_utils",
+    "pixels.generator.prediction_utils",
 ]
 ALLOWED_FUNCTIONS = {
     "parse_training_data": parse_training_data,

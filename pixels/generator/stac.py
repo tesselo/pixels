@@ -17,17 +17,21 @@ from pixels import const
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator import generator_utils
 from pixels.generator.stac_utils import (
-    _load_dictionary,
     check_file_in_s3,
     get_bbox_and_footprint_and_stats,
     list_files_in_folder,
-    open_file_from_s3,
     save_dictionary,
     upload_files_s3,
 )
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
-from pixels.utils import run_starmap_multiprocessing, timeseries_steps, write_raster
+from pixels.utils import (
+    load_dictionary,
+    open_file_from_s3,
+    run_starmap_multiprocessing,
+    timeseries_steps,
+    write_raster,
+)
 
 
 def create_stac_item(
@@ -894,7 +898,7 @@ def create_x_catalog(x_folder, source_path=None):
     # Open all index catalogs and merge them.
     index_catalog = {}
     for cat in list_cats:
-        cat_dict = _load_dictionary(cat)
+        cat_dict = load_dictionary(cat)
         index_catalog.update(cat_dict)
     # FIXME: it is still unknown if the following line has any effect
     cat_dict["relative_paths"] = False

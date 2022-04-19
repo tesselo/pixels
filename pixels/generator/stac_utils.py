@@ -1,4 +1,3 @@
-import ast
 import glob
 import json
 import os
@@ -68,22 +67,6 @@ def save_dictionary(path, dictionary):
             file_type=os.path.split(path)[-1],
             delete_folder=True,
         )
-
-
-def _load_dictionary(path_file):
-    # Open config file and load as dict.
-    if path_file.startswith("s3"):
-        my_str = open_file_from_s3(path_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        dictionary = json.loads(new_str)
-    else:
-        with open(path_file, "r") as json_file:
-            input_config = json_file.read()
-            try:
-                dictionary = ast.literal_eval(input_config)
-            except ValueError:
-                dictionary = json.loads(str(input_config))
-    return dictionary
 
 
 def upload_files_s3(path, file_type=".json", delete_folder=True):
