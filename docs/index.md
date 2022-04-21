@@ -93,7 +93,14 @@ will be constructed for every two months between the `start` and `end` dates.
 
 The `interval` should be `months`, `weeks`, or `days`.
 
-Composite mode currently is only supported for Sentinel-2 in L2A level.
+Composite mode currently is only supported for Sentinel-2 in L2A level. There are
+two different compositing methods to choose from, through the `composite_method`
+argument. This argument can either be `SCL`, or `FULL`. For `SCL`, the compositing
+will be incremental, the algorithm will stop once no cloudy pixels are left. The
+`FULL` method will download all available scenes and use the highest NDVI value
+in each cloud free pixel to decide which one to use. This tends to have much better
+results in siutations where there is haze or thin clouds that are not properly
+marked as clouds in the algorithm.
 
 ### Additional parameters
 The satellite to use is specified in the `platforms` parameter, and the
