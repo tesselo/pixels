@@ -12,6 +12,8 @@ from pixels.const import (
     MAX_COMPOSITE_BAND_WORKERS,
     NODATA_VALUE,
     S2_BANDS_REQUIRED_FOR_COMPOSITES,
+    SCENE_CLASS_RANK_FLAT,
+    SCL_COMPOSITE_CLOUD_BANDS,
 )
 from pixels.exceptions import PixelsException
 from pixels.log import logger
@@ -421,6 +423,63 @@ def pixel_stack(
     return creation_args, dates, pixels
 
 
+def retrieve_item_bands(
+    item: dict, geojson: dict, scale: float, bands: list, pool: bool
+) -> tuple:
+    """
+    Get pixels for a search result item.
+
+    Parameters
+    ----------
+    item : dict
+        Pxsearch search result item.
+    geojson : dict
+        The geographic area in geojson format for which to retrieve imagery.
+    scale : float
+        The resolution of the output data in same the CRS as the geojson input.
+    bands : list
+        Band names of all the bands that should be retrieved for this item.
+    pool : bool
+        Determine if a thread pool should be used for retrieving the data.
+
+
+    Returns
+    -------
+    creation_args : dict or None
+        The creation arguments metadata for the extracted pixel matrix. Can be
+        used to write the extracted pixels to a file if desired.
+    stack : numpy array or None
+        The extracted pixel stack, with shape (bands, height, width).
+    """
+    band_list = [
+        (
+            item["bands"][band],
+            geojson,
+            scale,
+            True if band in DISCRETE_BANDS else False,
+            False,
+            False,
+            None,
+        )
+        for band in bands
+    ]
+
+    if pool:
+        max_workers = min(MAX_COMPOSITE_BAND_WORKERS, len(band_list))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(retrieve, *band) for band in band_list]
+            data = [future.result() for future in futures]
+    else:
+        data = []
+        for band in band_list:
+            data.append(retrieve(*band))
+
+    creation_args = data[0][0]
+    pixels_arrays = numpy.array([dat[1] for dat in data])
+
+    return creation_args, pixels_arrays
+
+
 def composite(
     geojson,
     start,
@@ -456,8 +515,8 @@ def composite(
     # Copy band list to avoid race conditions.
     bands_copy = bands.copy()
     # Check band list.
-    if composite_method == "SCL":
-        remove_scl_from_output = False
+    remove_scl_from_output = False
+    if composite_method in ["SCL", "FULL"]:
         if "SCL" not in bands_copy:
             bands_copy.append("SCL")
             # If the SCL band has not been requested for output, remove it
@@ -498,56 +557,43 @@ def composite(
     stack = None
     creation_args = None
     mask = None
-    first_end_date = None
-    for item in items:
-        if first_end_date is None:
-            first_end_date = str(items[0]["sensing_time"].date())
-        # Prepare band list.
-        band_list = [
-            (
-                item["bands"][band],
-                geojson,
-                scale,
-                True if band in DISCRETE_BANDS else False,
-                False,
-                False,
-                None,
-            )
-            for band in bands_copy
-        ]
+    first_end_date = str(items[0]["sensing_time"].date())
 
-        if pool:
-            max_workers = min(MAX_COMPOSITE_BAND_WORKERS, len(band_list))
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [executor.submit(retrieve, *band) for band in band_list]
-                data = [future.result() for future in futures]
-        else:
-            data = []
-            for band in band_list:
-                data.append(retrieve(*band))
-        # Get creation args from first result.
-        if not creation_args:
-            creation_args = data[0][0]
-        # Continue if this image was all nodata (retrieve returns None).
-        if any([dat[1] is None for dat in data]):
+    for item in items:
+        new_creation_args, layer = retrieve_item_bands(
+            item, geojson, scale, bands_copy, pool
+        )
+        if any(band is None for band in layer):
             continue
-        # Add scene to stack.
-        layer = numpy.array([dat[1] for dat in data])
+
+        if creation_args is None:
+            creation_args = new_creation_args
+
         if composite_method == "SCL":
-            # SCL classes.
-            # 0: NO_DATA
-            # 1: SATURATED_OR_DEFECTIVE
-            # 2: DARK_AREA_PIXELS
-            # 3: CLOUD_SHADOWS
-            # 4: VEGETATION
-            # 5: NOT_VEGETATED
-            # 6: WATER
-            # 7: UNCLASSIFIED
-            # 8: CLOUD_MEDIUM_PROBABILITY
-            # 9: CLOUD_HIGH_PROBABILITY
-            # 10: THIN_CIRRUS
-            # 11: SNOW
-            layer_clouds = numpy.isin(layer[scl_band_index], [0, 1, 3, 7, 8, 9, 10])
+            layer_clouds = numpy.isin(layer[scl_band_index], SCL_COMPOSITE_CLOUD_BANDS)
+        elif composite_method == "FULL":
+            # Use SCL layer to select pixel ranks.
+            cloud_probs = numpy.choose(
+                layer[scl_band_index], SCENE_CLASS_RANK_FLAT
+            ).astype("float")
+
+            # Compute NDVI, avoiding zero division.
+            B4 = layer[bands_copy.index("B04")].astype("float")
+            B8 = layer[bands_copy.index("B08")].astype("float")
+            ndvi_diff = B8 - B4
+            ndvi_sum = B8 + B4
+            ndvi_sum[ndvi_sum == 0] = 1
+            ndvi = ndvi_diff / ndvi_sum
+
+            # Add inverted and scaled NDVI values to the decimal range of the cloud
+            # probs. This ensures that within acceptable pixels, the one with the
+            # highest NDVI is selected.
+            scaled_ndvi = (1 - ndvi) / 100
+            cloud_probs += scaled_ndvi
+            if stack is None:
+                stack = []
+            stack.append((layer, cloud_probs))
+            continue
         else:
             # Compute cloud mask for new layer.
             layer_clouds = pixels_mask(
@@ -571,7 +617,7 @@ def composite(
             layer_data_mask = layer[0] != NODATA_VALUE
             local_update_mask = mask & layer_data_mask
             for i in range(len(bands_copy)):
-                stack[i][local_update_mask] = data[i][1][local_update_mask]
+                stack[i][local_update_mask] = layer[i][local_update_mask]
             # Update cloud mask.
             mask = mask & layer_clouds
 
@@ -582,6 +628,22 @@ def composite(
         if numpy.sum(mask) / mask.size <= finish_early_cloud_cover_percentage:
             logger.debug("Finalized compositing early.")
             break
+
+    if composite_method == "FULL" and stack is not None:
+        # Compute an array of scene indices with the lowest cloud probability.
+        cloud_probs = [scene[1] for scene in stack]
+        selector_index = numpy.argmin(cloud_probs, axis=0)
+        result = []
+        for index in range(len(bands_copy)):
+            # Merge scene tiles for this band into a composite tile using the selector index.
+            bnds = numpy.array([dat[0][index] for dat in stack])
+            # Construct final composite band array from selector index.
+            idx1, idx2 = numpy.indices(
+                (creation_args["height"], creation_args["width"])
+            )
+            # Create the composite from the scens using index magic.
+            result.append(bnds[selector_index, idx1, idx2])
+        stack = numpy.array(result)
 
     # Clip stack to geometry if requested.
     if stack is not None:
