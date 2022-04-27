@@ -370,7 +370,7 @@ def merge_overlaping(
     calc = "divide"
     out_type = f"{out_type[0].upper()}{out_type[1:]}"
     logger.info("Building average raster.")
-    raster_calc(calc, [merged_sum_path, merged_count_path], outfile, mem_limit=10)
+    raster_calc(calc, [merged_sum_path, merged_count_path], outfile, mem_limit=64)
 
     build_overviews_and_tags(outfile, tags=None)
     return outfile
@@ -416,7 +416,6 @@ def merge_prediction(generator_config_uri):
     predictions_bbox = get_rasters_bbox(prediction_files)
     predictions_bbox_path = os.path.join(merger_files_folder, "predictions_bbox.gpkg")
     predictions_bbox.to_file(predictions_bbox_path, driver="GPKG")
-
     if not check_overlaping_features(predictions_bbox) or categorical:
         logger.info("Non overlaping or categorical rasters. Merging all.")
         merged_path = merge_all(
@@ -433,7 +432,6 @@ def merge_prediction(generator_config_uri):
             no_data=raster_meta["nodata"],
             merger_folder=merger_files_folder,
         )
-
     if extract_probabilities:
         logger.info("Extrating probabilities. Building class raster.")
         calc = "argmax"
@@ -445,7 +443,7 @@ def merge_prediction(generator_config_uri):
             outfile,
             command_args=command_args,
             dtype="uint8",
-            mem_limit=1,
+            mem_limit=64,
         )
 
     if predict_path.startswith("s3"):
