@@ -432,6 +432,7 @@ def merge_prediction(generator_config_uri):
             no_data=raster_meta["nodata"],
             merger_folder=merger_files_folder,
         )
+    predictions_bbox = None
     if extract_probabilities:
         logger.info("Extrating probabilities. Building class raster.")
         calc = "argmax"
