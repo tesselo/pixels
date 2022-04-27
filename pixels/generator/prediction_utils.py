@@ -445,7 +445,7 @@ def merge_prediction(generator_config_uri):
             outfile,
             command_args=command_args,
             dtype="uint8",
-            mem_limit=10,
+            mem_limit=1,
         )
 
     if predict_path.startswith("s3"):
