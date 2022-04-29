@@ -12,8 +12,8 @@ import sentry_sdk
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from pystac.validation import STACValidationError
+from rasterio.features import bounds
 
-from pixels import const
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator import generator_utils
 from pixels.generator.stac_utils import (
@@ -32,6 +32,7 @@ from pixels.utils import (
     timeseries_steps,
     write_raster,
 )
+from pixels.validators import PixelsConfigValidator
 
 
 def create_stac_item(
@@ -401,27 +402,13 @@ def build_geometry_geojson(item):
             },
         ],
     }
+    geojson["bbox"] = bounds(geojson)
     return geojson
 
 
 def prepare_pixels_config(
     item,
-    start="2020-01-01",
-    end=None,
-    interval="all",
-    interval_step=1,
-    scale=10,
-    clip=True,
-    bands=("B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"),
-    maxcloud=20,
-    pool_size=0,
-    level=None,
-    platforms=None,
-    limit=None,
-    mode="latest_pixel",
-    dynamic_dates_interval=None,
-    dynamic_dates_step=1,
-    discrete_training=True,
+    config,
 ):
     """
     Based on an item build a config file to use on pixels.
@@ -430,47 +417,27 @@ def prepare_pixels_config(
     ----------
         item : pystac item type
             Item representing one raster.
-        start : str, optional
-            Date to start search on pixels.
-        end : str, optional
-            Date to end search on pixels.
-        interval : str, optional
-        interval_step : int, optional
-        scale : int, optional
-        clip : boolean, optional
-        bands : tuple, optional
-        maxcloud: int, optional
-            Maximun accepted cloud coverage in image.
-        pool_size: int, optional
-        level : str, optional
-            The processing level. Only valid if platforms is S2.
-        platforms: str or list, optional
-            The platforms to use in this collection.
-        limit: int, optional
-            Limit the number of images per search.
-        mode: str, optional
-            Mode of pixel collection (all, latest_pixel, or composite).
-        dynamic_dates_interval: str, optional
-            If provided, the internal item dates are used as end date and this
-             interval is applied as the start date.
-        dynamic_dates_step: int, optional
-            To be used in combination with the dynamic_dates_interval. Defines
-            the number of times and interval is applied to go to the start date.
-            Defaults to 1.
+        config : dict
+            Pixels configuration dict to validate. It will be validated through the
+            PixelsConfigValidator class.
     Returns
     -------
         config : dict
             Dictionary containing the parameters to pass on to pixels.
     """
-    # Check valid mode.
-    if mode not in ["all", "latest_pixel", "composite"]:
-        raise PixelsException(f"Latest pixel mode {mode} is not valid.")
-
+    # Compute geojson from item.
     if item is str:
         item = pystac.read_file(item)
-    geojson = build_geometry_geojson(item)
+    config["geojson"] = build_geometry_geojson(item)
+
+    # Validate data.
+    validator = PixelsConfigValidator(**config)
+    config = validator.dict()
+
     # If requested, use a fixed time range starting from the individual item
     # datestamps.
+    dynamic_dates_interval = config.pop("dynamic_dates_interval")
+    dynamic_dates_step = config.pop("dynamic_dates_step")
     if dynamic_dates_interval:
         # Extract the end date from the stac item.
         end = item.datetime.date()
@@ -481,40 +448,11 @@ def prepare_pixels_config(
         # Set start date as the item end date minus the dynamic date interval.
         start = end - delta
         # Convert both dates to string.
-        end = end.isoformat()
-        start = start.isoformat()
-    elif not end:
+        config["end"] = end.isoformat()
+        config["start"] = start.isoformat()
+    elif not config.get("end"):
         # If no end data is specified, use the date from the stac item.
-        end = item.datetime.date().isoformat()
-    # Ensure platforms is a list. The input can be provided as a single string
-    # if only one platform is required.
-    if platforms is not None and not isinstance(platforms, (list, tuple)):
-        platforms = [platforms]
-    # Check if SCL was requested with L1C data.
-    if "SCL" in bands and (level != "L2A" or platforms != [const.SENTINEL_2]):
-        raise PixelsException(
-            f"SCL can only be requested for S2 L2A. Got {platforms} {level}."
-        )
-
-    # Create new config dictionary.
-    config = {
-        "geojson": geojson,
-        "start": start,
-        "end": end,
-        "interval": interval,
-        "interval_step": interval_step,
-        "scale": scale,
-        "clip": clip,
-        "bands": bands,
-        "maxcloud": maxcloud,
-        "pool_size": pool_size,
-        "level": level,
-        "mode": mode,
-        "platforms": platforms,
-    }
-
-    if limit is not None:
-        config["limit"] = limit
+        config["end"] = item.datetime.date().isoformat()
 
     return config
 
@@ -616,7 +554,7 @@ def get_and_write_raster_from_item(
             Catalog containing the collected info.
     """
     # Build a complete configuration json for pixels.
-    config = prepare_pixels_config(item, **input_config)
+    config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     # Check if all the timesteps have images already
     if not overwrite:
