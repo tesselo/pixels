@@ -55,9 +55,9 @@ def get_rasters_bbox(rasters):
             bounds = src.bounds
             geom = box(bounds[0], bounds[1], bounds[2], bounds[3])
             meta = src.meta
-            df = df.append({"location": path, "geometry": geom}, ignore_index=True)
+            shape = gp.GeoDataFrame({"location": [path], "geometry": [geom]})
+            df = gp.pd.concat([df, shape], ignore_index=True)
     df = df.set_crs(meta["crs"])
-
     return df
 
 
