@@ -9,7 +9,11 @@ from rasterio.warp import Resampling
 from rasterio.windows import Window
 from shapely.geometry import box
 
-from pixels.const import FLOAT_NODATA_VALUE, INTEGER_NODATA_VALUE
+from pixels.const import (
+    FLOAT_NODATA_VALUE,
+    INTEGER_NODATA_VALUE,
+    MAXIMUM_NUMBER_TILES_TO_MERGE,
+)
 from pixels.generator.generator_utils import read_raster_meta
 from pixels.generator.stac_utils import list_files_in_folder, upload_files_s3
 from pixels.log import logger
@@ -59,6 +63,37 @@ def get_rasters_bbox(rasters):
     df = df.set_crs(meta["crs"])
 
     return df
+
+
+def make_grid(polygon, edge_size, step_fraction=1):
+    """
+    polygon : shapely.geometry
+    edge_size : length of the grid cell
+    """
+    from itertools import product
+
+    step = edge_size * step_fraction
+    bounds = polygon.bounds.iloc[0]
+
+    x_coords = np.arange(bounds["minx"] + edge_size / 2, bounds["maxx"], step)
+    y_coords = np.arange(bounds["miny"] + edge_size / 2, bounds["maxy"], step)
+    if len(x_coords) == 0:
+        x_coords = [polygon.centroid.x.item()]
+    if len(y_coords) == 0:
+        y_coords = [polygon.centroid.y.item()]
+
+    if (max(x_coords) + (edge_size / 2)) < bounds["maxx"]:
+        x_coords = np.append(x_coords, max(x_coords) + (edge_size))
+    if (max(y_coords) + (edge_size / 2)) < bounds["maxy"]:
+        y_coords = np.append(y_coords, max(y_coords) + (edge_size))
+
+    combinations = np.array(list(product(x_coords, y_coords)))
+    squares = gp.points_from_xy(combinations[:, 0], combinations[:, 1]).buffer(
+        edge_size / 2, cap_style=3
+    )
+    squares = gp.GeoDataFrame(geometry=squares, crs=polygon.crs)
+    squares["index"] = squares.index
+    return squares[squares.intersects(polygon.unary_union)]
 
 
 def custom_merge_sum(
@@ -376,6 +411,48 @@ def merge_overlaping(
     return outfile
 
 
+def merge_in_grid(prediction_files, predictions_bbox, merger_files_folder, raster_meta):
+    logger.info("Too many files to merge at once. Merging smaller tiles.")
+    number_smaller_tiles = (
+        int(len(prediction_files) / MAXIMUM_NUMBER_TILES_TO_MERGE) + 1
+    )
+    predictions_bbox_dissolved = predictions_bbox.dissolve()
+    tile_area = predictions_bbox_dissolved.area / number_smaller_tiles
+    tile_size = int(math.sqrt(tile_area)) + 1
+    smaller_tiles = make_grid(predictions_bbox_dissolved, tile_size)
+    smaller_tiling_folder = os.path.join(merger_files_folder, "smaller_tiling_folder")
+    os.makedirs(smaller_tiling_folder, exist_ok=True)
+    raster_list_collection = []
+    raster_names_collection = []
+    for i in range(len(smaller_tiles)):
+        tile_vrt = smaller_tiles.iloc[i : i + 1]
+        tiles_pred = predictions_bbox[predictions_bbox.intersects(tile_vrt.unary_union)]
+        path_name = os.path.join(smaller_tiling_folder, f"tile_{tile_vrt.index[0]}")
+        raster_list = list(tiles_pred["location"])
+        raster_list_collection.append(raster_list)
+        raster_names_collection.append(path_name)
+    logger.info(f"Doing {len(raster_names_collection)} smaller tiles.")
+    resulting_smaller_tiles = []
+    raster_count = 0
+    for smaller_tile_path, rasters_to_merge in zip(
+        raster_names_collection, raster_list_collection
+    ):
+        raster_count += 1
+        raster_percentage = round(
+            (raster_count / len(raster_names_collection)) * 100, 2
+        )
+        logger.info(f"Merging tile: {raster_count}. {raster_percentage}%")
+        os.makedirs(smaller_tile_path, exist_ok=True)
+        merged_path = merge_overlaping(
+            rasters_to_merge,
+            out_type=raster_meta["dtype"],
+            no_data=raster_meta["nodata"],
+            merger_folder=smaller_tile_path,
+        )
+        resulting_smaller_tiles.append(merged_path)
+    return smaller_tiles, resulting_smaller_tiles
+
+
 def merge_prediction(generator_config_uri):
     """Merge all predictions in the given prediction key folder.
     On overlaped rasters makes an average of all values.
@@ -405,6 +482,9 @@ def merge_prediction(generator_config_uri):
     categorical = not extract_probabilities or num_classes == 1
     logger.info("Listing prediction files.")
     prediction_files = list_files_in_folder(prediction_folder, filetype=".tif")
+    prediction_files = sorted(
+        prediction_files, key=lambda x: x.split("_")[-1].split(".")[0]
+    )
 
     raster_meta = read_raster_meta(prediction_files[0])
 
@@ -416,6 +496,13 @@ def merge_prediction(generator_config_uri):
     predictions_bbox = get_rasters_bbox(prediction_files)
     predictions_bbox_path = os.path.join(merger_files_folder, "predictions_bbox.gpkg")
     predictions_bbox.to_file(predictions_bbox_path, driver="GPKG")
+
+    # If too many tiles then merge smaller ones and then merge the corresponding.
+    if len(prediction_files) > MAXIMUM_NUMBER_TILES_TO_MERGE:
+        predictions_bbox, prediction_files = merge_in_grid(
+            prediction_files, predictions_bbox, merger_files_folder, raster_meta
+        )
+
     if not check_overlaping_features(predictions_bbox) or categorical:
         logger.info("Non overlaping or categorical rasters. Merging all.")
         merged_path = merge_all(
