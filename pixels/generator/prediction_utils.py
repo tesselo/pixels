@@ -62,10 +62,10 @@ def get_rasters_bbox(rasters):
 
 
 def custom_merge_sum(
-    merged_dataarray_like,
-    new_dataarray_like,
+    merged_data,
+    new_data,
     merged_mask,
-    new_maskarray_like,
+    new_mask,
     index=None,
     roff=None,
     coff=None,
@@ -90,17 +90,20 @@ def custom_merge_sum(
         column offset in base array
 
     """
-    merged_dataarray_like[merged_mask] = np.nan
-    merged_dataarray_like[:] = np.nansum(
-        [merged_dataarray_like, new_dataarray_like], axis=0
-    )
+    mask = np.empty_like(merged_mask, dtype="bool")
+    np.logical_or(merged_mask, new_mask, out=mask)
+    np.logical_not(mask, out=mask)
+    np.add(merged_data, new_data, out=merged_data, where=mask, casting="unsafe")
+    np.logical_not(new_mask, out=mask)
+    np.logical_and(merged_mask, mask, out=mask)
+    np.copyto(merged_data, new_data, where=mask, casting="unsafe")
 
 
 def custom_merge_count(
-    merged_dataarray_like,
-    new_dataarray_like,
+    merged_data,
+    new_data,
     merged_mask,
-    new_maskarray_like,
+    new_mask,
     index=None,
     roff=None,
     coff=None,
@@ -125,11 +128,13 @@ def custom_merge_count(
         column offset in base array
 
     """
-    new = np.copy(new_dataarray_like)
-    new[new == new] = 1
-    new[new != new] = 0
-    merged_dataarray_like[merged_mask] = 0
-    merged_dataarray_like[:] = np.nansum([new, merged_dataarray_like], axis=0)
+    mask = np.empty_like(merged_mask, dtype="bool")
+    np.logical_or(merged_mask, new_mask, out=mask)
+    np.logical_not(mask, out=mask)
+    np.add(merged_data, mask, out=merged_data, where=mask, casting="unsafe")
+    np.logical_not(new_mask, out=mask)
+    np.logical_and(merged_mask, mask, out=mask)
+    np.copyto(merged_data, mask, where=mask, casting="unsafe")
 
 
 def build_overviews_and_tags(raster_path, tags=None):
