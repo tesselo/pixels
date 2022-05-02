@@ -69,21 +69,21 @@ class FeatureCollectionCRS(FeatureCollection):
 
 
 class PixelsConfigValidator(BaseModel):
+    dynamic_dates_step: int = 1
     start: Optional[str]
     end: Optional[str]
     interval: TimeStepOption = TimeStepOption.all
     interval_step: int = 1
     scale: float = 10
     clip: bool = True
-    bands: Union[list, tuple]
     maxcloud: int = 20
     pool_size: int = 0
-    level: Optional[Union[SentinelLevelOption, LandsatLevelOption]]
     platforms: Union[LandsatPlatform, SentinelPlatform, list, tuple]
+    level: Optional[Union[SentinelLevelOption, LandsatLevelOption]]
+    bands: Union[list, tuple]
     limit: Optional[int]
     mode: ModeOption = ModeOption.latest_pixel
     dynamic_dates_interval: Optional[TimeStepOption]
-    dynamic_dates_step: int = 1
     geojson: FeatureCollectionCRS
 
     @validator("start", "end")
