@@ -120,7 +120,7 @@ class PixelsConfigValidator(BaseModel):
 
     @validator("level")
     def check_level(cls, v, values):
-        if v == LandsatLevelOption.L2:
+        if v == LandsatLevelOption.l2:
             [LandsatPlatform(platform) for platform in values["platforms"]]
         elif (
             v in list(SentinelLevelOption)
