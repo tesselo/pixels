@@ -411,7 +411,9 @@ def merge_overlaping(
     return outfile
 
 
-def merge_in_grid(prediction_files, predictions_bbox, merger_files_folder, raster_meta):
+def merge_in_grid(
+    prediction_files, predictions_bbox, smaller_tiling_folder, raster_meta
+):
     logger.info("Too many files to merge at once. Merging smaller tiles.")
     number_smaller_tiles = (
         int(len(prediction_files) / MAXIMUM_NUMBER_TILES_TO_MERGE) + 1
@@ -420,7 +422,6 @@ def merge_in_grid(prediction_files, predictions_bbox, merger_files_folder, raste
     tile_area = predictions_bbox_dissolved.area / number_smaller_tiles
     tile_size = int(math.sqrt(tile_area)) + 1
     smaller_tiles = make_grid(predictions_bbox_dissolved, tile_size)
-    smaller_tiling_folder = os.path.join(merger_files_folder, "smaller_tiling_folder")
     os.makedirs(smaller_tiling_folder, exist_ok=True)
     raster_list_collection = []
     raster_names_collection = []
@@ -498,9 +499,10 @@ def merge_prediction(generator_config_uri):
     predictions_bbox.to_file(predictions_bbox_path, driver="GPKG")
 
     # If too many tiles then merge smaller ones and then merge the corresponding.
+    smaller_tiling_folder = os.path.join(merger_files_folder, "smaller_tiling_folder")
     if len(prediction_files) > MAXIMUM_NUMBER_TILES_TO_MERGE:
         predictions_bbox, prediction_files = merge_in_grid(
-            prediction_files, predictions_bbox, merger_files_folder, raster_meta
+            prediction_files, predictions_bbox, smaller_tiling_folder, raster_meta
         )
 
     if not check_overlaping_features(predictions_bbox) or categorical:
@@ -535,5 +537,9 @@ def merge_prediction(generator_config_uri):
         )
 
     if predict_path.startswith("s3"):
+        if list_files_in_folder(smaller_tiling_folder) != 0:
+            import shutil
+
+            shutil.rmtree(smaller_tiling_folder)
         logger.info("Saving files to S3.")
         upload_files_s3(merger_files_folder, file_type="")
