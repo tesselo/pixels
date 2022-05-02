@@ -23,7 +23,16 @@ class SentinelPlatform(str, Enum):
     sentinel_2 = "SENTINEL_2"
 
 
-PlatformOption = Union[LandsatPlatform, SentinelPlatform]
+class PlatformOption(str, Enum):
+    landsat_1 = "LANDSAT_1"
+    landsat_2 = "LANDSAT_2"
+    landsat_3 = "LANDSAT_3"
+    landsat_4 = "LANDSAT_4"
+    landsat_5 = "LANDSAT_5"
+    landsat_6 = "LANDSAT_6"
+    landsat_7 = "LANDSAT_7"
+    landsat_8 = "LANDSAT_8"
+    sentinel_2 = "SENTINEL_2"
 
 
 class TimeStepOption(str, Enum):
@@ -97,12 +106,11 @@ class PixelsConfigValidator(BaseModel):
     @validator("platforms")
     def validate_platform_list(cls, v):
         if isinstance(v, str):
-            return [v]
-        else:
-            if len(v) != 1:
-                raise ValueError("Exactly one platform can be requested")
-            PlatformOption(v[0])
-            return v
+            v = [v]
+        elif len(v) != 1:
+            raise ValueError("Exactly one platform can be requested")
+        PlatformOption(v[0])
+        return v
 
     @root_validator()
     def check_scl_level(cls, values):
