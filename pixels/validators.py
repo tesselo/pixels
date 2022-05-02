@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from geojson_pydantic.features import FeatureCollection
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, root_validator, validator
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 
@@ -104,11 +104,11 @@ class PixelsConfigValidator(BaseModel):
             PlatformOption(v[0])
             return v
 
-    @validator("bands")
-    def check_scl_level(cls, v, values):
-        if "SCL" in v and values["level"] != "L2A":
+    @root_validator()
+    def check_scl_level(cls, values):
+        if "SCL" in values["bands"] and values["level"] != "L2A":
             raise ValueError("SCL can only be requested for level L2A")
-        return v
+        return values
 
     @validator("level")
     def check_level(cls, v, values):
