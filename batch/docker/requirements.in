@@ -23,3 +23,5 @@ tqdm
 numpy
 pandas
 urllib3
+pydantic
+geojson_pydantic
