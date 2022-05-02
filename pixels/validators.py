@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from geojson_pydantic.features import FeatureCollection
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, validator
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 
@@ -91,16 +91,16 @@ class PixelsConfigValidator(BaseModel):
         date.fromisoformat(v)
         return v
 
-    @validator("start")
-    def non_dynamic_start(cls, v, values):
-        if not v and not values.get("dynamic_dates_interval"):
-            raise ValueError("Start date is required for non dynamic dates")
-        return v
-
     @validator("interval_step", "scale", "maxcloud", "limit", "dynamic_dates_step")
     def is_positive(cls, v, field):
         if v <= 0:
             raise ValueError(f"{field} needs to be a positive number")
+        return v
+
+    @validator("start")
+    def non_dynamic_start(cls, v, values):
+        if not v and not values.get("dynamic_dates_interval"):
+            raise ValueError("Start date is required for non dynamic dates")
         return v
 
     @validator("platforms")
@@ -112,12 +112,6 @@ class PixelsConfigValidator(BaseModel):
         PlatformOption(v[0])
         return v
 
-    @root_validator()
-    def check_scl_level(cls, values):
-        if "SCL" in values["bands"] and values["level"] != "L2A":
-            raise ValueError("SCL can only be requested for level L2A")
-        return values
-
     @validator("level")
     def check_level(cls, v, values):
         if v == LandsatLevelOption.l2:
@@ -127,4 +121,10 @@ class PixelsConfigValidator(BaseModel):
             and SentinelPlatform.sentinel_2 not in values["platforms"]
         ):
             raise ValueError(f"Level {v} is only for Sentinel-2")
+        return v
+
+    @validator("bands")
+    def check_scl_level(cls, v, values):
+        if "SCL" in v and values["level"] != "L2A":
+            raise ValueError("SCL can only be requested for level L2A")
         return v
