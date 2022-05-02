@@ -15,6 +15,13 @@ ENV CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.jp2
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 ENV SENTRY_DSN=https://3d69110c01aa41f48f28cf047bfcbc91@o640190.ingest.sentry.io/5760850
 
+# To avoid repo update error.
+# W: GPG error: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64  InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY A4B469963BF863CC
+# E: The repository 'https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64  InRelease' is no longer signed.
+# Solution from https://github.com/NVIDIA/nvidia-docker/issues/1632
+RUN rm /etc/apt/sources.list.d/cuda.list
+RUN rm /etc/apt/sources.list.d/nvidia-ml.list
+
 # Apt dependencies.
 RUN apt-get -y update\
   && apt-get install -y software-properties-common\
