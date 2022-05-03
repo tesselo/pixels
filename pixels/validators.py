@@ -44,6 +44,7 @@ class TimeStepOption(str, Enum):
 class ModeOption(str, Enum):
     latest_pixel = "latest_pixel"
     composite = "composite"
+    all = "all"
 
 
 class LandsatLevelOption(str, Enum):
