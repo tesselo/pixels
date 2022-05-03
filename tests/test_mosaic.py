@@ -9,6 +9,7 @@ from pixels.algebra import parser
 from pixels.const import LANDSAT_1_LAUNCH_DATE
 from pixels.exceptions import PixelsException
 from pixels.mosaic import calculate_start_date, latest_pixel, pixel_stack
+from tests.scenarios import sample_geojson
 
 
 def mock_search_data(
@@ -110,27 +111,7 @@ class TestStartDates(unittest.TestCase):
 @mock.patch("pixels.mosaic.search_data", mock_search_data)
 class TestMosaic(unittest.TestCase):
     def setUp(self):
-        self.geojson = {
-            "type": "FeatureCollection",
-            "crs": {"init": "EPSG:3857"},
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": {},
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [
-                            [
-                                [-1028560.0, 4689560.0],
-                                [-1028560.0, 4689000.0],
-                                [-1028000.0, 4689560.0],
-                                [-1028560.0, 4689560.0],
-                            ]
-                        ],
-                    },
-                },
-            ],
-        }
+        self.geojson = sample_geojson
 
     def test_latest_pixel(self):
         # Test bad date

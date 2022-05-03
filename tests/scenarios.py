@@ -655,3 +655,25 @@ l8_l2_expected_scene = {
         "QA_SAT": "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2015/168/075/LC08_L2SP_168075_20150222_20200909_02_T1/LC08_L2SP_168075_20150222_20200909_02_T1_QA_RADSAT.TIF",
     },
 }
+
+sample_geojson = {
+    "type": "FeatureCollection",
+    "crs": {"init": "EPSG:3857"},
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [-1028560.0, 4689560.0],
+                        [-1028560.0, 4689000.0],
+                        [-1028000.0, 4689560.0],
+                        [-1028560.0, 4689560.0],
+                    ]
+                ],
+            },
+        },
+    ],
+}
