@@ -141,7 +141,7 @@ def build_overviews_and_tags(raster_path, tags=None):
     with rasterio.open(raster_path) as src:
         raster_meta = src.meta
     factor_max = min(raster_meta["height"], raster_meta["width"])
-    factors = [(2 ** a) for a in range(1, 7) if (2 ** a) < factor_max]
+    factors = [(2**a) for a in range(1, 7) if (2**a) < factor_max]
     if "int" in str(raster_meta["dtype"]).lower():
         resampling = Resampling.nearest
     else:

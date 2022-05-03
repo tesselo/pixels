@@ -35,7 +35,7 @@ class TestUtils(unittest.TestCase):
             "nodata": 0,
             "transform": rasterio.Affine(scale, skew, origin_x, skew, -scale, origin_y),
         }
-        self.data = numpy.arange(size ** 2, dtype="uint16").reshape((1, size, size))
+        self.data = numpy.arange(size**2, dtype="uint16").reshape((1, size, size))
         with rasterio.open(self.raster.name, "w", **self.creation_args) as dst:
             dst.write(self.data)
         self.geojson = {

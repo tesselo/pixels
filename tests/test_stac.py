@@ -35,7 +35,7 @@ def write_temp_raster(
         "transform": rasterio.Affine(scale, skew, origin_x, skew, -scale, origin_y),
     }
     data = (
-        numpy.array([0, 1, 2, 3] * int((size ** 2) / 4))
+        numpy.array([0, 1, 2, 3] * int((size**2) / 4))
         .reshape((1, size, size))
         .astype("uint16")
     )
