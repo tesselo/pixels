@@ -9,7 +9,7 @@ import boto3
 import numpy as np
 from tensorflow import keras
 
-from pixels.const import SENTINEL_2
+from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
 from pixels.generator import filters, generator_augmentation_2D, generator_utils
 from pixels.generator.stac_utils import check_file_exists, list_files_in_folder
@@ -442,9 +442,13 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         # Ensure all images are numpy arrays.
         x_imgs = np.array([np.array(x) for x in x_imgs])
         x_meta = np.array(x_tensor, dtype="object")[:, 1]
-        if SENTINEL_2 in self.platforms and self.cloud_sort:
+        if (
+            SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
+        ) and self.cloud_sort:
+            # Now we only use one platform.
+            sat_platform = [f for f in self.platforms][0]
             x_imgs = filters.order_tensor_on_cloud_mask(
-                np.array(x_imgs), max_images=self.timesteps
+                np.array(x_imgs), max_images=self.timesteps, sat_platform=sat_platform
             )
 
         if not self.train:

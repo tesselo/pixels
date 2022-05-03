@@ -50,6 +50,9 @@ L3 = 800
 L4 = 100
 S2_SCALE = 3000
 
+# Cloud min value
+L8_MIN_CLOUD_VALUE = 10000
+
 # Platforms const
 SENTINEL_2 = "SENTINEL_2"
 LANDSAT_1 = "LANDSAT_1"
