@@ -115,11 +115,12 @@ class PixelsConfigValidator(BaseModel):
 
     @validator("level")
     def check_level(cls, v, values):
+        platforms = values.get("platforms", [])
         if v == LandsatLevelOption.l2:
-            [LandsatPlatform(platform) for platform in values["platforms"]]
+            [LandsatPlatform(platform) for platform in platforms]
         elif (
             v in list(SentinelLevelOption)
-            and SentinelPlatform.sentinel_2 not in values["platforms"]
+            and SentinelPlatform.sentinel_2 not in platforms
         ):
             raise ValueError(f"Level {v} is only for Sentinel-2")
         return v
