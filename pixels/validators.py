@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from geojson_pydantic.features import FeatureCollection
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, root_validator, validator
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 
@@ -98,11 +98,11 @@ class PixelsConfigValidator(BaseModel):
             raise ValueError(f"{field} needs to be a positive number")
         return v
 
-    @validator("start")
-    def non_dynamic_start(cls, v, values):
-        if not v and not values.get("dynamic_dates_interval"):
+    @root_validator(pre=True)
+    def non_dynamic_start(cls, values):
+        if not values.get("start") and not values.get("dynamic_dates_interval"):
             raise ValueError("Start date is required for non dynamic dates")
-        return v
+        return values
 
     @validator("platforms")
     def validate_platform_list(cls, v):
