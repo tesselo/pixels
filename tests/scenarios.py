@@ -63,7 +63,6 @@ l1_data_mock = MagicMock(
     ]
 )
 
-
 l1_expected_scene = {
     "spacecraft_id": "LANDSAT_1",
     "sensor_id": "MSS",
@@ -237,7 +236,6 @@ l5_expected_scene = {
     },
 }
 
-
 # Mock data for landsat 7.
 l7_data_mock = MagicMock(
     return_value=[
@@ -318,7 +316,6 @@ l8_expected_scene = {
         "B11": "https://gcp-public-data-landsat.commondatastorage.googleapis.com/LC08/01/224/061/LC08_L1TP_224061_20210129_20210306_01_T2/LC08_L1TP_224061_20210129_20210306_01_T2_B11.TIF",
     },
 }
-
 
 l8_l2_data_mock = MagicMock(
     return_value=[
@@ -636,7 +633,6 @@ l8_l2_data_mock = MagicMock(
         }
     ]
 )
-
 
 l8_l2_expected_scene = {
     "spacecraft_id": "LANDSAT_8",

@@ -36,7 +36,7 @@ class TestRetrieve(unittest.TestCase):
             "transform": rasterio.Affine(scale, skew, origin_x, skew, -scale, origin_y),
         }
         with rasterio.open(self.raster.name, "w", **self.creation_args) as dst:
-            dst.write(numpy.arange(size ** 2, dtype="uint16").reshape((1, size, size)))
+            dst.write(numpy.arange(size**2, dtype="uint16").reshape((1, size, size)))
 
         self.geojson = {
             "type": "FeatureCollection",
@@ -75,7 +75,7 @@ class TestRetrieve(unittest.TestCase):
         size = 100
         numpy.testing.assert_array_equal(
             result[1],
-            numpy.arange(size ** 2, dtype="uint16").reshape((size, size)),
+            numpy.arange(size**2, dtype="uint16").reshape((size, size)),
         )
 
     def test_retrieve_creation_args(self):
@@ -119,7 +119,7 @@ class TestRetrieve(unittest.TestCase):
         size = 100
         with rasterio.open(self.raster.name, "w", **self.creation_args) as dst:
             dst.write(
-                numpy.arange(3 * size ** 2, dtype="uint16").reshape((3, size, size))
+                numpy.arange(3 * size**2, dtype="uint16").reshape((3, size, size))
             )
         # Default, gives all bands.
         result = retrieve(self.raster.name, self.geojson)
