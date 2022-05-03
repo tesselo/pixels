@@ -1,6 +1,22 @@
 import numpy
 
-from pixels.const import NODATA_VALUE, S2_MAX_LUMINOSITY
+from pixels.const import L8_MIN_CLOUD_VALUE, NODATA_VALUE, S2_MAX_LUMINOSITY
+
+
+def landsat_cloud_mask(image):
+    """
+    Basic mask function, from a few visual examples.
+    Using the first 3 bands all values above 10k are cloud.
+    IMPORTANT: only use as sorter, since it is not a valid mask.
+    """
+    total_mask = None
+    for i in range(3):
+        mask = image[:, i] > L8_MIN_CLOUD_VALUE
+        if total_mask is None:
+            total_mask = mask
+        else:
+            total_mask = numpy.logical_or(total_mask, mask)
+    return total_mask
 
 
 def pixels_mask(

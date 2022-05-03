@@ -1,6 +1,8 @@
 import numpy as np
 
-from pixels.clouds import _composite_or_cloud
+from pixels.clouds import _composite_or_cloud, landsat_cloud_mask
+from pixels.const import LANDSAT_8, SENTINEL_2
+from pixels.exceptions import InconsistentGeneratorDataException
 
 
 def _make_mask_on_value(img, mask_value):
@@ -20,6 +22,30 @@ def _make_mask_on_value(img, mask_value):
             The mask.
     """
     mask_img = img == mask_value
+    return mask_img
+
+
+def sentinel_2_cloud_mask(images, bands_index):
+    B02 = images[:, bands_index["B02"]]
+    B03 = images[:, bands_index["B03"]]
+    B04 = images[:, bands_index["B04"]]
+    B08 = images[:, bands_index["B08"]]
+    B8A = images[:, bands_index["B8A"]]
+    B11 = images[:, bands_index["B11"]]
+    B12 = images[:, bands_index["B12"]]
+    mask_img = _composite_or_cloud(
+        B02,
+        B03,
+        B04,
+        B08,
+        B8A,
+        B11,
+        B12,
+        cloud_only=True,
+        light_clouds=False,
+        snow=True,
+        shadow_threshold=0.2,
+    )
     return mask_img
 
 
@@ -51,6 +77,7 @@ def order_tensor_on_cloud_mask(
     images,
     max_images,
     bands_index=None,
+    sat_platform=SENTINEL_2,
 ):
     """
     Order a set of images based on a cloud mask.
@@ -78,26 +105,14 @@ def order_tensor_on_cloud_mask(
         "B11": 8,
         "B12": 9,
     }
-    B02 = images[:, bands_index["B02"]]
-    B03 = images[:, bands_index["B03"]]
-    B04 = images[:, bands_index["B04"]]
-    B08 = images[:, bands_index["B08"]]
-    B8A = images[:, bands_index["B8A"]]
-    B11 = images[:, bands_index["B11"]]
-    B12 = images[:, bands_index["B12"]]
-    mask_img = _composite_or_cloud(
-        B02,
-        B03,
-        B04,
-        B08,
-        B8A,
-        B11,
-        B12,
-        cloud_only=True,
-        light_clouds=False,
-        snow=True,
-        shadow_threshold=0.2,
-    )
+    if sat_platform == SENTINEL_2:
+        mask_img = sentinel_2_cloud_mask(images, bands_index)
+    elif sat_platform == LANDSAT_8:
+        mask_img = landsat_cloud_mask(images)
+    else:
+        raise InconsistentGeneratorDataException(
+            f"Platform {sat_platform} is not supported for cloud sorting."
+        )
     mask_count = np.sum(mask_img, axis=(1, 2))
     ind = np.sort(np.argsort(mask_count)[:max_images])
     return np.array(images[ind])
