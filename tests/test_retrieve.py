@@ -7,6 +7,7 @@ import rasterio
 from rasterio import RasterioIOError
 
 from pixels.retrieve import retrieve
+from tests.scenarios import sample_geojson
 
 
 def rasterio_open_mock(*args, **kwargs):
@@ -38,27 +39,7 @@ class TestRetrieve(unittest.TestCase):
         with rasterio.open(self.raster.name, "w", **self.creation_args) as dst:
             dst.write(numpy.arange(size**2, dtype="uint16").reshape((1, size, size)))
 
-        self.geojson = {
-            "type": "FeatureCollection",
-            "crs": {"init": "EPSG:3857"},
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": {},
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [
-                            [
-                                [-1028560.0, 4689560.0],
-                                [-1028560.0, 4689000.0],
-                                [-1028000.0, 4689560.0],
-                                [-1028560.0, 4689560.0],
-                            ]
-                        ],
-                    },
-                },
-            ],
-        }
+        self.geojson = sample_geojson
 
     def test_retrieve_values(self):
         # Should be same as original.
