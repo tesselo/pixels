@@ -532,7 +532,7 @@ def existing_timesteps_range(timesteps, existing_files):
         else:
             start = [min(f[0]) for f in time_bubbles]
             end = [max(f[-1]) for f in time_bubbles]
-    return start, end
+    return str(start), str(end)
 
 
 def get_and_write_raster_from_item(
