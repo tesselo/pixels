@@ -278,6 +278,7 @@ def pixel_stack(
     level=None,
     sensor=None,
     mode="latest_pixel",
+    composite_method="SCL",
 ):
     """
     Get the latest pixel at regular intervals between two dates.
@@ -356,7 +357,6 @@ def pixel_stack(
         light_clouds = True
         sort = "cloud_cover"
         finish_early_cloud_cover_percentage = 0.05
-        composite_method = "SCL"
         # Create input list with date ranges.
         dates = [
             (

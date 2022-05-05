@@ -207,6 +207,7 @@ class TestMosaic(unittest.TestCase):
             level="L2A",
             pool_size=1,
             mode="composite",
+            composite_method="SCL",
         )
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
