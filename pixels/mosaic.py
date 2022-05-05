@@ -60,7 +60,7 @@ def latest_pixel(
     platforms=None,
     limit=10,
     clip=False,
-    pool=False,
+    pool_bands=False,
     maxcloud=None,
     level=None,
     sensor=None,
@@ -100,8 +100,8 @@ def latest_pixel(
     clip : boolean, optional
         If True, the raster is clipped against the geometry. All values outside
         the geometry will be set to nodata.
-    pool : boolean, optional
-        If True, thread pooling is used to request the image data.
+    pool_bands : boolean, optional
+        If True, thread pooling is used to request the image bands data.
     maxcloud : int, optional
         Maximum accepted cloud coverage in images. If not provided returns records with
         up to 100% cloud coverage.
@@ -193,7 +193,7 @@ def latest_pixel(
 
         data = []
         failed_retrieve = False
-        if pool:
+        if pool_bands:
             try:
                 with ThreadPoolExecutor(max_workers=len(bands)) as executor:
                     futures = [executor.submit(retrieve, *band) for band in band_list]
@@ -275,6 +275,7 @@ def pixel_stack(
     clip=False,
     maxcloud=None,
     pool_size=5,
+    pool_bands=False,
     level=None,
     sensor=None,
     mode="latest_pixel",
@@ -286,8 +287,6 @@ def pixel_stack(
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
-
-    retrieve_pool = False
 
     if mode == "all" or interval == "all":
         # For all mode, the date range is constructed around each scene, and
@@ -326,7 +325,7 @@ def pixel_stack(
                 platforms,
                 limit,
                 clip,
-                retrieve_pool,
+                pool_bands,
                 maxcloud,
                 level,
             )
@@ -344,7 +343,7 @@ def pixel_stack(
                 platforms,
                 limit,
                 clip,
-                retrieve_pool,
+                pool_bands,
                 maxcloud,
                 level,
             )
@@ -367,7 +366,7 @@ def pixel_stack(
                 bands,
                 limit,
                 clip,
-                retrieve_pool,
+                pool_bands,
                 maxcloud,
                 shadow_threshold,
                 light_clouds,
@@ -424,7 +423,7 @@ def pixel_stack(
 
 
 def retrieve_item_bands(
-    item: dict, geojson: dict, scale: float, bands: list, pool: bool
+    item: dict, geojson: dict, scale: float, bands: list, pool_bands: bool
 ) -> tuple:
     """
     Get pixels for a search result item.
@@ -439,7 +438,7 @@ def retrieve_item_bands(
         The resolution of the output data in same the CRS as the geojson input.
     bands : list
         Band names of all the bands that should be retrieved for this item.
-    pool : bool
+    pool_bands : bool
         Determine if a thread pool should be used for retrieving the data.
 
 
@@ -464,7 +463,7 @@ def retrieve_item_bands(
         for band in bands
     ]
 
-    if pool:
+    if pool_bands:
         max_workers = min(MAX_COMPOSITE_BAND_WORKERS, len(band_list))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [executor.submit(retrieve, *band) for band in band_list]
@@ -488,7 +487,7 @@ def composite(
     bands=None,
     limit=10,
     clip=False,
-    pool=False,
+    pool_bands=False,
     maxcloud=None,
     shadow_threshold=0.1,
     light_clouds=True,
@@ -561,7 +560,7 @@ def composite(
 
     for item in items:
         new_creation_args, layer = retrieve_item_bands(
-            item, geojson, scale, bands_copy, pool
+            item, geojson, scale, bands_copy, pool_bands
         )
         if any(band is None for band in layer):
             continue

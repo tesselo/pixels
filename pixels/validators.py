@@ -85,6 +85,7 @@ class PixelsConfigValidator(BaseModel, extra=Extra.forbid):
     clip: bool = True
     maxcloud: int = 20
     pool_size: int = 0
+    pool_bands: bool = False
     platforms: Union[LandsatPlatform, SentinelPlatform, list, tuple]
     level: Optional[Union[SentinelLevelOption, LandsatLevelOption]]
     bands: Union[list, tuple]
@@ -143,3 +144,8 @@ class PixelsConfigValidator(BaseModel, extra=Extra.forbid):
         if v and not values.get("mode") == ModeOption.composite:
             raise ValueError("Composite method is only used in composite mode.")
         return v
+
+    @validator("pool_bands")
+    def check_pool_bands(cls, v, values):
+        if v and values.get("pool_size") > 1:
+            raise ValueError("Bands pooling can not be combined with dates pooling")

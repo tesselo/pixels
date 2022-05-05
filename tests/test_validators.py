@@ -190,3 +190,10 @@ class TestValidators(unittest.TestCase):
         config["composite_method"] = "FULL"
         with self.assertRaises(ValueError):
             PixelsConfigValidator(**config)
+
+    def test_pooling_invalid(self):
+        config = complete_valid_config()
+        config["pool_size"] = 2
+        config["pool_bands"] = True
+        with self.assertRaises(ValueError):
+            PixelsConfigValidator(**config)
