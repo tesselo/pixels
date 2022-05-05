@@ -20,9 +20,36 @@ from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
-from pixels.const import S2_BAND_RESOLUTIONS, WORKERS_LIMIT
+from pixels.const import (
+    BBOX_PIXEL_WITH_HEIGHT_TOLERANCE,
+    S2_BAND_RESOLUTIONS,
+    WORKERS_LIMIT,
+)
 
 logger = structlog.get_logger(__name__)
+
+
+def compute_number_of_pixels(distance: (int, float), scale: (int, float)) -> int:
+    """
+    Compute number of pixels that fit into a distance considering a tolerance.
+
+    Parameters
+    ----------
+    distance : int or float
+        A distance between two points.
+    scale : int or float
+        The size of the pixel.
+
+    Returns
+    -------
+    pixels_count : int
+        Number of pixels.
+    """
+    ratio = distance / scale
+    if distance % scale < BBOX_PIXEL_WITH_HEIGHT_TOLERANCE:
+        return math.floor(ratio)
+    else:
+        return math.ceil(ratio)
 
 
 def compute_transform(geojson, scale):
@@ -58,9 +85,8 @@ def compute_transform(geojson, scale):
     # Compute the transform that defines the raster to create.
     transform = Affine(scale, 0, extent[0], 0, -scale, extent[3])
     # Compute with and height of the raster to create.
-    width = math.ceil((extent[2] - extent[0]) / scale)
-    height = math.ceil((extent[3] - extent[1]) / scale)
-
+    width = compute_number_of_pixels(extent[2] - extent[0], scale)
+    height = compute_number_of_pixels(extent[3] - extent[1], scale)
     return transform, width, height
 
 

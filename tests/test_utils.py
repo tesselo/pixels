@@ -115,6 +115,34 @@ class TestUtils(unittest.TestCase):
             [1.0, 0.0, -1020256.0, 0.0, -1.0, 4680156.0, 0.0, 0.0, 1.0],
         )
 
+    def test_compute_transform_tolerance_floor(self):
+        self.geojson["features"][0]["geometry"]["coordinates"] = [
+            [
+                [-1020250.00001, 4680150.000001],
+                [-1020250.00001, 4680000.0],
+                [-1020000.0, 4680000.0],
+                [-1020000.0, 4680150.000001],
+                [-1020250.00001, 4680150.000001],
+            ]
+        ]
+        transform, width, height = compute_transform(self.geojson, 10)
+        self.assertEqual(height, 15)
+        self.assertEqual(width, 25)
+
+    def test_compute_transform_tolerance_ceil(self):
+        self.geojson["features"][0]["geometry"]["coordinates"] = [
+            [
+                [-1020250.01, 4680150.01],
+                [-1020250.01, 4680000.0],
+                [-1020000.0, 4680000.0],
+                [-1020000.0, 4680150.01],
+                [-1020250.01, 4680150.000001],
+            ]
+        ]
+        transform, width, height = compute_transform(self.geojson, 10)
+        self.assertEqual(height, 16)
+        self.assertEqual(width, 26)
+
     def test_compute_wgs84_bbox(self):
         # Geojson feature case.
         bbox = compute_wgs83_bbox(self.geojson)
