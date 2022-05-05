@@ -44,33 +44,52 @@ So we need to specify the right input for the runpixels script.
 ## Complete example
 The code snipped below shows an example of running existing training job in a local container
 
-```
-docker run\
+### Run the thing
+
+You need to have the variable `REPOS` defined and pointing to the directory where you have the 
+tesselo repos.
+
+```shell
+docker run \
   --rm \
   -it \
-  --gpus all\
-  --env BATCH_FILE_S3_URL=s3://tesselo-pixels-scripts/batch.zip\
-  --env BATCH_FILE_TYPE=zip\
-  --env GDAL_DISABLE_READDIR_ON_OPEN=YES\
-  --env CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.jp2\
-  --env DB_USER=tesselo\
-  --env DB_NAME=$DB_NAME\
-  --env DB_HOST=$DB_HOST\
-  --env DB_PASSWORD=$DB_PASSWORD\
-  --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY\
-  --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID\
-  --env AWS_REQUEST_PAYER=requester\
-  --env SENTRY_DSN=\
-  --entrypoint /usr/local/bin/python3.7\
-  -v /home/tam/Documents/repos/pixels/pixels:/pixels\
-  -v /home/tam/Documents/repos/pixels/batch/runpixels.py:/runpixels.py\
-  595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:latest\
-  /runpixels.py \
-  pixels.generator.stac_training.train_model_function\
-  s3://pxapi-media-dev/pixelsdata/5421dd44-2991-41de-b01c-d85c4d14f71b/data/collection.json\
-  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/model.json\
-  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/compile_arguments.json\
-  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/fit_arguments.json\
+  --gpus all \
+  --env BATCH_FILE_S3_URL=s3://tesselo-pixels-scripts/batch.zip \
+  --env BATCH_FILE_TYPE=zip \
+  --env GDAL_DISABLE_READDIR_ON_OPEN=YES \
+  --env CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.jp2 \
+  --env DB_HOST_PIXELS=$DB_HOST_PIXELS \
+  --env DB_HOST_PXSEARCH=$DB_HOST_PXSEARCH \
+  --env DB_NAME_PIXELS=$DB_NAME_PIXELS \
+  --env DB_NAME_PXAPI=$DB_NAME_PXAPI \ 
+  --env DB_NAME_PXSEARCH=$DB_NAME_PXSEARCH \
+  --env DB_PASS_PIXELS=$DB_NAME_PIXELS \
+  --env DB_PASS_PXSERCH=$DB_PASS_PXSEARCH \
+  --env DB_USER_PIXELS=$DB_USER_PIXELS \
+  --env DB_USER_PXSEARCH=$DB_USER_PXSEARCH \
+  --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+  --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+  --env AWS_REQUEST_PAYER=requester \
+  --env SENTRY_DSN= \
+  --entrypoint /usr/local/bin/python3.8 \
+  -v ${REPOS}/pixels/pixels:/pixels \
+  -v ${REPOS}/pixels/batch/runpixels.py:/runpixels.py \
+  595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:latest \
+  /runpixels.py \  
+  pixels.generator.stac_training.train_model_function \
+  s3://pxapi-media-dev/pixelsdata/5421dd44-2991-41de-b01c-d85c4d14f71b/data/collection.json \
+  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/model.json \
+  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/compile_arguments.json \
+  s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/fit_arguments.json \
   s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/generator_arguments.json
-
+```
+### Let segredos help
+Or you can install the auxiliary functions from segredos and run:
+```shell
+localpixels pixels.generator.stac_training.train_model_function \
+    s3://pxapi-media-dev/pixelsdata/5421dd44-2991-41de-b01c-d85c4d14f71b/data/collection.json \
+    s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/model.json \
+    s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/compile_arguments.json \
+    s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/fit_arguments.json \
+    s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/generator_arguments.json
 ```
