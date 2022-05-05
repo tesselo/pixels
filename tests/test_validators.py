@@ -177,3 +177,16 @@ class TestValidators(unittest.TestCase):
         config["invalid"] = True
         with self.assertRaises(ValueError):
             PixelsConfigValidator(**config)
+
+    def test_mode_composite(self):
+        config = complete_valid_config()
+        config["mode"] = "composite"
+        config["composite_method"] = "FULL"
+        PixelsConfigValidator(**config)
+
+    def test_mode_method_invalid(self):
+        config = complete_valid_config()
+        config["mode"] = "all"
+        config["composite_method"] = "FULL"
+        with self.assertRaises(ValueError):
+            PixelsConfigValidator(**config)

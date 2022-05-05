@@ -47,6 +47,12 @@ class ModeOption(str, Enum):
     all = "all"
 
 
+class CompositeMethodOption(str, Enum):
+    index = "INDEX"
+    scl = "SCL"
+    full = "FULL"
+
+
 class LandsatLevelOption(str, Enum):
     l1 = "L1"
     l2 = "L2"
@@ -86,6 +92,7 @@ class PixelsConfigValidator(BaseModel, extra=Extra.forbid):
     mode: ModeOption = ModeOption.latest_pixel
     dynamic_dates_interval: Optional[TimeStepOption]
     geojson: FeatureCollectionCRS
+    composite_method: Optional[CompositeMethodOption] = CompositeMethodOption.scl
 
     @validator("start", "end")
     def is_date(cls, v):
@@ -129,4 +136,10 @@ class PixelsConfigValidator(BaseModel, extra=Extra.forbid):
     def check_scl_level(cls, v, values):
         if "SCL" in v and values["level"] != "L2A":
             raise ValueError("SCL can only be requested for level L2A")
+        return v
+
+    @validator("composite_method")
+    def check_composite_method(cls, v, values):
+        if v and not values.get("mode") == ModeOption.composite:
+            raise ValueError("Composite method is only used in composite mode.")
         return v
