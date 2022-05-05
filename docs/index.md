@@ -83,6 +83,14 @@ The `all` mode will collect every image that is available for the date range
 as individual slices. This will result in varying numbers of image slices for
 each item.
 
+For the `composite` mode, you can specify the method for compositing using the
+`composite_method` parameter. Current choices are `BASIC`, `SCL`, and `FULL`.
+Basic will use a combination of band ratios, SCL will use the SCL classification.
+Both these cases will stop once there are only very few cloudy pixels left. For
+the `FULL` mode, the SCL classification is used as well, but all available images
+are collected and the highest NDVI is used to select the best cloud free pixel
+from the available images.
+
 The `latest_pixel` mode and the `composite` mode will group images for discrete
 time slices. These modes will require two additional arguments: `interval` and
 `interval_step`. The `interval` defines the time step time size, and the
