@@ -131,9 +131,14 @@ process.
 The `clip` parameter is a boolean, determining if the image slices should be
 clipped against the input geometries.
 
-The `pool_size` parameter determines how many images can be collected in
+The `pool_size` parameter determines how many image dates can be collected in
 parallel on the backend. This is still experimental and should be used with
 caution. Specifying `pool_size` to `1` is the safest option.
+
+An alternative way of parallelizing the collections is getting all the bands in
+parallel, instead of getting the dates in parallel. This can be achieved by using
+the `pool_bands` boolean parameter. This can not be used in combination with date
+pooling at the same time. Defaults to `False`.
 
 The `overwrite` parameter is a boolean, determining if the images already downloaded
 are overwriten. It defaults to False.

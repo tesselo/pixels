@@ -152,7 +152,7 @@ class TestMosaic(unittest.TestCase):
             scale=500,
             bands=["B01", "B02"],
             clip=False,
-            pool=True,
+            pool_bands=True,
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
