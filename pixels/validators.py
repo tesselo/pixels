@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from geojson_pydantic.features import FeatureCollection
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, Extra, root_validator, validator
 from rasterio.crs import CRS
 from rasterio.errors import CRSError
 
@@ -69,7 +69,7 @@ class FeatureCollectionCRS(FeatureCollection):
         return v
 
 
-class PixelsConfigValidator(BaseModel):
+class PixelsConfigValidator(BaseModel, extra=Extra.forbid):
     dynamic_dates_step: int = 1
     start: Optional[str]
     end: Optional[str]

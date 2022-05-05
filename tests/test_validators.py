@@ -171,3 +171,9 @@ class TestValidators(unittest.TestCase):
         config = complete_valid_config()
         config["mode"] = "all"
         PixelsConfigValidator(**config)
+
+    def test_extra_field_not_allowed(self):
+        config = complete_valid_config()
+        config["invalid"] = True
+        with self.assertRaises(ValueError):
+            PixelsConfigValidator(**config)
