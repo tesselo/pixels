@@ -500,10 +500,10 @@ def existing_timesteps_range(timesteps, existing_files):
             List of dates already collected.
     Returns
     -------
-        start : str
-            Collecting start date.
-        end : str
-            Collecting end date.
+        start : str or list[str]
+            Collecting start date(s).
+        end : str or list[str]
+            Collecting end date(s).
     """
     existing_files = [os.path.basename(f).replace(".tif", "") for f in existing_files]
     list_dates = [datetime.datetime.strptime(f, "%Y_%m_%d") for f in existing_files]
