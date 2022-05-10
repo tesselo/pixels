@@ -322,8 +322,7 @@ def write_raster(
     if out_path:
         with rasterio.open(out_path, "w", **out_meta) as dst:
             # Set the given metadata tags.
-            for key, val in tags.items():
-                dst.update_tags(**tags)
+            dst.update_tags(**tags)
             dst.write(data)
             try:
                 dst.build_overviews(factors, resampling)
