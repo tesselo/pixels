@@ -4,6 +4,27 @@ INTEGER_NODATA_VALUE = 255
 FLOAT_NODATA_VALUE = -9999
 BBOX_PIXEL_WITH_HEIGHT_TOLERANCE = 0.001
 
+NAN_VALUE_LOSSES = [
+    "nan_mean_squared_error_loss",
+    "nan_root_mean_squared_error_loss",
+    "stretching_error_loss",
+    "square_stretching_error_loss",
+    "root_mean_squared_error_loss_more_or_less",
+]
+
+ALLOWED_CUSTOM_LOSSES = NAN_VALUE_LOSSES + [
+    "square_stretching_error_loss",
+    "nan_categorical_crossentropy_loss",
+    "root_mean_squared_error",
+    "nan_categorical_crossentropy_loss_drop_classe",
+]
+
+
+EVALUATION_PERCENTAGE_LIMIT = 0.2
+EVALUATION_SAMPLE_LIMIT = 2000
+TRAIN_WITH_ARRAY_LIMIT = 1e8
+
+
 LS_BANDS = [
     "B1",
     "B2",

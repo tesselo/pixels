@@ -21,7 +21,7 @@ def nan_mean_squared_error_loss(nan_value=np.nan):
     return loss
 
 
-def nan_categorical_crossentropy_loss(nan_value=np.nan, class_with_nan=None):
+def nan_categorical_crossentropy_loss(class_with_nan=None):
     # Create a loss function
     def loss(y_true, y_pred):
         sparse = tf.math.argmax(y_true, axis=-1)
@@ -34,7 +34,7 @@ def nan_categorical_crossentropy_loss(nan_value=np.nan, class_with_nan=None):
     return loss
 
 
-def nan_categorical_crossentropy_loss_drop_classe(nan_value=np.nan, class_to_ignore=0):
+def nan_categorical_crossentropy_loss_drop_classe(class_to_ignore=0):
     # Create a loss function to ignore classes on one-hot scheme, can be input as a list or an int.
     if isinstance(class_to_ignore, int):
         class_to_ignore = [class_to_ignore]
@@ -63,13 +63,16 @@ def nan_root_mean_squared_error_loss(nan_value=np.nan):
     return loss
 
 
-def nan_root_mean_squared_error_loss_more_or_less(nan_value=np.nan, less=True):
-    # Create a loss function that only sees <= or >= than nan_value.
+def root_mean_squared_error_loss_more_or_less(value=0, less=True, nan_value=None):
+    # Create a loss function that only sees <= or >= than value.
     def loss(y_true, y_pred):
+        valid_indices = tf.where(tf.not_equal(y_true, nan_value))
         if less:
-            indices = tf.where(tf.less_equal(y_true, nan_value))
+            indices = tf.where(tf.less_equal(y_true, value))
         else:
-            indices = tf.where(tf.greater_equal(y_true, nan_value))
+            indices = tf.where(tf.greater_equal(y_true, value))
+        indices = tf.concat([indices, valid_indices], axis=0)
+        indices = tf.unique(indices).idx
         return root_mean_squared_error(
             tf.gather_nd(y_true, indices), tf.gather_nd(y_pred, indices)
         )

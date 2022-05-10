@@ -10,6 +10,13 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from rasterio import Affine
 
+from pixels.const import (
+    ALLOWED_CUSTOM_LOSSES,
+    EVALUATION_PERCENTAGE_LIMIT,
+    EVALUATION_SAMPLE_LIMIT,
+    NAN_VALUE_LOSSES,
+    TRAIN_WITH_ARRAY_LIMIT,
+)
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import (
@@ -20,21 +27,6 @@ from pixels.generator.stac_utils import (
 )
 from pixels.log import logger
 from pixels.utils import NumpyArrayEncoder, load_dictionary, write_raster
-
-ALLOWED_CUSTOM_LOSSES = [
-    "nan_mean_squared_error_loss",
-    "nan_root_mean_squared_error_loss",
-    "square_stretching_error_loss",
-    "stretching_error_loss",
-    "nan_categorical_crossentropy_loss",
-    "root_mean_squared_error",
-    "nan_categorical_crossentropy_loss_drop_classe",
-    "nan_root_mean_squared_error_loss_more_or_less",
-]
-
-EVALUATION_PERCENTAGE_LIMIT = 0.2
-EVALUATION_SAMPLE_LIMIT = 2000
-TRAIN_WITH_ARRAY_LIMIT = 1e8
 
 MODE_PREDICTION_PER_PIXEL = [
     generator.GENERATOR_PIXEL_MODEL,
@@ -114,6 +106,41 @@ def load_model_from_file(model_configuration_file):
     return model_j
 
 
+def load_loss_function(loss, loss_arguments):
+    """
+    Loads the loss function to use in training.
+
+    Parameters
+    ----------
+        loss : str
+            Name of the loss function to use.
+        loss_arguments : dict
+            Arguments for the loss function.
+    Returns
+    -------
+        loss_function : function
+            Loss function to use in training.
+    """
+    nan_value = loss_arguments.pop("nan_value", None)
+
+    # Handle custom loss case.
+    if hasattr(tf.keras.losses, loss):
+        loss_function = getattr(tf.keras.losses, loss)
+    elif hasattr(tfa.losses, loss):
+        loss_function = getattr(tfa.losses, loss)
+    elif loss in ALLOWED_CUSTOM_LOSSES:
+        # Get custom loss function.
+        loss_function = getattr(losses, loss)
+        if loss in NAN_VALUE_LOSSES:
+            loss_arguments["nan_value"] = nan_value
+    else:
+        raise ValueError(f"Loss function {loss} is not valid.")
+    try:
+        return loss_function(**loss_arguments)
+    except TypeError as e:
+        raise TypeError("Wrong arguments to loss function.") from e
+
+
 def load_existing_model_from_file(
     model_uri, loss="nan_mean_squared_error_loss", loss_arguments=None
 ):
@@ -126,19 +153,30 @@ def load_existing_model_from_file(
         bio_ = io.BytesIO(read_in_memory)
         f = h5py.File(bio_, "r")
         model_uri = f
-    # Construct model object.
-    if hasattr(tf.keras.losses, loss) or hasattr(tfa.losses, loss):
-        model = tf.keras.models.load_model(model_uri)
-    elif loss in ALLOWED_CUSTOM_LOSSES:
-        # Handle custom loss functions when loading the model.
-        custom_loss = getattr(losses, loss)
-        model = tf.keras.models.load_model(
-            model_uri,
-            custom_objects={"loss": custom_loss(**loss_arguments)},
+    loss_function = load_loss_function(loss, loss_arguments)
+    model = tf.keras.models.load_model(
+        model_uri,
+        custom_objects={"loss": loss_function},
+    )
+    return model
+
+
+def load_keras_model(
+    model_config_uri, compile_args, loss_arguments=None, use_existing_model=False
+):
+
+    loss_name = compile_args.pop("loss", None)
+    loss_arguments = loss_arguments or {}
+
+    if use_existing_model:
+        path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
+        model = load_existing_model_from_file(
+            path_model, loss=loss_name, loss_arguments=loss_arguments
         )
     else:
-        raise ValueError(f"Loss function {loss} is not valid.")
-
+        model = load_model_from_file(model_config_uri)
+        loss_function = load_loss_function(loss_name, loss_arguments)
+        model.compile(loss=loss_function, **compile_args)
     return model
 
 
@@ -213,51 +251,32 @@ def train_model_function(
     if gen_args.get("download_data"):
         tmpdir = tempfile.TemporaryDirectory()
         gen_args["download_dir"] = tmpdir.name
-    # Check for existing model boolean.
-    if compile_args.get("use_existing_model"):
-        if "nan_value" in gen_args:
-            nan_value = gen_args["nan_value"]
-        else:
-            nan_value = None
-        loss_arguments["nan_value"] = nan_value
-        model = load_existing_model_from_file(
-            path_model, loss=compile_args["loss"], loss_arguments=loss_arguments
+
+    # Use custom confusion matrix if requested.
+    if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
+        # Remove string version from metrics.
+        compile_args["metrics"].pop(
+            compile_args["metrics"].index("MultiLabelConfusionMatrix")
         )
+        # Add complied version to metrics.
+        compile_args["metrics"].append(
+            MultiLabelConfusionMatrix(gen_args.get("num_classes"))
+        )
+
+    use_existing_model = compile_args.pop("use_existing_model", False)
+    if use_existing_model:
         last_training_epochs = len(
             list_files_in_folder(os.path.dirname(model_config_uri), filetype=".hdf5")
         )
     else:
         last_training_epochs = 0
-        # Load model, compile and fit arguments.
-        model = load_model_from_file(model_config_uri)
-        # Use custom confusion matrix if requested.
-        if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
-            # Remove string version from metrics.
-            compile_args["metrics"].pop(
-                compile_args["metrics"].index("MultiLabelConfusionMatrix")
-            )
-            # Add complied version to metrics.
-            compile_args["metrics"].append(
-                MultiLabelConfusionMatrix(gen_args.get("num_classes"))
-            )
-        # Handle custom loss case.
-        if hasattr(tf.keras.losses, compile_args["loss"]):
-            model.compile(**compile_args)
-        elif hasattr(tfa.losses, compile_args["loss"]):
-            loss_name = compile_args.pop("loss", None)
-            loss_addon = getattr(tfa.losses, loss_name)
-            model.compile(loss=loss_addon(**loss_arguments), **compile_args)
-        elif compile_args["loss"] in ALLOWED_CUSTOM_LOSSES:
-            # Get custom loss function.
-            custom_loss = getattr(losses, compile_args.pop("loss"))
-            # Add nan value to loss arguments.
-            loss_arguments["nan_value"] = gen_args.get(
-                "nan_value", gen_args.get("y_nan_value", None)
-            )
-            model.compile(loss=custom_loss(**loss_arguments), **compile_args)
-        else:
-            raise ValueError(f"Loss function {compile_args['loss']} is not valid.")
 
+    loss_arguments["nan_value"] = gen_args.get(
+        "nan_value", gen_args.get("y_nan_value", None)
+    )
+    model = load_keras_model(
+        model_config_uri, compile_args, loss_arguments, use_existing_model
+    )
     gen_args["dtype"] = model.input.dtype.name
     eval_split = gen_args.pop("eval_split", 0)
     if "training_percentage" not in gen_args:
