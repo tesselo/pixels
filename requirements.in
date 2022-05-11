@@ -12,3 +12,4 @@ click
 geopandas
 pydantic
 geojson_pydantic
+kiwi-structlog-config
