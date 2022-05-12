@@ -142,15 +142,15 @@ def create_stac_item_from_raster(
 def create_stac_item_from_vector(
     tile, reference_date, source_path, additional_links, out_stac_folder, catalog, crs
 ):
-    if reference_date is None:
-        raise TrainingDataParseError("Datetime could not be determined for stac.")
 
     id_raster = str(tile[0])
     dict_data = gp.GeoSeries(tile[1].geometry).__geo_interface__
     bbox = list(dict_data["bbox"])
     footprint = dict_data["features"][0]["geometry"]
     footprint["coordinates"] = np.array(footprint["coordinates"]).tolist()
-
+    reference_date = tile[1].get("date", reference_date)
+    if reference_date is None:
+        raise TrainingDataParseError("Datetime could not be determined for stac.")
     # Add projection stac extension, assuming input crs has a EPSG id.
     out_meta = {
         "proj:epsg": crs.to_epsg(),
