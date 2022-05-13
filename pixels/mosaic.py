@@ -16,7 +16,7 @@ from pixels.const import (
     SCL_COMPOSITE_CLOUD_BANDS,
 )
 from pixels.exceptions import PixelsException
-from pixels.log import logger
+from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
@@ -262,6 +262,7 @@ def latest_pixel(
     return creation_args, first_end_date, stack
 
 
+@log_function
 def pixel_stack(
     geojson,
     start,
