@@ -25,7 +25,7 @@ from pixels.generator.stac_utils import (
     upload_files_s3,
     upload_obj_s3,
 )
-from pixels.log import logger
+from pixels.log import log_function, logger
 from pixels.utils import NumpyArrayEncoder, load_dictionary, write_raster
 
 MODE_PREDICTION_PER_PIXEL = [
@@ -233,6 +233,7 @@ class LogProgress(tf.keras.callbacks.Callback):
         self._log_status("Epoch end", epoch, logs)
 
 
+@log_function
 def train_model_function(
     catalog_uri,
     model_config_uri,
@@ -448,6 +449,7 @@ def train_model_function(
     return model
 
 
+@log_function
 def predict_function_batch(
     model_uri,
     collection_uri,

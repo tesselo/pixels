@@ -452,7 +452,7 @@ class BoundLogger:
         context = {"log_id": self.log_id}
 
         for name, key in self.context.items():
-            context["name"] = getattr(self.bind, key)
+            context[name] = key
 
         return context
 
