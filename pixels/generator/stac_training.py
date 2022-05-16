@@ -180,7 +180,7 @@ def load_keras_model(
     return model
 
 
-class Custom_Callback_SaveModel_S3(tf.keras.callbacks.Callback):
+class SaveModel_S3(tf.keras.callbacks.Callback):
     """
     Custom Callback function to save and upload to s3 models on epoch end.
 
@@ -211,6 +211,24 @@ class Custom_Callback_SaveModel_S3(tf.keras.callbacks.Callback):
         else:
             with h5py.File(path_model, mode="w") as h5fl:
                 self.model.save(h5fl)
+
+
+class LogProgress(tf.keras.callbacks.Callback):
+    """
+    Custom Callback function to log training progress.
+    """
+
+    def _log_status(self, state, epoch, logs):
+        logs = logs or {}
+        logger.info(
+            state, current_epoch=epoch + 1, all_epochs=self.param["epochs"], **logs
+        )
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self._log_status("Epoch begin", epoch, logs)
+
+    def on_epoch_end(self, epoch, logs=None):
+        self._log_status("Epoch end", epoch, logs)
 
 
 def train_model_function(
@@ -320,7 +338,7 @@ def train_model_function(
     dtgen = generator.DataGenerator(**gen_args)
     if dtgen.one_hot:
         fit_args.pop("class_weight")
-    # Train model, verbose level 2 prints one line per epoch to the log.
+
     if train_with_array:
         # Stack all items into one array.
         X = []
@@ -350,12 +368,13 @@ def train_model_function(
             Y,
             **fit_args,
             callbacks=[
-                Custom_Callback_SaveModel_S3(
+                SaveModel_S3(
                     passed_epochs=last_training_epochs,
                     path=os.path.dirname(model_config_uri),
-                )
+                ),
+                LogProgress(),
             ],
-            verbose=2,
+            verbose=0,
         )
     else:
         # Fit model with generator directly.
@@ -363,12 +382,13 @@ def train_model_function(
             dtgen,
             **fit_args,
             callbacks=[
-                Custom_Callback_SaveModel_S3(
+                SaveModel_S3(
                     passed_epochs=last_training_epochs,
                     path=os.path.dirname(model_config_uri),
-                )
+                ),
+                LogProgress(),
             ],
-            verbose=2,
+            verbose=0,
         )
     # Write history.
     if model_config_uri.startswith("s3"):
@@ -414,7 +434,7 @@ def train_model_function(
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = generator.DataGenerator(**gen_args)
-    results = model.evaluate(dpredgen, verbose=2)
+    results = model.evaluate(dpredgen, callbacks=[LogProgress()], verbose=0)
     # Export evaluation statistics to json file.
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
