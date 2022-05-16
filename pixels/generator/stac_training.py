@@ -135,6 +135,8 @@ def load_loss_function(loss, loss_arguments):
             loss_arguments["nan_value"] = nan_value
     else:
         raise ValueError(f"Loss function {loss} is not valid.")
+    if loss not in ALLOWED_CUSTOM_LOSSES and not isinstance(loss_function, type):
+        raise ValueError("For keras or tensorflow losses, loss should be a class")
     try:
         return loss_function(**loss_arguments)
     except TypeError as e:
