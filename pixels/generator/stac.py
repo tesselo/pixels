@@ -175,7 +175,7 @@ def create_stac_item_from_vector(
     return item
 
 
-def parse_vector_area(
+def parse_vector_data(
     source_path,
     save_files=False,
     description="",
@@ -360,7 +360,7 @@ def parse_raster_data(
     return catalog
 
 
-def parse_training_data(
+def parse_data(
     source_path,
     categorical,
     save_files=False,
@@ -379,7 +379,7 @@ def parse_training_data(
     source_type = source_path.split(".")[-1]
     ALLOWED_VECTOR_TYPES
     if source_type in ALLOWED_VECTOR_TYPES:
-        return parse_vector_area(
+        return parse_vector_data(
             source_path,
             save_files=save_files,
             description=description,
@@ -648,7 +648,7 @@ def get_and_write_raster_from_item(
         )
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
-    x_cat = parse_training_data(
+    x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
     )
 
@@ -959,7 +959,7 @@ def create_and_collect(source_path, config_file):
     """
     # Build stac catalog from input data.
     logger.info("Building stac files for input data.")
-    y_catalog = parse_training_data(
+    y_catalog = parse_data(
         source_path, False, save_files=True, reference_date="2020-12-31"
     )
     logger.info("Collecting data using pixels.")
