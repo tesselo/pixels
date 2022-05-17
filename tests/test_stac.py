@@ -133,7 +133,12 @@ class TestUtils(unittest.TestCase):
             "id": id_name,
             "stac_version": pystac.version.get_stac_version(),
             "description": "",
-            "class_weight": {"0": 0.25, "1": 0.25, "2": 0.25, "3": 0.25},
+            "class_weight": {"1": 1.0, "2": 1.0, "3": 1.0},
+            "crs": {"init": "epsg:3857"},
+            "nodata": 0.0,
+            "nodata_count": 49152,
+            "values_count": {"1": 49152, "2": 49152, "3": 49152},
+            "categorical": True,
             "links": [
                 {"rel": "root", "href": "./catalog.json", "type": "application/json"},
                 {"rel": "item", "href": href_1, "type": "application/json"},
@@ -166,7 +171,8 @@ class TestUtils(unittest.TestCase):
                 ],
                 "proj:epsg": 3857,
                 "stac_extensions": ["projection"],
-                "stats": {"0": 16384, "1": 16384, "2": 16384, "3": 16384},
+                "value_counts": {"0": 16384, "1": 16384, "2": 16384, "3": 16384},
+                "categorical": True,
                 "datetime": "2021-01-01T00:00:00Z",
             },
             "geometry": {
