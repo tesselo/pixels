@@ -342,13 +342,18 @@ def parse_raster_data(
     )
     items = [ite[0] for ite in result_parse]
     stats = [ite[1] for ite in result_parse]
+    # Get nodata vaue from first item.
+    nodata = items[0].properties["nodata"]
     # Add the list of items to the catalog.
     catalog.add_items(items)
     value_counts = Counter()
     # Add item statistics to global stats counter.
     for stat in stats:
         value_counts.update(stat)
+    nodata_count = value_counts.pop(int(nodata), 0)
     catalog.extra_fields["values_count"] = value_counts
+    catalog.extra_fields["nodata"] = nodata
+    catalog.extra_fields["nodata_count"] = nodata_count
     if categorical:
         n_samples = sum(value_counts.values())
         n_classes = len(value_counts)
@@ -386,7 +391,6 @@ def parse_data(
         save_files = save_files == "True"
 
     source_type = source_path.split(".")[-1]
-    ALLOWED_VECTOR_TYPES
     if source_type in ALLOWED_VECTOR_TYPES:
         return parse_vector_data(
             source_path,
