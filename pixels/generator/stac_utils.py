@@ -193,7 +193,7 @@ def check_for_squared_pixels(rst):
 
 
 def get_bbox_and_footprint_and_stats(
-    raster_uri, categorical, bins=None, hist_range=None
+    raster_uri, categorical, bins=10, hist_range=(0, 100)
 ):
     """with open(path, "r") as file:
         file.write(json.dumps(catalog_dict))
@@ -253,8 +253,6 @@ def get_bbox_and_footprint_and_stats(
                 int(key): int(val) for key, val in zip(unique_values, unique_counts)
             }
         else:
-            bins = bins or 10
-            hist_range = hist_range or (0, 100)
             hist, bin_edges = np.histogram(img, bins=bins, range=hist_range)
             stats = {int(key): int(val) for key, val in zip(hist, bin_edges)}
 
