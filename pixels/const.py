@@ -19,6 +19,7 @@ ALLOWED_CUSTOM_LOSSES = NAN_VALUE_LOSSES + [
     "nan_categorical_crossentropy_loss_drop_classe",
 ]
 
+ALLOWED_VECTOR_TYPES = ["gpkg", "geojson"]
 
 EVALUATION_PERCENTAGE_LIMIT = 0.2
 EVALUATION_SAMPLE_LIMIT = 2000
