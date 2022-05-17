@@ -374,6 +374,15 @@ def parse_raster_data(
     return catalog
 
 
+def is_allowed_vector(source_path):
+    source_type = source_path.split(".")[-1]
+    return source_type in ALLOWED_VECTOR_TYPES
+
+
+def is_allowed_raster(source_path):
+    return source_path.endswith(".zip") or os.path.isdir(source_path)
+
+
 def parse_data(
     source_path,
     categorical,
@@ -390,8 +399,7 @@ def parse_data(
     if isinstance(save_files, str):
         save_files = save_files == "True"
 
-    source_type = source_path.split(".")[-1]
-    if source_type in ALLOWED_VECTOR_TYPES:
+    if is_allowed_vector(source_path):
         return parse_vector_data(
             source_path,
             categorical,
@@ -400,7 +408,7 @@ def parse_data(
             reference_date=reference_date,
             additional_links=additional_links,
         )
-    elif source_path.endswith(".zip") or os.path.isdir(source_path):
+    elif is_allowed_raster(source_path):
         return parse_raster_data(
             source_path,
             categorical,
