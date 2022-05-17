@@ -15,7 +15,7 @@ import rasterio
 from pixels.generator.stac import (
     collect_from_catalog_subsection,
     create_x_catalog,
-    parse_training_data,
+    parse_data,
 )
 
 
@@ -202,10 +202,8 @@ class TestUtils(unittest.TestCase):
             if os.path.exists(path):
                 os.remove(path)
 
-    def test_parse_training_data(self):
-        catalog = parse_training_data(
-            self.zip_file.name, True, reference_date="2020-01-01"
-        )
+    def test_parse_data(self):
+        catalog = parse_data(self.zip_file.name, True, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
 
         # Check content of catalog.
@@ -227,9 +225,7 @@ class TestUtils(unittest.TestCase):
     @patch("pixels.search.execute_query", l8_data_mock)
     @patch("pixels.search.format_ls_c1_band", l8_return)
     def test_collect_from_catalog_subsection(self):
-        catalog = parse_training_data(
-            self.zip_file.name, True, reference_date="2020-01-01"
-        )
+        catalog = parse_data(self.zip_file.name, True, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
         target = tempfile.mkdtemp()
         with tempfile.NamedTemporaryFile(suffix=".json", dir=target) as fl:

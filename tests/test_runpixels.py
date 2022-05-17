@@ -37,4 +37,4 @@ class TestRetrieve(unittest.TestCase):
         # so we test that the exception is not the one that would result if the
         # number of arguments is wrong
         assert not isinstance(result.exception, TypeError)
-        assert not result.exception.args[0].startswith("parse_training_data() missing")
+        assert not result.exception.args[0].startswith("parse_data() missing")

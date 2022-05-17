@@ -13,7 +13,7 @@ from pixels.generator.stac import *
 
 source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
 
-ycatalog = parse_training_data(source_s3_path, save_files=True, reference_date="2020-12-31")
+ycatalog = parse_data(source_s3_path, save_files=True, reference_date="2020-12-31")
 ```
 
 #### Collecting and writing the pixels result

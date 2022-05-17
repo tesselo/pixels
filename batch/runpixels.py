@@ -12,7 +12,7 @@ from pixels.generator.stac import (
     build_catalog_from_items,
     collect_from_catalog_subsection,
     create_x_catalog,
-    parse_training_data,
+    parse_data,
 )
 from pixels.generator.stac_training import predict_function_batch, train_model_function
 from pixels.log import logger
@@ -34,7 +34,7 @@ ALLOWED_MODULES = [
     "pixels.generator.prediction_utils",
 ]
 ALLOWED_FUNCTIONS = {
-    "parse_training_data": parse_training_data,
+    "parse_data": parse_data,
     "collect_from_catalog_subsection": collect_from_catalog_subsection,
     "create_x_catalog": create_x_catalog,
     "train_model_function": train_model_function,
