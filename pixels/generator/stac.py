@@ -342,8 +342,9 @@ def parse_raster_data(
     )
     items = [ite[0] for ite in result_parse]
     stats = [ite[1] for ite in result_parse]
-    # Get nodata vaue from first item.
+    # Get nodata value and crs from first item.
     nodata = items[0].properties["nodata"]
+    crs = items[0].properties["crs"]
     # Add the list of items to the catalog.
     catalog.add_items(items)
     value_counts = Counter()
@@ -354,6 +355,8 @@ def parse_raster_data(
     catalog.extra_fields["values_count"] = value_counts
     catalog.extra_fields["nodata"] = nodata
     catalog.extra_fields["nodata_count"] = nodata_count
+    catalog.extra_fields["crs"] = crs
+    catalog.extra_fields["categorical"] = categorical
     if categorical:
         n_samples = sum(value_counts.values())
         n_classes = len(value_counts)
