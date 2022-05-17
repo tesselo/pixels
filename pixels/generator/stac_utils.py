@@ -192,7 +192,9 @@ def check_for_squared_pixels(rst):
         raise PixelsException(f"Pixels are not squared for raster {rst.name}")
 
 
-def get_bbox_and_footprint_and_stats(raster_uri, categorical):
+def get_bbox_and_footprint_and_stats(
+    raster_uri, categorical, bins=None, hist_range=None
+):
     """with open(path, "r") as file:
         file.write(json.dumps(catalog_dict))
     Get bounding box and footprint from raster.
@@ -203,6 +205,10 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
         The raster file location or bytes_io.
     categorical: boolean, optional
         If True, compute statistics of the pixel data for class weighting.
+    bins: int, optional
+        Number of bins to use in histogram.
+    hist_range: tuple, optional
+        Range of histogram.
 
     Returns
     -------
@@ -215,7 +221,7 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
     out_meta : rasterio meta type
         Metadata from raster.
     stats: dict or None
-        Statistics of the data, counts by unique value.
+        Statistics of the data, counts by unique value or histogram.
     """
     with rasterio.open(raster_uri) as ds:
         check_for_squared_pixels(ds)
@@ -240,10 +246,16 @@ def get_bbox_and_footprint_and_stats(raster_uri, categorical):
         datetime = ds.tags().get("datetime")
         # Compute unique counts if requested.
         stats = None
+        img = ds.read()
         if categorical:
-            unique_values, unique_counts = np.unique(ds.read(), return_counts=True)
+            unique_values, unique_counts = np.unique(img, return_counts=True)
             stats = {
                 int(key): int(val) for key, val in zip(unique_values, unique_counts)
             }
+        else:
+            bins = bins or 10
+            hist_range = hist_range or (0, 100)
+            hist, bin_edges = np.histogram(img, bins=bins, range=hist_range)
+            stats = {int(key): int(val) for key, val in zip(hist, bin_edges)}
 
         return bbox, footprint, datetime, ds.meta, stats
