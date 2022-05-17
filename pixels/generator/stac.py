@@ -93,6 +93,7 @@ def create_stac_item_from_raster(
     additional_links,
     catalog,
     out_path=None,
+    data_value_range=None,
 ):
     id_raster = os.path.split(path_item)[-1].replace(".tif", "")
     raster_file = path_item
@@ -106,14 +107,9 @@ def create_stac_item_from_raster(
         path_item = "zip://{}!/{}".format(source_path, path_item)
         raster_file = path_item
     # Extract metadata from raster.
-    (
-        bbox,
-        footprint,
-        datetime,
-        out_meta,
-        stats,
-    ) = get_bbox_and_footprint_and_stats(raster_file, categorical)
-
+    (bbox, footprint, datetime, out_meta, stats,) = get_bbox_and_footprint_and_stats(
+        raster_file, categorical, hist_range=data_value_range
+    )
     datetime = datetime or reference_date
     if datetime is None:
         raise TrainingDataParseError("Datetime could not be determined for stac.")
@@ -124,7 +120,8 @@ def create_stac_item_from_raster(
     # Make transform and crs json serializable.
     out_meta["transform"] = tuple(out_meta["transform"])
     out_meta["crs"] = out_meta["crs"].to_dict()
-    out_meta["stats"] = stats
+    out_meta["categorical"] = categorical
+    out_meta["value_counts"] = stats
     item = create_stac_item(
         id_raster,
         footprint,
@@ -141,7 +138,14 @@ def create_stac_item_from_raster(
 
 
 def create_stac_item_from_vector(
-    tile, reference_date, source_path, additional_links, out_stac_folder, catalog, crs
+    tile,
+    reference_date,
+    source_path,
+    categorical,
+    additional_links,
+    out_stac_folder,
+    catalog,
+    crs,
 ):
 
     id_raster = str(tile[0])
@@ -150,6 +154,7 @@ def create_stac_item_from_vector(
     footprint = dict_data["features"][0]["geometry"]
     footprint["coordinates"] = np.array(footprint["coordinates"]).tolist()
     reference_date = tile[1].get("date", reference_date)
+    klass = tile[1].get("class", None)
     if reference_date is None:
         raise TrainingDataParseError("Datetime could not be determined for stac.")
     # Add projection stac extension, assuming input crs has a EPSG id.
@@ -159,6 +164,12 @@ def create_stac_item_from_vector(
     }
     # Make transform and crs json serializable.
     out_meta["crs"] = {"init": "epsg:" + str(crs.to_epsg())}
+    out_meta["categorical"] = categorical
+    if categorical:
+        klass_col_name = "class"
+    else:
+        klass_col_name = "value"
+    out_meta[klass_col_name] = klass
     item = create_stac_item(
         id_raster,
         footprint,
@@ -177,6 +188,7 @@ def create_stac_item_from_vector(
 
 def parse_vector_data(
     source_path,
+    categorical,
     save_files=False,
     description="",
     reference_date=None,
@@ -230,6 +242,7 @@ def parse_vector_data(
         [
             reference_date,
             source_path,
+            categorical,
             additional_links,
             out_stac_folder,
             catalog,
@@ -311,7 +324,6 @@ def parse_raster_data(
     catalog = pystac.Catalog(id=id_name, description=description)
     logger.debug(f"Found {len(raster_list)} source rasters.")
     # For every raster in the zip file create an item, add it to catalog.
-    global_stats = Counter()
     # Parse the raster data images in parallel.
     out_stac_folder = os.path.join(out_path, "stac")
     catalog.normalize_hrefs(out_stac_folder)
@@ -332,23 +344,20 @@ def parse_raster_data(
     stats = [ite[1] for ite in result_parse]
     # Add the list of items to the catalog.
     catalog.add_items(items)
+    value_counts = Counter()
+    # Add item statistics to global stats counter.
+    for stat in stats:
+        value_counts.update(stat)
+    catalog.extra_fields["values_count"] = value_counts
     if categorical:
-        # Add item statistics to global stats counter.
-        for stat in stats:
-            global_stats.update(stat)
-        # Store final statistics on catalog.
-        # Convert stats to class weights, inversely proportional to their count.
-        global_stats_total = sum(global_stats.values())
-        global_stats = {
-            key: 1 - val / global_stats_total for key, val in global_stats.items()
-        }
-        # Normalize to sum one.
-        global_stats_normalization = sum(global_stats.values())
-        global_stats = {
-            key: val / global_stats_normalization for key, val in global_stats.items()
-        }
-        # Store stats as class weights.
-        catalog.extra_fields["class_weight"] = global_stats
+        n_samples = sum(value_counts.values())
+        n_classes = len(value_counts)
+        class_weight_dict = dict()
+        # Same method as balanced in scipy class_weights.
+        for key in value_counts:
+            class_weight = n_samples / (n_classes * value_counts[key])
+            class_weight_dict[key] = class_weight
+        catalog.extra_fields["class_weight"] = class_weight_dict
     # Normalize paths inside catalog.
     if additional_links:
         catalog.add_link(pystac.Link("corresponding_y", additional_links))
@@ -381,6 +390,7 @@ def parse_data(
     if source_type in ALLOWED_VECTOR_TYPES:
         return parse_vector_data(
             source_path,
+            categorical,
             save_files=save_files,
             description=description,
             reference_date=reference_date,
