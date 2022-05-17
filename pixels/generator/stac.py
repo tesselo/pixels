@@ -14,6 +14,7 @@ from dateutil.relativedelta import relativedelta
 from pystac.validation import STACValidationError
 from rasterio.features import bounds
 
+from pixels.const import ALLOWED_VECTOR_TYPES
 from pixels.exceptions import PixelsException, TrainingDataParseError
 from pixels.generator import generator_utils
 from pixels.generator.stac_utils import (
@@ -174,7 +175,7 @@ def create_stac_item_from_vector(
     return item
 
 
-def parse_prediction_area(
+def parse_vector_area(
     source_path,
     save_files=False,
     description="",
@@ -248,7 +249,7 @@ def parse_prediction_area(
     return catalog
 
 
-def parse_training_data(
+def parse_raster_data(
     source_path,
     categorical,
     save_files=False,
@@ -286,22 +287,8 @@ def parse_training_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-    logger.debug(f"Building stac catalog for {source_path}.")
-    data = None
-    # If input is string, convert to boolean.
-    if isinstance(categorical, str):
-        categorical = categorical == "True"
-    if isinstance(save_files, str):
-        save_files = save_files == "True"
 
-    if source_path.endswith("geojson") or source_path.endswith("gpkg"):
-        return parse_prediction_area(
-            source_path,
-            save_files=save_files,
-            description=description,
-            reference_date=reference_date,
-            additional_links=additional_links,
-        )
+    data = None
     if source_path.endswith(".zip"):
         # parse_collections_rasters
         if source_path.startswith("s3"):
@@ -371,6 +358,45 @@ def parse_training_data(
     if save_files:
         catalog.save_object()
     return catalog
+
+
+def parse_training_data(
+    source_path,
+    categorical,
+    save_files=False,
+    description="",
+    reference_date=None,
+    additional_links=None,
+):
+
+    logger.debug(f"Building stac catalog for {source_path}.")
+    # If input is string, convert to boolean.
+    if isinstance(categorical, str):
+        categorical = categorical == "True"
+    if isinstance(save_files, str):
+        save_files = save_files == "True"
+
+    source_type = source_path.split(".")[-1]
+    ALLOWED_VECTOR_TYPES
+    if source_type in ALLOWED_VECTOR_TYPES:
+        return parse_vector_area(
+            source_path,
+            save_files=save_files,
+            description=description,
+            reference_date=reference_date,
+            additional_links=additional_links,
+        )
+    elif source_path.endswith(".zip") or os.path.isdir(source_path):
+        return parse_raster_data(
+            source_path,
+            categorical,
+            save_files=save_files,
+            description=description,
+            reference_date=reference_date,
+            additional_links=additional_links,
+        )
+    else:
+        raise ValueError("Uploaded file is not in a valid format")
 
 
 def build_geometry_geojson(item):
