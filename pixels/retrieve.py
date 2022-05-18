@@ -11,7 +11,9 @@ from pixels.utils import (
     cog_to_jp2_bucket,
     compute_mask,
     compute_transform,
+    epsg_from_bucket_uri,
     is_sentinel_cog_bucket,
+    is_sentinel_jp2_bucket,
 )
 
 
@@ -115,8 +117,10 @@ def retrieve(
 
     # Determine georeferencing from source raster.
     if src.crs:
-        # Extract source crs directly.
         src_crs = src.crs
+    elif is_sentinel_jp2_bucket(source):
+        epsg_code = epsg_from_bucket_uri(source)
+        src_crs = f"EPSG:{epsg_code}"
     else:
         # Extract georeference points and source crs from gcps.
         # This is the case for Sentinel-1, for instance.

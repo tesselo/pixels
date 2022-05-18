@@ -370,6 +370,24 @@ def is_sentinel_cog_bucket(source: str) -> bool:
     return "sentinel-cogs.s3.us-west-2.amazonaws.com" in source
 
 
+def is_sentinel_jp2_bucket(source: str) -> bool:
+    """
+    Returns true if the source is a URI from the sentinel L2A JP2 bucket
+    """
+    return "s3://sentinel-s2-l2a/tiles/" in source
+
+
+def epsg_from_bucket_uri(source: str) -> str:
+    """
+    Returns the EPSG code based on a S2 L2A bucket uri
+    """
+    # Import lookup only on demand because the lookup is a long file.
+    from pixels.mgrs import mgrs_epsg_lookup
+
+    mgrs_code = "".join(source.split("s3://sentinel-s2-l2a/tiles/")[1].split("/")[:2])
+    return mgrs_epsg_lookup[mgrs_code]
+
+
 def cog_to_jp2_bucket(source: str) -> str:
     """
     Transforms a URI from the COG optimized bucket to the JP2 one

@@ -9,7 +9,9 @@ from pixels.utils import (
     cog_to_jp2_bucket,
     compute_transform,
     compute_wgs83_bbox,
+    epsg_from_bucket_uri,
     is_sentinel_cog_bucket,
+    is_sentinel_jp2_bucket,
     timeseries_steps,
     unwrap_arguments,
     write_raster,
@@ -180,6 +182,24 @@ class TestUtils(unittest.TestCase):
                 "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif"
             )
         )
+
+    def test_is_sentinel_jp2_bucket(self):
+        self.assertFalse(
+            is_sentinel_jp2_bucket(
+                "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+                "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif"
+            )
+        )
+
+        self.assertTrue(
+            is_sentinel_jp2_bucket(
+                "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R10m/B02.jp2"
+            )
+        )
+
+    def test_epsg_from_bucket_uri(self):
+        source = "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R10m/B02.jp2"
+        self.assertEqual(32629, epsg_from_bucket_uri(source))
 
     def test_cog_to_jp2_bucket(self):
         expected = "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R20m/B06.jp2"
