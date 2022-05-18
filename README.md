@@ -65,3 +65,25 @@ Includes code complexity and documentation style checks.
 ```bash
 make check-picky
 ```
+
+
+### VSCode debugging
+
+In this repo there is a `.vscode` folder with a `launch.json` file that can be used to debug the code.
+
+You need to install the docker plugin for VSCode:
+
+```bash
+code --install-extension ms-azuretools.vscode-docker
+```
+
+You will also need to have the file `${HOME}/.aws/env` with the following content:
+
+```
+AWS_ACCESS_KEY_ID=<your access key>
+AWS_SECRET_ACCESS_KEY=<your secret key>
+```
+
+Then you can debug selecting the "Run Batch pixels" configuration.
+
+It will prompt you for the pixels function and then allow you to paste the parameters.
