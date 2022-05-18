@@ -1,0 +1,46 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Batch pixels",
+      "type": "docker",
+      "request": "launch",
+      "preLaunchTask": "batch-run: debug",
+      "python": {
+        "args": [
+          "${input:pixelsFunction}",
+          "${input:pixelsArguments}"
+        ],
+        "projectType": "general",
+        "pathMappings": [
+          {
+            "localRoot": "${workspaceFolder}/pixels",
+            "remoteRoot": "/pixels"
+          }
+        ]
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "pixelsFunction",
+      "description": "Select the pixels function to run",
+      "type": "pickString",
+      "options": [
+        "pixels.generator.prediction_utils.merge_prediction",
+        "pixels.generator.stac.build_catalog_from_items",
+        "pixels.generator.stac.collect_from_catalog_subsection",
+        "pixels.generator.stac.create_x_catalog",
+        "pixels.generator.stac.parse_data",
+        "pixels.generator.stac_training.predict_function_batch",
+        "pixels.generator.stac_training.train_model_function"
+      ]
+    },
+    {
+      "id": "pixelsArguments",
+      "description": "Arguments for the pixels function",
+      "type": "promptString"
+    }
+
+  ]
+}
