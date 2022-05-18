@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "type": "docker-run",
+        "label": "batch-run: debug",
+        "dockerRun": {
+          "containerName": "tesselo-pixels",
+          "image": "595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:latest",
+          "volumes": [
+            {
+              "containerPath": "/app",
+              "localPath": "${workspaceFolder}"
+            },
+            {
+                "containerPath": "/runpixels.py",
+                "localPath": "${workspaceFolder}/batch/runpixels.py"
+            },
+            {
+                "containerPath": "/pixels",
+                "localPath": "${workspaceFolder}/pixels"
+            }
+          ],
+          "envFiles": ["${workspaceFolder}/.env.production", "${HOME}/.aws/env"]
+        },
+        "python": {
+          "file": "/runpixels.py"
+        }
+      }
+    ]
+  }
