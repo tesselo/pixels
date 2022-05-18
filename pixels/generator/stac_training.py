@@ -223,7 +223,7 @@ class LogProgress(tf.keras.callbacks.Callback):
     def _log_status(self, state, epoch, logs):
         logs = logs or {}
         logger.info(
-            state, current_epoch=epoch + 1, all_epochs=self.param["epochs"], **logs
+            state, current_epoch=epoch + 1, all_epochs=self.params["epochs"], **logs
         )
 
     def on_epoch_begin(self, epoch, logs=None):
