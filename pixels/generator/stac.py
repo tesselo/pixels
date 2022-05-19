@@ -50,6 +50,7 @@ def create_stac_item(
 ):
     if isinstance(datetime, str):
         datetime = parser.parse(datetime)
+    crs = out_meta.pop("crs", None)
     # Initiate stac item.
     item = pystac.Item(
         id=id_raster,
@@ -58,6 +59,7 @@ def create_stac_item(
         datetime=datetime,
         properties=out_meta,
     )
+    item.extra_fields["crs"] = crs
     # Register kind of asset as asset of item.
     item.add_asset(
         key=id_raster,
@@ -251,6 +253,8 @@ def parse_vector_data(
         iterator_size=len(tiles),
     )
     catalog.add_items(result_parse)
+    catalog.extra_fields["type"] = "Catalog"
+    catalog.extra_fields["crs"] = {"init": "epsg:" + str(tiles.crs.to_epsg())}
     # Normalize paths inside catalog.
     if additional_links:
         catalog.add_link(pystac.Link("corresponding_y", additional_links))
@@ -344,7 +348,7 @@ def parse_raster_data(
     stats = [ite[1] for ite in result_parse]
     # Get nodata value and crs from first item.
     nodata = items[0].properties["nodata"]
-    crs = items[0].properties["crs"]
+    crs = items[0].extra_fields["crs"]
     # Add the list of items to the catalog.
     catalog.add_items(items)
     value_counts = Counter()
@@ -357,6 +361,7 @@ def parse_raster_data(
     catalog.extra_fields["nodata_count"] = nodata_count
     catalog.extra_fields["crs"] = crs
     catalog.extra_fields["categorical"] = categorical
+    catalog.extra_fields["type"] = "Catalog"
     if categorical:
         n_samples = sum(value_counts.values())
         n_classes = len(value_counts)
@@ -790,6 +795,8 @@ def build_collection_from_pixels(
     )
     collection.add_children(catalogs)
     collection.update_extent_from_items()
+    collection.extra_fields["type"] = "Collection"
+    collection.extra_fields["crs"] = catalogs[0].extra_fields["crs"]
     collection.set_self_href(path_to_pixels + "/collection.json")
     collection.make_all_asset_hrefs_absolute()
     if additional_links:
