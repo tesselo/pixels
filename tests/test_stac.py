@@ -131,6 +131,7 @@ class TestUtils(unittest.TestCase):
 
         self.catalog_example = {
             "id": id_name,
+            "type": "Catalog",
             "stac_version": pystac.version.get_stac_version(),
             "description": "",
             "class_weight": {"1": 1.0, "2": 1.0, "3": 1.0},
@@ -150,6 +151,7 @@ class TestUtils(unittest.TestCase):
         self.item_example = {
             "type": "Feature",
             "stac_version": "1.0.0-beta.2",
+            "crs": {"init": "epsg:3857"},
             "properties": {
                 "driver": "GTiff",
                 "dtype": "uint16",
@@ -157,7 +159,6 @@ class TestUtils(unittest.TestCase):
                 "width": 256,
                 "height": 256,
                 "count": 1,
-                "crs": {"init": "epsg:3857"},
                 "transform": [
                     10.0,
                     0.0,
@@ -265,6 +266,8 @@ class TestUtils(unittest.TestCase):
         expected = {
             "id": f"x_collection_{target.split('/')[-1]}",
             "stac_version": "1.0.0-beta.2",
+            "crs": {"init": "epsg:3857"},
+            "type": "Collection",
             "description": "",
             "title": "",
             "extent": {
