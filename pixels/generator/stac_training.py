@@ -21,12 +21,16 @@ from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import (
     list_files_in_folder,
-    open_file_from_s3,
     upload_files_s3,
     upload_obj_s3,
 )
 from pixels.log import log_function, logger
-from pixels.utils import NumpyArrayEncoder, load_dictionary, write_raster
+from pixels.utils import (
+    NumpyArrayEncoder,
+    load_dictionary,
+    open_file_from_s3,
+    write_raster,
+)
 
 MODE_PREDICTION_PER_PIXEL = [
     generator.GENERATOR_PIXEL_MODEL,
