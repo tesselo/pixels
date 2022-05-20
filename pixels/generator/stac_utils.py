@@ -8,11 +8,9 @@ import boto3
 import numpy as np
 import pystac
 import rasterio
-import sentry_sdk
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException
-from pixels.log import logger
 
 
 def write_method(uri, txt):
@@ -99,20 +97,6 @@ def upload_files_s3(path, file_type=".json", delete_folder=True):
         s3.upload_file(Key=key_path, Bucket=bucket, Filename=file)
     if delete_folder:
         shutil.rmtree(sta)
-
-
-def open_file_from_s3(source_path):
-    s3_path = source_path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    path = s3_path.replace(bucket + "/", "")
-    s3 = boto3.client("s3")
-    try:
-        data = s3.get_object(Bucket=bucket, Key=path)
-    except s3.exceptions.NoSuchKey as e:
-        sentry_sdk.capture_exception(e)
-        logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
-        data = None
-    return data
 
 
 def list_files_in_folder(uri, filetype="tif"):
