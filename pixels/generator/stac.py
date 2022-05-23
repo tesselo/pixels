@@ -205,7 +205,10 @@ def parse_vector_data(
     Parameters
     ----------
         source_path : str
-            Path to the zip file or folder containing the rasters.
+            Path to the vector file.
+        categorical: boolean
+            If True, the data is considered to be categorical, and statistics
+            by class are computed for weighting.
         save_files : bool, optional
             Set True to save files from catalog and items.
         description : str, optional
@@ -277,17 +280,16 @@ def parse_raster_data(
     """
     From a zip files of rasters or a folder build a stac catalog.
 
-    If a "datetime" tag is found in the metadata of the rastes, that value is
+    If a "datetime" tag is found in the metadata of the rasters, that value is
     extracted and passed as date to the catalog items.
 
     Parameters
     ----------
         source_path : str
             Path to the zip file or folder containing the rasters.
-        categorical: boolean or str
+        categorical: boolean
             If True, the data is considered to be categorical, and statistics
-            by class are computed for weighting.  If passed as string, either
-            pass "True" or "False".
+            by class are computed for weighting.
         save_files : bool or str optional
             Set True to save files from catalog and items. If passed as string,
             either pass "True" or "False".
@@ -387,8 +389,12 @@ def is_allowed_vector(source_path):
     return source_type in ALLOWED_VECTOR_TYPES
 
 
-def is_allowed_raster(source_path):
-    return source_path.endswith(".zip") or os.path.isdir(source_path)
+def is_allowed_raster_container(source_path):
+    return (
+        source_path.endswith(".zip")
+        or os.path.isdir(source_path)
+        or (source_path.startswith("s3") and len(source_path.split(".")) == 1)
+    )
 
 
 def parse_data(
@@ -401,7 +407,7 @@ def parse_data(
 ):
 
     logger.debug(f"Building stac catalog for {source_path}.")
-    # If input is string, convert to boolean.
+
     if isinstance(categorical, str):
         categorical = categorical == "True"
     if isinstance(save_files, str):
@@ -416,7 +422,7 @@ def parse_data(
             reference_date=reference_date,
             additional_links=additional_links,
         )
-    elif is_allowed_raster(source_path):
+    elif is_allowed_raster_container(source_path):
         return parse_raster_data(
             source_path,
             categorical,
@@ -426,7 +432,9 @@ def parse_data(
             additional_links=additional_links,
         )
     else:
-        raise ValueError("Uploaded file is not in a valid format")
+        raise ValueError(
+            f"Source path {source_path} is not in an allowed vector format or a container for rasters"
+        )
 
 
 def build_geometry_geojson(item):
