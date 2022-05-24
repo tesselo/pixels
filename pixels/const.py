@@ -51,7 +51,12 @@ S2_L1C_URL = "s3://sentinel-s2-l1c"
 LS_L2_URL = "s3://usgs-landsat/collection02/level-2/standard"
 BASE_SENTINEL = "gs://gcp-public-data-sentinel-2/tiles"
 BASE_LANDSAT = "gs://gcp-public-data-landsat"
-
+S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE = (
+    "https://storage.googleapis.com/gcp-public-data-sentinel-2/L2/"
+    "tiles/{utm}/{lat}/{gridsq}/{prod}.SAFE"
+    "/GRANULE/L2A_T{utm}{lat}{gridsq}_A{dtid}_{time}/"
+    "IMG_DATA/R{resolution}m/T{utm}{lat}{gridsq}_{time2}_{band}_{resolution}m.jp2"
+)
 
 # Platform Dates [min,max]
 L1_DATES = ["1972-07-23", "1978-01-07"]

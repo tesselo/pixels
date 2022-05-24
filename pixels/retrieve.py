@@ -12,6 +12,8 @@ from pixels.utils import (
     compute_mask,
     compute_transform,
     is_sentinel_cog_bucket,
+    is_sentinel_jp2_bucket,
+    jp2_to_gcs_bucket,
 )
 
 
@@ -74,6 +76,17 @@ def retrieve(
             logger.warning(f"Retrying retrieve for {source} in the JP2 bucket")
             return retrieve(
                 cog_to_jp2_bucket(source),
+                geojson,
+                scale,
+                discrete,
+                clip,
+                all_touched,
+                bands,
+            )
+        elif is_sentinel_jp2_bucket(source):
+            logger.warning(f"Retrying retrieve for {source} in the GCS bucket")
+            return retrieve(
+                jp2_to_gcs_bucket(source),
                 geojson,
                 scale,
                 discrete,

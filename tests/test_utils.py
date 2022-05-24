@@ -1,6 +1,7 @@
 import datetime
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy
 import rasterio
@@ -10,10 +11,13 @@ from pixels.utils import (
     compute_transform,
     compute_wgs83_bbox,
     is_sentinel_cog_bucket,
+    is_sentinel_jp2_bucket,
+    jp2_to_gcs_bucket,
     timeseries_steps,
     unwrap_arguments,
     write_raster,
 )
+from tests.scenarios import product_info_mock
 
 
 class TestUtils(unittest.TestCase):
@@ -210,3 +214,26 @@ class TestUtils(unittest.TestCase):
         expected = [(1, 4, "hu", "ha"), (2, 5, "hu", "ha"), (3, 6, "hu", "ha")]
         result = list(unwrap_arguments([[1, 2, 3], [4, 5, 6]], ["hu", "ha"]))
         self.assertEqual(expected, result)
+
+    def test_is_sentinel_jp2_bucket(self):
+        self.assertFalse(
+            is_sentinel_jp2_bucket(
+                "https://sentinel-cogs.s3.us-west-2.amazonaws.com/"
+                "sentinel-s2-l2a-cogs/29/S/ND/2021/12/S2B_29SND_20211215_0_L2A/B06.tif"
+            )
+        )
+
+        self.assertTrue(
+            is_sentinel_jp2_bucket(
+                "s3://sentinel-s2-l2a/tiles/29/S/ND/2021/12/15/0/R10m/B02.jp2"
+            )
+        )
+
+    @patch("pixels.utils.open_file_from_s3", product_info_mock)
+    def test_jp2_to_gcs_bucket(self):
+        self.assertEqual(
+            jp2_to_gcs_bucket(
+                "s3://sentinel-s2-l2a/tiles/2/D/MG/2019/3/1/0/R10m/B02.jp2"
+            ),
+            "https://storage.googleapis.com/gcp-public-data-sentinel-2/L2/tiles/02/D/MG/S2B_MSIL2A_20190301T202209_N0211_R042_T02DMG_20190301T220107.SAFE/GRANULE/L2A_T02DMG_A010364_20190301T202210/IMG_DATA/R10m/T02DMG_20190301T202209_B02_10m.jp2",
+        )
