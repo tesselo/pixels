@@ -23,6 +23,7 @@ from rasterio.warp import transform
 from pixels.const import (
     BBOX_PIXEL_WITH_HEIGHT_TOLERANCE,
     S2_BAND_RESOLUTIONS,
+    S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
     WORKERS_LIMIT,
 )
 
@@ -370,6 +371,13 @@ def is_sentinel_cog_bucket(source: str) -> bool:
     return "sentinel-cogs.s3.us-west-2.amazonaws.com" in source
 
 
+def is_sentinel_jp2_bucket(source: str) -> bool:
+    """
+    Returns true if the source is a URI from the sentinel L2A JP2 bucket
+    """
+    return "s3://sentinel-s2-l2a/tiles/" in source
+
+
 def cog_to_jp2_bucket(source: str) -> str:
     """
     Transforms a URI from the COG optimized bucket to the JP2 one
@@ -382,6 +390,28 @@ def cog_to_jp2_bucket(source: str) -> str:
     resolution = S2_BAND_RESOLUTIONS[band]
 
     return f"s3://sentinel-s2-l2a/tiles/{'/'.join(parts[4:-2])}/{day}/{scene_count}/R{resolution}m/{band}.jp2"
+
+
+def jp2_to_gcs_bucket(source: str) -> str:
+    """
+    Transforms a URI from the AWS JP2 bucket GCS one
+    """
+    infofile_path = f"{source.split('/R')[0]}/productInfo.json"
+    infofile_data = open_file_from_s3(infofile_path, requester_pays=True)["Body"].read()
+    productinfo = json.loads(infofile_data)
+    tileinfo = productinfo["tiles"][0]
+
+    return S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE.format(
+        utm=str(tileinfo["utmZone"]).zfill(2),
+        lat=tileinfo["latitudeBand"],
+        gridsq=tileinfo["gridSquare"],
+        prod=productinfo["name"],
+        dtid=productinfo["datatakeIdentifier"].split("_")[2],
+        time=tileinfo["datastrip"]["id"].split("_")[8][1:],
+        resolution=source.split("/R")[1][:2],
+        time2=productinfo["name"].split("_")[2],
+        band=source.split("/")[-1].split(".jp2")[0],
+    )
 
 
 def unwrap_arguments(variable_arguments: List[Iterable], static_arguments: List[Any]):
@@ -469,13 +499,14 @@ class BoundLogger:
         self.logger.error(message, **self._log_context(), **kwargs)
 
 
-def open_file_from_s3(source_path):
+def open_file_from_s3(source_path, requester_pays=False):
     s3_path = source_path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
     path = s3_path.replace(bucket + "/", "")
+    request_payer = "requester" if requester_pays else ""
     s3 = boto3.client("s3")
     try:
-        data = s3.get_object(Bucket=bucket, Key=path)
+        data = s3.get_object(Bucket=bucket, Key=path, RequestPayer=request_payer)
     except s3.exceptions.NoSuchKey as e:
         sentry_sdk.capture_exception(e)
         logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")

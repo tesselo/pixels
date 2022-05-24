@@ -677,3 +677,7 @@ sample_geojson = {
         },
     ],
 }
+
+product_info_mock = MagicMock(
+    return_value={"Body": open("tests/data/productInfo.json")}
+)
