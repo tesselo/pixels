@@ -669,6 +669,9 @@ def get_and_write_raster_from_item(
         if not np_img.shape:
             logger.warning(f"No images for {str(item.id)}")
             continue
+        if not date:
+            logger.warning(f"No date information for {str(item.id)}")
+            continue
         # Save raster to machine or s3
         out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
         out_paths.append(out_path_date)
@@ -683,6 +686,7 @@ def get_and_write_raster_from_item(
             out_path=out_path_date,
             dtype=np_img.dtype,
             overviews=False,
+            tags={"datetime": date},
         )
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
