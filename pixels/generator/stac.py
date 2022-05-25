@@ -682,7 +682,7 @@ def get_and_write_raster_from_item(
             meta,
             out_path=out_path_date,
             dtype=np_img.dtype,
-            tags={"datetime": date},
+            overviews=False,
         )
     if out_path.startswith("s3"):
         upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")

@@ -259,7 +259,13 @@ def timeseries_steps(start, end, interval, interval_step=1):
 
 
 def write_raster(
-    data, args, out_path=None, driver="GTiff", dtype="float32", overviews=True, tags={}
+    data,
+    args,
+    out_path=None,
+    driver="GTiff",
+    dtype="float32",
+    overviews=True,
+    tags=None,
 ):
     """
     Convert a numpy array into a raster object.
@@ -323,28 +329,22 @@ def write_raster(
     if out_path:
         with rasterio.open(out_path, "w", **out_meta) as dst:
             # Set the given metadata tags.
-            dst.update_tags(**tags)
             dst.write(data)
-            try:
+            if tags:
+                dst.update_tags(**tags)
+            if overviews:
                 dst.build_overviews(factors, resampling)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-                logger.warning(f"Error in saving raster, building overviews: {e}")
     else:
         # Returns a memory file.
         output = io.BytesIO()
         with rasterio.io.MemoryFile() as memfile:
             with memfile.open(**out_meta) as dst:
                 # Set the given metadata tags.
-                dst.update_tags(**tags)
                 dst.write(data)
-                # To be able to build the overviews we need to have a size
-                # bigger than the factors.
-                try:
+                if tags:
+                    dst.update_tags(**tags)
+                if overviews:
                     dst.build_overviews(factors, resampling)
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-                    logger.warning(f"Error in saving raster, building overviews: {e}")
             memfile.seek(0)
             output.write(memfile.read())
         output.seek(0)
