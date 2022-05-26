@@ -55,7 +55,7 @@ S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE = (
     "https://storage.googleapis.com/gcp-public-data-sentinel-2/L2/"
     "tiles/{utm}/{lat}/{gridsq}/{prod}.SAFE"
     "/GRANULE/L2A_T{utm}{lat}{gridsq}_A{dtid}_{time}/"
-    "IMG_DATA/R{resolution}m/T{utm}{lat}{gridsq}_{time2}_{band}_{resolution}m.jp2"
+    "IMG_DATA/R{resolution}m/L2A_T{utm}{lat}{gridsq}_{time2}_{band}_{resolution}m.jp2"
 )
 
 # Platform Dates [min,max]

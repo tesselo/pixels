@@ -235,5 +235,5 @@ class TestUtils(unittest.TestCase):
             jp2_to_gcs_bucket(
                 "s3://sentinel-s2-l2a/tiles/2/D/MG/2019/3/1/0/R10m/B02.jp2"
             ),
-            "https://storage.googleapis.com/gcp-public-data-sentinel-2/L2/tiles/02/D/MG/S2B_MSIL2A_20190301T202209_N0211_R042_T02DMG_20190301T220107.SAFE/GRANULE/L2A_T02DMG_A010364_20190301T202210/IMG_DATA/R10m/T02DMG_20190301T202209_B02_10m.jp2",
+            "https://storage.googleapis.com/gcp-public-data-sentinel-2/L2/tiles/02/D/MG/S2B_MSIL2A_20190301T202209_N0211_R042_T02DMG_20190301T220107.SAFE/GRANULE/L2A_T02DMG_A010364_20190301T202210/IMG_DATA/R10m/L2A_T02DMG_20190301T202209_B02_10m.jp2",
         )
