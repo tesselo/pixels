@@ -357,7 +357,10 @@ def parse_raster_data(
     # Add item statistics to global stats counter.
     for stat in stats:
         value_counts.update(stat)
-    nodata_count = value_counts.pop(int(nodata), 0)
+    if nodata is None:
+        nodata_count = 0
+    else:
+        nodata_count = value_counts.pop(int(nodata), 0)
     catalog.extra_fields["values_count"] = value_counts
     catalog.extra_fields["nodata"] = nodata
     catalog.extra_fields["nodata_count"] = nodata_count
