@@ -67,6 +67,34 @@ def save_dictionary(path, dictionary):
         )
 
 
+def upload_file_to_s3(path, delete_file=True):
+    """
+    Upload files inside a folder to s3.
+    The s3 paths most be the same as the folder.
+
+    Parameters
+    ----------
+        path : str
+            Path to file to be uploaded.
+        delete_file: bool
+            Determines if the origin file should be deleted
+    Returns
+    -------
+
+    """
+    s3 = boto3.client("s3")
+    sta = "s3:/"
+    if not path.startswith("s3"):
+        sta = path.split("/")[0]
+        path = path.replace(sta, "s3:/")
+    s3_path = path.split("s3://")[1]
+    bucket = s3_path.split("/")[0]
+    key_path = path.replace(sta + "/" + bucket + "/", "")
+    s3.upload_file(Key=key_path, Bucket=bucket, Filename=path)
+    if delete_file:
+        os.remove(path)
+
+
 def upload_files_s3(path, file_type=".json", delete_folder=True):
     """
     Upload files inside a folder to s3.

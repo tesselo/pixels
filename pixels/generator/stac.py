@@ -22,7 +22,7 @@ from pixels.generator.stac_utils import (
     get_bbox_and_footprint_and_stats,
     list_files_in_folder,
     save_dictionary,
-    upload_files_s3,
+    upload_file_to_s3,
 )
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
@@ -624,6 +624,34 @@ def configure_multi_time_bubbles(config, out_path, item):
     return configs
 
 
+def write_tiff_from_pixels_stack(date, np_img, item, out_path, meta):
+    # If the given image is empty continue to next.
+    if not np_img.shape:
+        logger.warning(f"No images for {str(item.id)}")
+        return None, None
+    if not date:
+        logger.warning(f"No date information for {str(item.id)}")
+        return None, None
+    # Save raster to machine or s3
+    out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
+    out_path_date_tmp = out_path_date
+    if out_path_date.startswith("s3"):
+        out_path_date_tmp = out_path_date.replace("s3://", "tmp/")
+    if not os.path.exists(os.path.dirname(out_path_date)):
+        os.makedirs(os.path.dirname(out_path_date))
+    write_raster(
+        np_img,
+        meta,
+        out_path=out_path_date_tmp,
+        dtype=np_img.dtype,
+        overviews=False,
+        tags={"datetime": date},
+    )
+    if out_path.startswith("s3"):
+        upload_file_to_s3(out_path_date_tmp)
+    return out_path_date, out_path_date_tmp
+
+
 def get_and_write_raster_from_item(
     item, x_folder, input_config, discrete_training=True, overwrite=False
 ):
@@ -672,31 +700,13 @@ def get_and_write_raster_from_item(
     out_paths = []
     # Iterate over every timestep.
     for date, np_img in zip(dates, results):
-        # If the given image is empty continue to next.
-        if not np_img.shape:
-            logger.warning(f"No images for {str(item.id)}")
-            continue
-        if not date:
-            logger.warning(f"No date information for {str(item.id)}")
-            continue
-        # Save raster to machine or s3
-        out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
-        out_paths.append(out_path_date)
-        if out_path_date.startswith("s3"):
-            out_path_date = out_path_date.replace("s3://", "tmp/")
-            out_paths_tmp.append(out_path_date)
-        if not os.path.exists(os.path.dirname(out_path_date)):
-            os.makedirs(os.path.dirname(out_path_date))
-        write_raster(
-            np_img,
-            meta,
-            out_path=out_path_date,
-            dtype=np_img.dtype,
-            overviews=False,
-            tags={"datetime": date},
+        out_path_date, out_path_date_tmp = write_tiff_from_pixels_stack(
+            date, np_img, item, out_path, meta
         )
-    if out_path.startswith("s3"):
-        upload_files_s3(os.path.dirname(out_paths_tmp[0]), file_type="tif")
+        if out_path_date is not None:
+            out_paths_tmp.append(out_path_date_tmp)
+            out_paths.append(out_path_date)
+    # Parse data to stac catalogs.
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
     )
