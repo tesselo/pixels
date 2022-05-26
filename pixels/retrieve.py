@@ -83,18 +83,19 @@ def retrieve(
                 all_touched,
                 bands,
             )
-        elif is_sentinel_jp2_bucket(source):
-            logger.warning(f"Retrying retrieve for {source} in the GCS bucket")
-            return retrieve(
-                jp2_to_gcs_bucket(source),
-                geojson,
-                scale,
-                discrete,
-                clip,
-                all_touched,
-                bands,
-            )
         return {}, None
+
+    if src.crs is None and is_sentinel_jp2_bucket(source):
+        logger.warning(f"Retrying retrieve for {source} in the GCS bucket")
+        return retrieve(
+            jp2_to_gcs_bucket(source),
+            geojson,
+            scale,
+            discrete,
+            clip,
+            all_touched,
+            bands,
+        )
 
     # Validate geojson by opening it with rasterio CRS class.
     dst_crs = CRS.from_dict(geojson["crs"])
