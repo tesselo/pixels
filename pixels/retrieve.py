@@ -71,9 +71,9 @@ def retrieve(
     try:
         src = rasterio.open(source)
     except RasterioIOError as e:
-        logger.warning(f"Rasterio open failed for {source}: {str(e)}")
+        logger.debug(f"Rasterio open failed for {source}: {str(e)}")
         if is_sentinel_cog_bucket(source):
-            logger.warning(f"Retrying retrieve for {source} in the JP2 bucket")
+            logger.debug(f"Retrying retrieve for {source} in the JP2 bucket")
             return retrieve(
                 cog_to_jp2_bucket(source),
                 geojson,
@@ -86,7 +86,7 @@ def retrieve(
         return {}, None
 
     if src.crs is None and is_sentinel_jp2_bucket(source):
-        logger.warning(f"Retrying retrieve for {source} in the GCS bucket")
+        logger.debug(f"Retrying retrieve for {source} in the GCS bucket")
         return retrieve(
             jp2_to_gcs_bucket(source),
             geojson,
