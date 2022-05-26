@@ -576,8 +576,8 @@ def existing_timesteps_range(timesteps, existing_files):
     list_dates = [datetime.datetime.strptime(f, "%Y_%m_%d") for f in existing_files]
     list_dates = [f.date() for f in list_dates]
     timesteps = list(timesteps)
-    start = str(min(min(timesteps)))
-    end = str(max(max(timesteps)))
+    start = [str(min(min(timesteps)))]
+    end = [str(max(max(timesteps)))]
     # Assumption! if there is more dates in the images then the collection should be complete.
     if len(list_dates) != 0:
         timesteps_not_available = []
@@ -592,14 +592,36 @@ def existing_timesteps_range(timesteps, existing_files):
         if len(timesteps) > len(timesteps_not_available):
             time_bubbles = create_time_bubbles(timesteps, timesteps_not_available)
         if len(time_bubbles) == 1:
-            start = str(min(min(timesteps_not_available)))
-            end = str(max(max(timesteps_not_available)))
+            start = [str(min(min(timesteps_not_available)))]
+            end = [str(max(max(timesteps_not_available)))]
         elif len(time_bubbles) == 0:
             return None, None
         else:
             start = [str(min(f[0])) for f in time_bubbles]
             end = [str(max(f[-1])) for f in time_bubbles]
     return start, end
+
+
+def configure_multi_time_bubbles(config, out_path, item):
+    # Timestep is a range of dates to build each image.
+    timesteps = timeseries_steps(
+        config["start"],
+        config["end"],
+        config["interval"],
+        interval_step=config["interval_step"],
+    )
+    # List all images already downloaded.
+    existing_files = list_files_in_folder(out_path + "/", filetype="tif")
+    start, end = existing_timesteps_range(timesteps, existing_files)
+    configs = []
+    if start is None:
+        logger.warning(f"All timesteps already downloaded for {str(item.id)}")
+        return
+    for st, en in zip(start, end):
+        config["start"] = st
+        config["end"] = en
+        configs.append(config)
+    return configs
 
 
 def get_and_write_raster_from_item(
@@ -623,47 +645,29 @@ def get_and_write_raster_from_item(
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
-    # Check if all the timesteps have images already
+    # Check if all the timesteps have images already.
     if not overwrite:
-        # Timestep is a range of dates to build each image.
-        timesteps = timeseries_steps(
-            config["start"],
-            config["end"],
-            config["interval"],
-            interval_step=config["interval_step"],
-        )
-        # List all images already downloaded.
-        existing_files = list_files_in_folder(out_path + "/", filetype="tif")
-        start, end = existing_timesteps_range(timesteps, existing_files)
-        if start is None:
-            logger.warning(f"All timesteps already downloaded for {str(item.id)}")
-            return
-        if isinstance(start, str):
-            config["start"] = start
-            config["end"] = end
-            meta, dates, results = pixel_stack(**config)
-        else:
-            dates = []
-            results = []
-            meta = None
-            for st, en in zip(start, end):
-                config["start"] = st
-                config["end"] = en
-                output_meta, date, result = pixel_stack(**config)
-                if isinstance(output_meta, dict):
-                    meta = output_meta
-                if date is not None:
-                    dates.append(date)
-                    results.append(result)
-            if dates:
-                dates = np.concatenate(dates).tolist()
-                results = np.concatenate(results)
+        configs = configure_multi_time_bubbles(config, out_path, item)
     else:
-        # Run pixels and get the dates, the images (as numpy) and the raster meta.
-        meta, dates, results = pixel_stack(**config)
+        configs = [config]
+    # Run pixels and get the dates, the images (as numpy) and the raster meta.
+    dates = []
+    results = []
+    meta = None
+    for config in configs:
+        output_meta, date, result = pixel_stack(**config)
+        if isinstance(output_meta, dict):
+            meta = output_meta
+        if date is not None:
+            dates.append(date)
+            results.append(result)
+    if dates:
+        dates = np.concatenate(dates).tolist()
+        results = np.concatenate(results)
     if not dates or meta is None:
         logger.warning(f"No images for {str(item.id)}")
         return
+
     out_paths_tmp = []
     out_paths = []
     # Iterate over every timestep.
