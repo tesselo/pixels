@@ -22,7 +22,6 @@ from pixels.generator.stac_utils import (
     get_bbox_and_footprint_and_stats,
     list_files_in_folder,
     save_dictionary,
-    write_tiff_from_pixels_stack,
 )
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
@@ -566,9 +565,9 @@ def existing_timesteps_range(timesteps, existing_files):
             List of dates already collected.
     Returns
     -------
-        start : str or list[str]
+        start : list[str]
             Collecting start date(s).
-        end : str or list[str]
+        end : list[str]
             Collecting end date(s).
     """
     existing_files = [os.path.basename(f).replace(".tif", "") for f in existing_files]
@@ -601,7 +600,27 @@ def existing_timesteps_range(timesteps, existing_files):
     return start, end
 
 
-def configure_multi_time_bubbles(config, out_path, item):
+def configure_multi_time_bubbles(config, out_path, item, overwrite=False):
+    """
+    Creates the list of possible configurations to search based on missing images.
+
+    Parameters
+    ----------
+        config : dict
+            Dictionary containing the parameters to pass on to pixels.
+        out_path : str
+            Path to folder containing the item's images.
+        item : pystac item type
+            Item representing one raster.
+        overwrite : boolen
+            Bolean to write all images again.
+    Returns
+    -------
+        configs : list[dict]
+            List containing the needed configuration to search.
+    """
+    if overwrite:
+        return [config]
     # Timestep is a range of dates to build each image.
     timesteps = timeseries_steps(
         config["start"],
@@ -609,7 +628,6 @@ def configure_multi_time_bubbles(config, out_path, item):
         config["interval"],
         interval_step=config["interval_step"],
     )
-    # List all images already downloaded.
     existing_files = list_files_in_folder(out_path + "/", filetype="tif")
     start, end = existing_timesteps_range(timesteps, existing_files)
     configs = []
@@ -644,27 +662,12 @@ def get_and_write_raster_from_item(
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
-
-    if overwrite:
-        configs = [config]
-    else:
-        configs = configure_multi_time_bubbles(config, out_path, item)
-    # Run pixels and get the dates, the images (as numpy) and the raster meta.
+    configs = configure_multi_time_bubbles(config, out_path, item, overwrite)
+    # Run pixels.
     out_paths = []
     for config in configs:
         config["out_path"] = out_path
-        meta, dates, results = pixel_stack(**config)
-        if not dates or meta is None:
-            start = config["start"]
-            end = config["end"]
-            logger.warning(f"No images found for {str(item.id)} in: {start} to {end}")
-            return
-        # This still needs to iterate over the results of pixel_stack.
-        for date, result in zip(dates, results):
-            out_path_date = write_tiff_from_pixels_stack(date, result, out_path, meta)
-            if out_path_date is not None:
-                out_paths.append(out_path_date)
-
+        out_paths.append(pixel_stack(**config))
     # Parse data to stac catalogs.
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()

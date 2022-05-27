@@ -274,7 +274,26 @@ def get_bbox_and_footprint_and_stats(
 
 
 def write_tiff_from_pixels_stack(date, np_img, out_path, meta):
-    # Save raster to machine or s3
+    """
+    Write raster from pixels response.
+
+    Parameters
+    ----------
+        date : date object
+            The date of the first scene used to create the output image.
+        np_img : numpy array or None
+            The extracted pixel stack, with shape (bands, height, width).
+        out_path : str
+            Path to folder containing the item's images.
+        meta : dict
+            The creation arguments metadata for the extracted pixel matrix.
+
+    Returns
+    -------
+        out_path_date : str
+            Path to saved raster.
+    """
+    # Save raster to machine or s3.
     out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
     out_path_date_tmp = out_path_date
     if out_path_date.startswith("s3"):
