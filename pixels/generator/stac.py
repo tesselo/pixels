@@ -649,7 +649,7 @@ def write_tiff_from_pixels_stack(date, np_img, item, out_path, meta):
     )
     if out_path.startswith("s3"):
         upload_file_to_s3(out_path_date_tmp)
-    return out_path_date, out_path_date_tmp
+    return out_path_date
 
 
 def get_and_write_raster_from_item(
@@ -673,39 +673,28 @@ def get_and_write_raster_from_item(
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
-    # Check if all the timesteps have images already.
-    if not overwrite:
-        configs = configure_multi_time_bubbles(config, out_path, item)
-    else:
-        configs = [config]
-    # Run pixels and get the dates, the images (as numpy) and the raster meta.
-    dates = []
-    results = []
-    meta = None
-    for config in configs:
-        output_meta, date, result = pixel_stack(**config)
-        if isinstance(output_meta, dict):
-            meta = output_meta
-        if date is not None:
-            dates.append(date)
-            results.append(result)
-    if dates:
-        dates = np.concatenate(dates).tolist()
-        results = np.concatenate(results)
-    if not dates or meta is None:
-        logger.warning(f"No images for {str(item.id)}")
-        return
 
-    out_paths_tmp = []
+    if overwrite:
+        configs = [config]
+    else:
+        configs = configure_multi_time_bubbles(config, out_path, item)
+    # Run pixels and get the dates, the images (as numpy) and the raster meta.
     out_paths = []
-    # Iterate over every timestep.
-    for date, np_img in zip(dates, results):
-        out_path_date, out_path_date_tmp = write_tiff_from_pixels_stack(
-            date, np_img, item, out_path, meta
-        )
-        if out_path_date is not None:
-            out_paths_tmp.append(out_path_date_tmp)
-            out_paths.append(out_path_date)
+    for config in configs:
+        meta, dates, results = pixel_stack(**config)
+        if not dates or meta is None:
+            start = config["start"]
+            end = config["end"]
+            logger.warning(f"No images found for {str(item.id)} in: {start} to {end}")
+            return
+        # This still needs to iterate over the results of pixel_stack.
+        for date, result in zip(dates, results):
+            out_path_date = write_tiff_from_pixels_stack(
+                date, result, item, out_path, meta
+            )
+            if out_path_date is not None:
+                out_paths.append(out_path_date)
+
     # Parse data to stac catalogs.
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
