@@ -652,6 +652,7 @@ def get_and_write_raster_from_item(
     # Run pixels and get the dates, the images (as numpy) and the raster meta.
     out_paths = []
     for config in configs:
+        config["out_path"] = out_path
         meta, dates, results = pixel_stack(**config)
         if not dates or meta is None:
             start = config["start"]
@@ -660,9 +661,7 @@ def get_and_write_raster_from_item(
             return
         # This still needs to iterate over the results of pixel_stack.
         for date, result in zip(dates, results):
-            out_path_date = write_tiff_from_pixels_stack(
-                date, result, item, out_path, meta
-            )
+            out_path_date = write_tiff_from_pixels_stack(date, result, out_path, meta)
             if out_path_date is not None:
                 out_paths.append(out_path_date)
 

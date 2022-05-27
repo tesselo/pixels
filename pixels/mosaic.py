@@ -452,8 +452,6 @@ def pixel_stack(
         mode=mode,
         composite_method=composite_method,
     )
-    # dates are not dates only it is a configu
-    search_configurations = search_configurations[:1]
     result = []
     if pool_size > 1:
         with ThreadPoolExecutor(max_workers=pool_size) as executor:
