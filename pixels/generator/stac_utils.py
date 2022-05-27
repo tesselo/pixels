@@ -11,6 +11,7 @@ import rasterio
 from pystac import STAC_IO
 
 from pixels.exceptions import PixelsException
+from pixels.utils import write_raster
 
 
 def write_method(uri, txt):
@@ -269,3 +270,24 @@ def get_bbox_and_footprint_and_stats(
             stats = {int(key): int(val) for key, val in zip(hist, bin_edges)}
 
         return bbox, footprint, datetime, ds.meta, stats
+
+
+def write_tiff_from_pixels_stack(date, np_img, item, out_path, meta):
+    # Save raster to machine or s3
+    out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
+    out_path_date_tmp = out_path_date
+    if out_path_date.startswith("s3"):
+        out_path_date_tmp = out_path_date.replace("s3://", "tmp/")
+    if not os.path.exists(os.path.dirname(out_path_date)):
+        os.makedirs(os.path.dirname(out_path_date))
+    write_raster(
+        np_img,
+        meta,
+        out_path=out_path_date_tmp,
+        dtype=np_img.dtype,
+        overviews=False,
+        tags={"datetime": date},
+    )
+    if out_path.startswith("s3"):
+        upload_file_to_s3(out_path_date_tmp)
+    return out_path_date

@@ -22,7 +22,7 @@ from pixels.generator.stac_utils import (
     get_bbox_and_footprint_and_stats,
     list_files_in_folder,
     save_dictionary,
-    upload_file_to_s3,
+    write_tiff_from_pixels_stack,
 )
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
@@ -31,7 +31,6 @@ from pixels.utils import (
     open_file_from_s3,
     run_starmap_multiprocessing,
     timeseries_steps,
-    write_raster,
 )
 from pixels.validators import PixelsConfigValidator
 
@@ -622,34 +621,6 @@ def configure_multi_time_bubbles(config, out_path, item):
         config["end"] = en
         configs.append(config)
     return configs
-
-
-def write_tiff_from_pixels_stack(date, np_img, item, out_path, meta):
-    # If the given image is empty continue to next.
-    if not np_img.shape:
-        logger.warning(f"No images for {str(item.id)}")
-        return None, None
-    if not date:
-        logger.warning(f"No date information for {str(item.id)}")
-        return None, None
-    # Save raster to machine or s3
-    out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
-    out_path_date_tmp = out_path_date
-    if out_path_date.startswith("s3"):
-        out_path_date_tmp = out_path_date.replace("s3://", "tmp/")
-    if not os.path.exists(os.path.dirname(out_path_date)):
-        os.makedirs(os.path.dirname(out_path_date))
-    write_raster(
-        np_img,
-        meta,
-        out_path=out_path_date_tmp,
-        dtype=np_img.dtype,
-        overviews=False,
-        tags={"datetime": date},
-    )
-    if out_path.startswith("s3"):
-        upload_file_to_s3(out_path_date_tmp)
-    return out_path_date
 
 
 def get_and_write_raster_from_item(
