@@ -85,15 +85,16 @@ def upload_file_to_s3(path, delete_file=True):
     """
     s3 = boto3.client("s3")
     sta = "s3:/"
+    local_path = path
     if not path.startswith("s3"):
         sta = path.split("/")[0]
         path = path.replace(sta, "s3:/")
     s3_path = path.split("s3://")[1]
     bucket = s3_path.split("/")[0]
-    key_path = path.replace(sta + "/" + bucket + "/", "")
-    s3.upload_file(Key=key_path, Bucket=bucket, Filename=path)
+    key_path = local_path.replace(sta + "/" + bucket + "/", "")
+    s3.upload_file(Key=key_path, Bucket=bucket, Filename=local_path)
     if delete_file:
-        os.remove(path)
+        os.remove(local_path)
 
 
 def upload_files_s3(path, file_type=".json", delete_folder=True):
@@ -272,14 +273,14 @@ def get_bbox_and_footprint_and_stats(
         return bbox, footprint, datetime, ds.meta, stats
 
 
-def write_tiff_from_pixels_stack(date, np_img, item, out_path, meta):
+def write_tiff_from_pixels_stack(date, np_img, out_path, meta):
     # Save raster to machine or s3
     out_path_date = os.path.join(out_path, date.replace("-", "_") + ".tif")
     out_path_date_tmp = out_path_date
     if out_path_date.startswith("s3"):
         out_path_date_tmp = out_path_date.replace("s3://", "tmp/")
-    if not os.path.exists(os.path.dirname(out_path_date)):
-        os.makedirs(os.path.dirname(out_path_date))
+    if not os.path.exists(os.path.dirname(out_path_date_tmp)):
+        os.makedirs(os.path.dirname(out_path_date_tmp))
     write_raster(
         np_img,
         meta,
