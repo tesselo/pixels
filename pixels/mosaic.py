@@ -16,6 +16,7 @@ from pixels.const import (
     SCL_COMPOSITE_CLOUD_BANDS,
 )
 from pixels.exceptions import PixelsException
+from pixels.generator.stac_utils import write_tiff_from_pixels_stack
 from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
@@ -257,8 +258,7 @@ def latest_pixel(
     return creation_args, first_end_date, stack
 
 
-@log_function
-def pixel_stack(
+def pixel_stack_configure(
     geojson,
     start,
     end,
@@ -276,9 +276,6 @@ def pixel_stack(
     mode="latest_pixel",
     composite_method="SCL",
 ):
-    """
-    Get the latest pixel at regular intervals between two dates.
-    """
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
@@ -381,14 +378,92 @@ def pixel_stack(
     pool_size = min(len(dates), pool_size)
     logger.info(f"Processing pool size is {pool_size}.")
 
+    return funk, dates
+
+
+def process_search_images(funk, search):
+    result = funk(*search)
+    if result[2] is None:
+        return None, None, None
+    # Remove results that are all nodata.
+    if numpy.all(result[2][0] == NODATA_VALUE):
+        return None, None, None
+    # Convert to individual arrays.
+    creation_args = result[0]
+    dates = result[1]
+    pixels = numpy.array(result[2])
+    return creation_args, dates, pixels
+
+
+def fetch_write_images(funk, search, out_path):
+    meta, dates, pixels = process_search_images(funk, search)
+    # Return early if no results are left after cleaning.
+    if not (meta, dates, pixels):
+        logger.info(
+            "No scenes in search response.",
+            funk="pixel_stack",
+            search_date_end=dates,
+        )
+        return None
+    out_path_date = write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
+    return out_path_date
+
+
+@log_function
+def pixel_stack(
+    geojson,
+    start,
+    end,
+    scale,
+    interval="weeks",
+    interval_step=1,
+    bands=None,
+    platforms="SENTINEL_2",
+    limit=100,
+    clip=False,
+    maxcloud=None,
+    pool_size=5,
+    pool_bands=False,
+    level=None,
+    sensor=None,
+    mode="latest_pixel",
+    composite_method="SCL",
+    out_path="",
+):
+    """
+    Get the latest pixel at regular intervals between two dates.
+    """
+    funk, search_configurations = pixel_stack_configure(
+        geojson,
+        start,
+        end,
+        scale,
+        interval=interval,
+        interval_step=interval_step,
+        bands=bands,
+        platforms=platforms,
+        limit=limit,
+        clip=clip,
+        maxcloud=maxcloud,
+        pool_size=pool_size,
+        pool_bands=pool_bands,
+        level=level,
+        sensor=sensor,
+        mode=mode,
+        composite_method=composite_method,
+    )
+    # dates are not dates only it is a configu
+    search_configurations = search_configurations[:1]
     result = []
     if pool_size > 1:
         with ThreadPoolExecutor(max_workers=pool_size) as executor:
-            futures = [executor.submit(funk, *date) for date in dates]
+            futures = [
+                executor.submit(funk, *search) for search in search_configurations
+            ]
             result = [future.result() for future in futures]
     else:
-        for date in dates:
-            result.append(funk(*date))
+        for search in search_configurations:
+            result.append(funk(*search))
 
     # Remove results that are none.
     result = [dat for dat in result if dat[2] is not None]
