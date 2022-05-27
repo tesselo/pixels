@@ -477,6 +477,12 @@ class BoundLogger:
 
         self.context = context or {}
 
+        if os.environ.get("AWS_BATCH_JOB_ID"):
+            self.context["AWS_BATCH_JOB_ID"] = os.environ.get("AWS_BATCH_JOB_ID")
+            self.context["AWS_BATCH_JOB_ATTEMPT"] = os.environ.get(
+                "AWS_BATCH_JOB_ATTEMPT"
+            )
+
     def _log_context(self):
         context = {"log_id": self.log_id}
 
