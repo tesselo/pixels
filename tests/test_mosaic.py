@@ -8,7 +8,12 @@ import numpy
 from pixels.algebra import parser
 from pixels.const import LANDSAT_1_LAUNCH_DATE
 from pixels.exceptions import PixelsException
-from pixels.mosaic import calculate_start_date, latest_pixel, pixel_stack
+from pixels.mosaic import (
+    calculate_start_date,
+    configure_pixel_stack,
+    latest_pixel,
+    process_search_images,
+)
 from tests.scenarios import sample_geojson
 
 
@@ -154,6 +159,7 @@ class TestMosaic(unittest.TestCase):
 
     def test_pixel_stack(self):
         # Test weekly latest pixel stack.
+        """
         creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -164,7 +170,28 @@ class TestMosaic(unittest.TestCase):
             clip=False,
             level="L2A",
             pool_size=5,
+        )"""
+        funk, search_configurations = configure_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=500,
+            interval="weeks",
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+            pool_size=5,
         )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
@@ -172,6 +199,7 @@ class TestMosaic(unittest.TestCase):
         numpy.testing.assert_array_equal(stack, expected)
 
         # Test all latest pixel.
+        """
         creation_args, dates, stack = pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -182,14 +210,35 @@ class TestMosaic(unittest.TestCase):
             clip=False,
             level="L2A",
             pool_size=1,
+        )"""
+        funk, search_configurations = configure_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-01",
+            scale=500,
+            interval="all",
+            bands=["B01", "B02"],
+            clip=False,
+            level="L2A",
+            pool_size=1,
         )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
         self.assertEqual(dates, ["2020-01-20", "2020-01-21", "2020-01-22"])
         expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 3
         numpy.testing.assert_array_equal(stack, expected)
 
     def test_pixel_stack_composite(self):
         # Test weekly latest pixel stack.
-        creation_args, dates, stack = pixel_stack(
+
+        funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
@@ -203,6 +252,15 @@ class TestMosaic(unittest.TestCase):
             mode="composite",
             composite_method="SCL",
         )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
@@ -212,7 +270,8 @@ class TestMosaic(unittest.TestCase):
         ] * 4
         numpy.testing.assert_array_equal(stack, expected)
         # Interval step 2 reduces number of layers to 2.
-        creation_args, dates, stack = pixel_stack(
+
+        funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
             end="2020-02-02",
@@ -225,6 +284,14 @@ class TestMosaic(unittest.TestCase):
             pool_size=1,
             mode="composite",
         )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
         self.assertEqual(dates, ["2020-01-20", "2020-01-20"])
 
     def test_algebra(self):

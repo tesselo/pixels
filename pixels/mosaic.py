@@ -258,7 +258,7 @@ def latest_pixel(
     return creation_args, first_end_date, stack
 
 
-def pixel_stack_configure(
+def configure_pixel_stack(
     geojson,
     start,
     end,
@@ -276,6 +276,9 @@ def pixel_stack_configure(
     mode="latest_pixel",
     composite_method="SCL",
 ):
+    """
+    Get the configurations and select function to use.
+    """
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
@@ -284,7 +287,7 @@ def pixel_stack_configure(
         # For all mode, the date range is constructed around each scene, and
         # then latest pixel is used for each date. This way, latest pixel will
         # only have one possible input every time.
-        funk = latest_pixel
+        collect = latest_pixel
         # Get all scenes of for this date range.
         response = search_data(
             geojson=geojson,
@@ -324,7 +327,7 @@ def pixel_stack_configure(
             for item in response
         ]
     elif mode == "latest_pixel":
-        funk = latest_pixel
+        collect = latest_pixel
         # Construct array of latest pixel calls with varying dates.
         dates = [
             (
@@ -342,7 +345,7 @@ def pixel_stack_configure(
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
     elif mode == "composite":
-        funk = composite
+        collect = composite
         platforms = "SENTINEL_2"
         shadow_threshold = 0.1
         light_clouds = True
@@ -374,15 +377,31 @@ def pixel_stack_configure(
     if mode != "all":
         logger.info(f"Getting {len(dates)} {interval} {mode} images for this stack.")
 
-    # Get pixels.
-    pool_size = min(len(dates), pool_size)
-    logger.info(f"Processing pool size is {pool_size}.")
-
-    return funk, dates
+    return collect, dates
 
 
-def process_search_images(funk, search):
-    result = funk(*search)
+def process_search_images(collect, search):
+    """
+    Run the search for each image.
+
+    Parameters
+    ----------
+        collect : function
+            Funtion to use for collecting.
+        search : dict
+            Configuration for searching and collecting images.
+
+    Returns
+    -------
+    creation_args : dict or None
+        The creation arguments metadata for the extracted pixel matrix. Can be
+        used to write the extracted pixels to a file if desired.
+    dates : date object or None
+        The date of the first scene used to create the output image.
+    pixels : numpy array or None
+        The extracted pixel stack, with shape (bands, height, width).
+    """
+    result = collect(*search)
     if result[2] is None:
         return None, None, None
     # Remove results that are all nodata.
@@ -395,18 +414,34 @@ def process_search_images(funk, search):
     return creation_args, dates, pixels
 
 
-def fetch_write_images(funk, search, out_path):
-    meta, dates, pixels = process_search_images(funk, search)
+def fetch_write_images(collect, search, out_path):
+    """
+    Collect the images, write them to disk
+
+    Parameters
+    ----------
+        collect : function
+            Funtion to use for collecting.
+        search : dict
+            Configuration for searching and collecting images.
+        out_path : str
+            Path to folder containing the item's images.
+    Returns
+    -------
+        out_path_date : str
+            Path to saved raster.
+    """
+    meta, dates, pixels = process_search_images(collect, search)
     # Return early if no results are left after cleaning.
-    if not (meta, dates, pixels):
+    parameter_missing = [True for f in (meta, dates, pixels) if f is None]
+    if any(parameter_missing):
         logger.info(
             "No scenes in search response.",
             funk="pixel_stack",
             search_date_end=dates,
         )
         return None
-    out_path_date = write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
-    return out_path_date
+    return write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
 
 
 @log_function
@@ -425,15 +460,14 @@ def pixel_stack(
     pool_size=5,
     pool_bands=False,
     level=None,
-    sensor=None,
     mode="latest_pixel",
     composite_method="SCL",
     out_path="",
 ):
     """
-    Get the latest pixel at regular intervals between two dates.
+    Get the images at regular intervals between two dates.
     """
-    funk, search_configurations = pixel_stack_configure(
+    collect, search_configurations = configure_pixel_stack(
         geojson,
         start,
         end,
@@ -448,46 +482,24 @@ def pixel_stack(
         pool_size=pool_size,
         pool_bands=pool_bands,
         level=level,
-        sensor=sensor,
         mode=mode,
         composite_method=composite_method,
     )
-    result = []
+    # Get pixels.
+    pool_size = min(len(search_configurations), pool_size)
+    logger.info(f"Processing pool size is {pool_size}.")
+    raster_list = []
     if pool_size > 1:
         with ThreadPoolExecutor(max_workers=pool_size) as executor:
             futures = [
-                executor.submit(funk, *search) for search in search_configurations
+                executor.submit(fetch_write_images, collect, search, out_path)
+                for search in search_configurations
             ]
-            result = [future.result() for future in futures]
+            raster_list = [future.result() for future in futures]
     else:
         for search in search_configurations:
-            result.append(funk(*search))
-
-    # Remove results that are none.
-    result = [dat for dat in result if dat[2] is not None]
-    # Remove results that are all nodata.
-    result = [
-        dat
-        for dat in result
-        if dat[2].ndim and not numpy.all(dat[2][0] == NODATA_VALUE)
-    ]
-
-    # Return early if no results are left after cleaning.
-    if not result:
-        logger.info(
-            "No scenes in search response.",
-            funk="pixel_stack",
-            search_date_end=end,
-            search_date_start=start,
-        )
-        return None, None, None
-
-    # Convert to individual arrays.
-    creation_args = result[0][0]
-    dates = [dat[1] for dat in result]
-    pixels = numpy.array([dat[2] for dat in result])
-
-    return creation_args, dates, pixels
+            raster_list.append(fetch_write_images(collect, search, out_path))
+    return raster_list
 
 
 def retrieve_item_bands(
