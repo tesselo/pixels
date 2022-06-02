@@ -50,29 +50,27 @@ def main(args):
     """
     Import the requested function and run it with the provided input.
     """
-    # print(args)
-    # Get input function name.
     funk_path = args[0]
-    # Get module for function.
     module_name = ".".join(funk_path.split(".")[:-1])
-    logger.info(f"Module name {module_name}.")
-    # Verify the requested module is in shortlist.
+
     if module_name not in ALLOWED_MODULES:
         raise ValueError(
             'Invalid input module. "{}" should be one of {}.'.format(
                 module_name, ALLOWED_MODULES
             )
         )
-    # Get function to execute.
     funk_name = funk_path.split(".")[-1]
-    logger.info(f"Function name {funk_name}.")
+
     if funk_name not in ALLOWED_FUNCTIONS.keys():
         raise ValueError(
             f'Invalid input function. "{funk_name}" should be one of {ALLOWED_FUNCTIONS.keys()}.'
         )
-    logger.info(f"Function args {args[1:]}.")
-    # Run function with rest of arguments.
+
+    logger.info(
+        "runpixels start", function=funk_name, module=module_name, args=args[1:]
+    )
     ALLOWED_FUNCTIONS[funk_name](*args[1:])
+    logger.info("runpixels end", function=funk_name, module=module_name)
 
 
 if __name__ == "__main__":
