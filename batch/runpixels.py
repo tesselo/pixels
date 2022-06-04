@@ -67,10 +67,15 @@ def main(args):
         )
 
     logger.info(
-        "runpixels start", function=funk_name, module=module_name, args=args[1:]
+        "runpixels start",
+        runpixels_function=funk_name,
+        runpixels_module=module_name,
+        runpixels_args=args[1:],
     )
     ALLOWED_FUNCTIONS[funk_name](*args[1:])
-    logger.info("runpixels end", function=funk_name, module=module_name)
+    logger.info(
+        "runpixels end", runpixels_function=funk_name, runpixels_module=module_name
+    )
 
 
 if __name__ == "__main__":
