@@ -388,7 +388,7 @@ def train_model_function(
                 ),
                 LogProgress(),
             ],
-            verbose=0,
+            verbose=2,
         )
     else:
         # Fit model with generator directly.
@@ -402,7 +402,7 @@ def train_model_function(
                 ),
                 LogProgress(),
             ],
-            verbose=0,
+            verbose=2,
         )
     # Write history.
     if model_config_uri.startswith("s3"):
