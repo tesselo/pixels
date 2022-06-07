@@ -224,17 +224,24 @@ class LogProgress(tf.keras.callbacks.Callback):
     Custom Callback function to log training progress.
     """
 
-    def _log_status(self, state, epoch, logs):
-        logs = logs or {}
-        logger.info(
-            state, current_epoch=epoch + 1, all_epochs=self.params["epochs"], **logs
-        )
+    def _log_status(self, state, logs=None, epoch=None):
+        extra = logs or {}
+        if epoch is not None:
+            extra["current_epoch"] = epoch + 1
+            extra["all_epochs"] = self.params["epochs"]
+        logger.info(state, **extra)
 
     def on_epoch_begin(self, epoch, logs=None):
-        self._log_status("Epoch begin", epoch, logs)
+        self._log_status("Epoch begin", logs, epoch)
 
     def on_epoch_end(self, epoch, logs=None):
-        self._log_status("Epoch end", epoch, logs)
+        self._log_status("Epoch end", logs, epoch)
+
+    def on_train_end(self, logs=None):
+        self._log_status("Training end", logs)
+
+    def on_test_end(self, logs=None):
+        self._log_status("Evaluation end", logs)
 
 
 @log_function
