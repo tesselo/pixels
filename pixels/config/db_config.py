@@ -3,20 +3,6 @@ import os
 from sqlalchemy import create_engine
 
 
-def create_db_engine_pixels():
-    """
-    Create database engine from environment variables to Pixels DB.
-    """
-    pg_user = os.environ.get("DB_USER_PIXELS", "postgres")
-    pg_pass = os.environ.get("DB_PASS_PIXELS", "")
-    pg_host = os.environ.get("DB_HOST_PIXELS", "localhost")
-    pg_port = os.environ.get("DB_PORT_PIXELS", "5432")
-    pg_dbname = os.environ.get("DB_NAME_PIXELS", "pixels")
-    db_url = f"postgresql+pg8000://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_dbname}"
-
-    return create_engine(db_url, client_encoding="utf8")
-
-
 def create_db_engine_pxsearch():
     """
     Create database engine from environment variables to Pxsearch Db.

@@ -5,7 +5,6 @@ import shutil
 import tempfile
 import unittest
 import zipfile
-from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import numpy
@@ -45,34 +44,23 @@ def write_temp_raster(
     return raster.name
 
 
-l8_return = MagicMock(
-    return_value={
-        "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-        "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-    }
-)
-
 l8_data_mock = MagicMock(
     return_value=[
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
-            "granule_id": None,
+            "id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "sensing_time": datetime.datetime(2020, 11, 21, 11, 20, 37, 137788),
-            "mgrs_tile": None,
-            "cloud_cover": Decimal("0.01"),
-            "wrs_path": 85217265,
-            "wrs_row": 85217265,
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
+            "bands": {
+                "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            },
         },
         {
-            "product_id": "LC08_L1TP_205032_20201121_20201122_01_T1",
-            "granule_id": None,
+            "id": "LC08_L1TP_205032_20201121_20201122_01_T1",
             "sensing_time": datetime.datetime(2020, 11, 20, 11, 20, 37, 137788),
-            "mgrs_tile": None,
-            "cloud_cover": Decimal("0.01"),
-            "wrs_path": 85217265,
-            "wrs_row": 85217265,
-            "base_url": "gs://gcp-public-data-landsat/LC08/01/205/032/LC08_L1TP_205032_20201121_20201122_01_T1",
+            "bands": {
+                "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            },
         },
     ]
 )
@@ -229,8 +217,7 @@ class TestUtils(unittest.TestCase):
         obj.pop("assets")
         self.assertEqual(obj, self.item_example)
 
-    @patch("pixels.search.execute_query", l8_data_mock)
-    @patch("pixels.search.format_ls_c1_band", l8_return)
+    @patch("pixels.mosaic.search_data", l8_data_mock)
     def test_collect_from_catalog_subsection(self):
         catalog = parse_data(self.zip_file.name, True, reference_date="2020-01-01")
         catalog.save(catalog_type=pystac.CatalogType.SELF_CONTAINED)
