@@ -120,7 +120,6 @@ BAND_THERMAL1 = "tirsi"
 BAND_THERMAL2 = "tirsii"
 
 # Create bands list for each platform
-L4_5_SENSOR_ID = "TM"
 S2_BANDS = [
     "B01",
     "B02",

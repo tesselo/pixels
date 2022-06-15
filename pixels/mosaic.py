@@ -63,7 +63,6 @@ def latest_pixel(
     pool_bands=False,
     maxcloud=None,
     level=None,
-    sensor=None,
     start_date=None,
 ):
     """
@@ -109,8 +108,6 @@ def latest_pixel(
         The level of image processing for Sentinel-2 satellite. It can be 'L1C'(Level-1C)
         or 'L2A'(Level-2A) that provides Bottom Of Atmosphere (BOA) reflectance images
         derived from associated Level-1C products. Ignored if platforms is not Sentinel 2.
-    sensor: str, optional
-        Sensor mode for Landsat 1-5. Must be one of be TM or MSS.
     start_date : str, datetime, optional
         A parseable date or datetime string. Represents the starting date of the
         input imagery. Only images after that date will be used for creating
@@ -149,7 +146,7 @@ def latest_pixel(
             platforms=platforms,
             maxcloud=maxcloud,
             level=level,
-            sensor=sensor,
+            bands=bands,
         )
         # Return early if no items could be found.
         if not items:
@@ -168,7 +165,7 @@ def latest_pixel(
     mask = None
     # Get data for each item.
     for item in items:
-        logger.debug(item["product_id"])
+        logger.debug(f"Processing item {item['id']}")
         # Track first end date (the highest priority image in stack).
         if first_end_date is None:
             first_end_date = str(items[0]["sensing_time"].date())
@@ -177,7 +174,7 @@ def latest_pixel(
         for band in bands:
             if band not in item["bands"]:
                 raise PixelsException(
-                    f"Latest pixel requested for a band not present: {band} in {item['base_url']}"
+                    f"Latest pixel requested for a band not present: {band} in {item['id']}"
                 )
             band_list.append(
                 (
@@ -215,9 +212,7 @@ def latest_pixel(
 
         # Continue to next scene if retrieval of bands failed.
         if failed_retrieve:
-            logger.warning(
-                f"Failed retrieval of bands for {item['product_id']}, continuing."
-            )
+            logger.warning(f"Failed retrieval of bands for {item['id']}, continuing.")
             continue
 
         # Continue if this scene was empty.
@@ -278,7 +273,6 @@ def pixel_stack(
     pool_size=5,
     pool_bands=False,
     level=None,
-    sensor=None,
     mode="latest_pixel",
     composite_method="SCL",
 ):
@@ -303,7 +297,7 @@ def pixel_stack(
             platforms=platforms,
             maxcloud=maxcloud,
             level=level,
-            sensor=sensor,
+            bands=bands,
         )
 
         if not response:
@@ -543,6 +537,7 @@ def composite(
         maxcloud=maxcloud,
         level=level,
         sort=sort,
+        bands=bands,
     )
 
     if not items:

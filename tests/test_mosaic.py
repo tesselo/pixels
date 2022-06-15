@@ -22,18 +22,15 @@ def mock_search_data(
     level=None,
     limit=10,
     sort="sensing_time",
-    sensor=None,
+    bands=None,
 ):
     response = []
     for i in range(3):
         response.append(
             {
-                "product_id": "S2A_MSIL2A_20200130T112311_{}".format(i),
-                "granule_id": "L2A_T29SMC_A024058_20200130T112435_{}".format(i),
+                "id": "S2A_MSIL2A_20200130T112311_{}".format(i),
                 "sensing_time": datetime.datetime(2020, 1, 20 + i, 11, 30, 39, 918000),
-                "mgrs_tile": "29SMC",
                 "cloud_cover": 70.091273,
-                "base_url": "gs://data-sentinel-2/S2A_{}.SAFE".format(i),
                 "bands": {
                     "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B02": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
@@ -55,12 +52,9 @@ def mock_search_data(
     # Append zero scene.
     response.append(
         {
-            "product_id": "S2A_MSIL2A_20200130T112311_{}".format(i),
-            "granule_id": "L2A_T29SMC_A024058_20200130T112435_{}".format(i),
+            "id": "S2A_MSIL2A_20200130T112311_{}".format(i),
             "sensing_time": datetime.datetime(2020, 2, 1, 11, 30, 39, 918000),
-            "mgrs_tile": "29SMC",
             "cloud_cover": 70.091273,
-            "base_url": "gs://data-sentinel-2/S2A_{}.SAFE".format(i),
             "bands": {
                 "B01": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
                 "B02": os.path.join(os.path.dirname(__file__), "data/B02.tif"),

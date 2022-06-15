@@ -1,37 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from pixels.const import (
-    L1_DATES,
-    L2_DATES,
-    L3_DATES,
-    L4_DATES,
-    L5_DATES,
-    L7_DATES,
-    L8_DATES,
-)
 from pixels.search import search_data
-from tests.scenarios import (
-    empty_data_mock,
-    l1_data_mock,
-    l1_expected_scene,
-    l2_data_mock,
-    l2_expected_scene,
-    l3_data_mock,
-    l3_expected_scene,
-    l4_data_mock,
-    l4_expected_scene,
-    l5_data_mock,
-    l5_expected_scene,
-    l7_data_mock,
-    l7_expected_scene,
-    l8_data_mock,
-    l8_expected_scene,
-    l8_l2_data_mock,
-    l8_l2_expected_scene,
-    s2_expected_scene,
-    sentinel_2_data_mock,
-)
+from tests.scenarios import empty_data_mock, landsat_data_mock, sentinel_2_data_mock
 
 # AOI.
 geojson = {
@@ -87,8 +58,6 @@ geojson_MZ = {
 
 
 class SearchTest(unittest.TestCase):
-    maxDiff = None
-
     @patch("pixels.search.execute_query", sentinel_2_data_mock)
     def test_result_sentinel(self):
         actual = search_data(
@@ -96,142 +65,43 @@ class SearchTest(unittest.TestCase):
             start="2020-12-01",
             end="2021-01-01",
             maxcloud=100,
-            limit=1,
+            limit=2,
             level="L2A",
             platforms="SENTINEL_2",
+            bands=["B04", "B8A", "B02"],
         )
-        self.assertDictEqual(actual[0], s2_expected_scene)
+        self.assertEqual(actual[0]["id"], "S2A_29TNG_20170128_0_L2A")
+        self.assertEqual(
+            actual[0]["bands"]["B8A"],
+            "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/29/T/NG/2017/1/S2A_29TNG_20170128_0_L2A/B8A.tif",
+        )
 
-    @patch("pixels.search.execute_query", empty_data_mock)
-    def test_level(self):
+    @patch("pixels.search.execute_query", landsat_data_mock)
+    def test_result_landsat(self):
         actual = search_data(
             geojson,
             start="2020-12-01",
             end="2021-01-01",
             maxcloud=100,
-            limit=1,
-            level="L3",
-            platforms="SENTINEL_2",
-        )
-        self.assertEqual(actual, [])
-
-    @patch("pixels.search.execute_query", empty_data_mock)
-    def test_date(self):
-        actual = search_data(
-            geojson,
-            start="2020-12-01",
-            end="2021-01-01",
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_1",
-        )
-        self.assertEqual(actual, [])
-
-    @patch("pixels.search.execute_query", empty_data_mock)
-    def test_platform(self):
-        actual = search_data(
-            geojson,
-            start="2020-12-01",
-            end="2021-01-01",
-            maxcloud=100,
-            limit=1,
-            platforms="Landsat_1",
-        )
-        self.assertEqual(actual, [])
-
-    @patch("pixels.search.execute_query", l1_data_mock)
-    def test_result_l1(self):
-        actual = search_data(
-            geojson,
-            start=L1_DATES[0],
-            end=L1_DATES[1],
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_1",
-        )
-        self.assertDictEqual(actual[0], l1_expected_scene)
-
-    @patch("pixels.search.execute_query", l2_data_mock)
-    def test_result_l2(self):
-        actual = search_data(
-            geojson,
-            start=L2_DATES[0],
-            end=L2_DATES[1],
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_2",
-        )
-        self.assertDictEqual(actual[0], l2_expected_scene)
-
-    @patch("pixels.search.execute_query", l3_data_mock)
-    def test_result_l3(self):
-        actual = search_data(
-            geojson,
-            start=L3_DATES[0],
-            end=L3_DATES[1],
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_3",
-        )
-        self.assertDictEqual(actual[0], l3_expected_scene)
-
-    @patch("pixels.search.execute_query", l4_data_mock)
-    def test_result_l4(self):
-        actual = search_data(
-            geojson,
-            start=L4_DATES[0],
-            end=L4_DATES[1],
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_4",
-        )
-        self.assertDictEqual(actual[0], l4_expected_scene)
-
-    @patch("pixels.search.execute_query", l5_data_mock)
-    def test_result_l5(self):
-        actual = search_data(
-            geojson,
-            start=L5_DATES[0],
-            end=L5_DATES[1],
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_5",
-        )
-        self.assertDictEqual(actual[0], l5_expected_scene)
-
-    @patch("pixels.search.execute_query", l7_data_mock)
-    def test_result_l7(self):
-        actual = search_data(
-            geojson,
-            start=L7_DATES,
-            end="2020-01-31",
-            maxcloud=100,
-            limit=1,
-            platforms="LANDSAT_7",
-        )
-        self.assertDictEqual(actual[0], l7_expected_scene)
-
-    @patch("pixels.search.execute_query", l8_data_mock)
-    def test_result_l8(self):
-        actual = search_data(
-            geojson,
-            start=L8_DATES,
-            end="2021-01-31",
-            maxcloud=100,
-            limit=1,
+            limit=2,
             platforms="LANDSAT_8",
+            bands=["B2", "B4", "B5"],
         )
-        self.assertDictEqual(actual[0], l8_expected_scene)
+        self.assertEqual(actual[0]["id"], "LC08_L2SP_204031_20170106_20200905_02_T1_SR")
+        self.assertEqual(
+            actual[0]["bands"]["B5"],
+            "s3://usgs-landsat/collection02/level-2/standard/oli-tirs/2017/204/031/LC08_L2SP_204031_20170106_20200905_02_T1/LC08_L2SP_204031_20170106_20200905_02_T1_SR_B5.TIF",
+        )
 
-    @patch("pixels.search.execute_query", l8_l2_data_mock)
-    def test_result_ls_l2(self):
+    @patch("pixels.search.execute_query", empty_data_mock)
+    def test_result_empty(self):
         actual = search_data(
-            geojson_MZ,
-            start=L8_DATES,
-            end="2015-03-01",
+            geojson,
+            start="2020-12-01",
+            end="2021-01-01",
             maxcloud=100,
-            limit=1,
+            limit=2,
             platforms="LANDSAT_8",
-            level="L2",
+            bands=["B99"],
         )
-        self.assertDictEqual(actual[0], l8_l2_expected_scene)
+        self.assertEqual(actual, [])
