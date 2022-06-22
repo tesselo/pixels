@@ -537,7 +537,7 @@ def composite(
         maxcloud=maxcloud,
         level=level,
         sort=sort,
-        bands=bands,
+        bands=bands_copy,
     )
 
     if not items:
