@@ -15,6 +15,18 @@ def execute_query(query):
     return [dict(row) for row in db_result]
 
 
+def match_eo_bands_extension_names(asset, bands):
+    return len(asset.get("eo:bands", [])) == 1 and asset["eo:bands"][0]["name"] in bands
+
+
+def determine_band_name(asset_key, asset, bands):
+    if asset_key in bands:
+        return asset_key
+    if match_eo_bands_extension_names(asset, bands):
+        return asset["eo:bands"][0]["name"]
+    return None
+
+
 def search_data(
     geojson,
     start=None,
@@ -67,29 +79,26 @@ def search_data(
         if "sentinel" not in platform and platform not in platforms:
             continue
 
-        band_hrefs = {}
-        for key, val in item["assets"].items():
-            if key == "SCL":
-                band = "SCL"
-            elif len(val.get("eo:bands", [])) == 1:
-                band = val["eo:bands"][0]["name"]
-            else:
-                logger.debug(f"Skipping band {key}")
+        item_bands_hrefs = {}
+        for asset_key, asset in item["assets"].items():
+            band_name = determine_band_name(asset_key, asset, bands)
+            if not band_name:
                 continue
 
-            if band not in bands:
-                continue
-
-            if "alternate" in val:
-                band_hrefs[band] = val["alternate"]["s3"]["href"]
+            if "alternate" in asset:
+                item_bands_hrefs[band_name] = asset["alternate"]["s3"]["href"]
             else:
-                band_hrefs[band] = val["href"]
+                item_bands_hrefs[band_name] = asset["href"]
+
+        missing_bands = set(bands) - set(item_bands_hrefs.keys())
+        if missing_bands:
+            logger.warning(f"Bands {missing_bands} not found in item {item['id']}")
 
         result.append(
             {
                 "id": item["id"],
                 "sensing_time": item["datetime"],
-                "bands": band_hrefs,
+                "bands": item_bands_hrefs,
                 "cloud_cover": item["properties"].get("eo:cloud_cover", None),
             }
         )
