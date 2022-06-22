@@ -1,5 +1,5 @@
 from pixels.config.db_config import create_db_engine_pxsearch
-from pixels.log import logger
+from pixels.log import log_function, logger
 from pixels.utils import compute_wgs83_bbox
 
 engine = create_db_engine_pxsearch()
@@ -15,6 +15,7 @@ def execute_query(query):
     return [dict(row) for row in db_result]
 
 
+@log_function
 def search_data(
     geojson,
     start=None,
