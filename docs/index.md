@@ -76,8 +76,9 @@ step is `3`, then a three week interval will be used around every items date
 stamp: `start = end - three weeks`.
 
 ### Image combination
-The image combination is specified using the `mode` argument. Mode has three
-different combination options: `all`, `latest_pixel`, or `composite`.
+The image combination is specified using the `mode` argument. Mode has four
+different combination options: `all`, `latest_pixel`, `cloud_sorted_pixel`,
+or `composite`.
 
 The `all` mode will collect every image that is available for the date range
 as individual slices. This will result in varying numbers of image slices for
