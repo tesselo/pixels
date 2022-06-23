@@ -663,6 +663,8 @@ def get_and_write_raster_from_item(
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     configs = configure_multi_time_bubbles(config, out_path, item, overwrite)
+    if configs is None:
+        return
     # Run pixels.
     out_paths = []
     for config in configs:
