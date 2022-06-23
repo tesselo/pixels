@@ -43,6 +43,7 @@ class TimeStepOption(str, Enum):
 
 class ModeOption(str, Enum):
     latest_pixel = "latest_pixel"
+    cloud_sorted_pixel = "cloud_sorted_pixel"
     composite = "composite"
     all = "all"
 
