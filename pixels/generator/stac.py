@@ -663,25 +663,21 @@ def get_and_write_raster_from_item(
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
     configs = configure_multi_time_bubbles(config, out_path, item, overwrite)
-    if configs is None:
-        return
-    # Run pixels.
-    out_paths = []
-    for config in configs:
-        config["out_path"] = out_path
-        images = pixel_stack(**config)
-        if images:
-            out_paths.append(images)
+    if configs is not None:
+        # Run pixels.
+        for config in configs:
+            config["out_path"] = out_path
+            pixel_stack(**config)
+    out_paths = list_files_in_folder(out_path, filetype="tif")
+    out_paths = list(np.unique(out_paths))
     # Parse data to stac catalogs.
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
     )
-
     # Build an intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     # Ensure no duplicates get on the dictionary.
     # Only a temporary solution since this whole pipeline is to change.
-    out_paths = list(np.unique(out_paths))
     catalog_dict = {
         f"pixels_id_{str(item.id)}": {
             "x_paths": out_paths,
