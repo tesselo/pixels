@@ -341,6 +341,7 @@ def configure_pixel_stack(
                 pool_bands,
                 maxcloud,
                 level,
+                step[0],
             )
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
