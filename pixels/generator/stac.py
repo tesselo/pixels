@@ -667,7 +667,9 @@ def get_and_write_raster_from_item(
     out_paths = []
     for config in configs:
         config["out_path"] = out_path
-        out_paths.append(pixel_stack(**config))
+        images = pixel_stack(**config)
+        if images:
+            out_paths.append(images)
     # Parse data to stac catalogs.
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
