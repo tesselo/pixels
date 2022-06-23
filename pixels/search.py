@@ -1,4 +1,5 @@
 from pixels.config.db_config import create_db_engine_pxsearch
+from pixels.const import S2_PLATFORMS
 from pixels.log import logger
 from pixels.utils import compute_wgs83_bbox
 
@@ -41,9 +42,14 @@ def search_data(
 
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
 
+    search_platforms = [platform for platform in platforms if "LANDSAT" in platform]
+    if "SENTINEL_2" in platforms:
+        search_platforms += S2_PLATFORMS
+
     query = f"""
     SELECT id, collection_id, datetime, properties, assets FROM data.items
     WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), geometry)
+    AND (properties ->> 'platform') IN ({prep_in_array_query(search_platforms)})
     """
 
     collections = []
@@ -74,11 +80,6 @@ def search_data(
 
     result = []
     for item in query_results:
-        # Skip unwanted landsat platforms.
-        platform = item["properties"].get("platform")
-        if "sentinel" not in platform and platform not in platforms:
-            continue
-
         item_bands_hrefs = {}
         for asset_key, asset in item["assets"].items():
             band_name = determine_band_name(asset_key, asset, bands)
