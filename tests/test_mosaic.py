@@ -11,7 +11,7 @@ from pixels.exceptions import PixelsException
 from pixels.mosaic import (
     calculate_start_date,
     configure_pixel_stack,
-    latest_pixel,
+    first_valid_pixel,
     process_search_images,
 )
 from tests.scenarios import sample_geojson
@@ -112,10 +112,10 @@ class TestMosaic(unittest.TestCase):
     def setUp(self):
         self.geojson = sample_geojson
 
-    def test_latest_pixel(self):
+    def test_first_valid_pixel(self):
         # Test bad date
         with self.assertRaisesRegex(PixelsException, "Invalid end date"):
-            latest_pixel(
+            first_valid_pixel(
                 self.geojson,
                 end_date="the beginning of all times",
                 scale=500,
@@ -124,7 +124,7 @@ class TestMosaic(unittest.TestCase):
             )
 
         # Test regular latest pixel.
-        creation_args, first_end_date, stack = latest_pixel(
+        creation_args, first_end_date, stack = first_valid_pixel(
             self.geojson,
             end_date="2020-02-01",
             scale=500,
@@ -135,7 +135,7 @@ class TestMosaic(unittest.TestCase):
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
         numpy.testing.assert_array_equal(stack, expected)
         # Test with clip.
-        creation_args, first_end_date, stack = latest_pixel(
+        creation_args, first_end_date, stack = first_valid_pixel(
             self.geojson,
             end_date="2020-02-01",
             scale=500,
@@ -145,13 +145,26 @@ class TestMosaic(unittest.TestCase):
         expected = [[[2956, 0], [0, 0]], [[2956, 0], [0, 0]]]
         numpy.testing.assert_array_equal(stack, expected)
         # Test with pool.
-        creation_args, first_end_date, stack = latest_pixel(
+        creation_args, first_end_date, stack = first_valid_pixel(
             self.geojson,
             end_date="2020-02-01",
             scale=500,
             bands=["B01", "B02"],
             clip=False,
             pool_bands=True,
+        )
+        self.assertEqual(first_end_date, "2020-01-20")
+        expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
+        numpy.testing.assert_array_equal(stack, expected)
+        # Test with cloud sorting.
+        creation_args, first_end_date, stack = first_valid_pixel(
+            self.geojson,
+            end_date="2020-02-01",
+            scale=500,
+            bands=["B01", "B02"],
+            clip=False,
+            pool_bands=True,
+            sort="cloud_cover",
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
@@ -297,7 +310,7 @@ class TestMosaic(unittest.TestCase):
     def test_algebra(self):
         # Test regular latest pixel.
         bands = ["B01", "B02"]
-        creation_args, first_end_date, stack = latest_pixel(
+        creation_args, first_end_date, stack = first_valid_pixel(
             self.geojson,
             end_date="2020-02-01",
             scale=500,
