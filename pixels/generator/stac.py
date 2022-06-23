@@ -676,7 +676,6 @@ def get_and_write_raster_from_item(
     x_cat = parse_data(
         out_path, False, save_files=True, additional_links=item.get_self_href()
     )
-
     # Build an intermediate index catalog for the full one.
     stac_catalog_path = str(x_cat.get_self_href())
     # Ensure no duplicates get on the dictionary.
@@ -841,15 +840,18 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     array_index = int(os.getenv("AWS_BATCH_JOB_ARRAY_INDEX", 0))
     # Read the catalog.
     y_catalog = pystac.Catalog.from_file(y_catalog_path)
+    if y_catalog.catalog_type != pystac.CatalogType.ABSOLUTE_PUBLISHED:
+        y_catalog.make_all_links_absolute()
     # Get the list of index for this batch.
-    item_list = [
+    item_indexes = [
         *range(array_index * int(items_per_job), (array_index + 1) * int(items_per_job))
     ]
-    count = 0
-    check = False
-    for item in y_catalog.get_all_items():
-        if count in item_list:
-            check = True
+    catalog_item_links = y_catalog.get_item_links()
+    number_of_items = len(catalog_item_links)
+    for i in item_indexes:
+        if i < number_of_items:
+            item_path = catalog_item_links[i].get_href()
+            item = pystac.Item.from_file(item_path)
             try:
                 get_and_write_raster_from_item(
                     item, x_folder, input_config, overwrite=overwrite
@@ -859,9 +861,6 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
                 logger.warning(
                     f"Error in collect_from_catalog_subsection. Running get_and_write_raster_from_item: {e}"
                 )
-        elif check is True:
-            break
-        count = count + 1
 
 
 def create_x_catalog(x_folder, source_path=None):
