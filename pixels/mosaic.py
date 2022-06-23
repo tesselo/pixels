@@ -53,7 +53,7 @@ def calculate_start_date(end_date):
     return start_date
 
 
-def latest_pixel(
+def first_valid_pixel(
     geojson,
     end_date,
     scale,
@@ -116,6 +116,9 @@ def latest_pixel(
         the output. Example "2020-12-1". The default is 31 days before start_date
         when start_date is not an array or a dictionary, in that case it will be
         LANDSAT_1_LAUNCH_DATE.
+    sort : str, optional
+        The order of the imagery to find the first valid pixel. Either `sensing_time`
+        or `cloud_cover`.
 
     Returns
     -------
@@ -155,7 +158,7 @@ def latest_pixel(
         if not items:
             logger.info(
                 "No scenes in search response.",
-                funk="latest_pixel",
+                funk="first_valid_pixel",
                 search_date_end=end_date,
                 search_date_start=start_date,
             )
@@ -289,7 +292,7 @@ def configure_pixel_stack(
         # For all mode, the date range is constructed around each scene, and
         # then latest pixel is used for each date. This way, latest pixel will
         # only have one possible input every time.
-        collect = latest_pixel
+        collect = first_valid_pixel
         # Get all scenes of for this date range.
         response = search_data(
             geojson=geojson,
@@ -329,7 +332,7 @@ def configure_pixel_stack(
             for item in response
         ]
     elif mode in ["latest_pixel", "cloud_sorted_pixel"]:
-        collect = latest_pixel
+        collect = first_valid_pixel
         if mode == "latest_pixel":
             sort = "sensing_time"
         else:
