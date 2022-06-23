@@ -96,6 +96,11 @@ time slices. These modes will require two additional arguments: `interval` and
 `interval_step`. The `interval` defines the time step time size, and the
 `interval_step` how many times that interval is used for each slice.
 
+The `cloud_sorted_pixel` mode works the same way as the latest pixel mode, except that
+it will sort the images based on cloud cover at the scene level. So this will be
+the first valid pixel, in the image stack of the date range, ordered by cloud
+cover.
+
 For example, if interval is `months` and `interval_step` is `2`, one image slice
 will be constructed for every two months between the `start` and `end` dates.
 

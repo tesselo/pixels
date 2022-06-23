@@ -65,6 +65,7 @@ def latest_pixel(
     maxcloud=None,
     level=None,
     start_date=None,
+    sort="sensing_time",
 ):
     """
     Get the latest pixel for the input items over the input fetures.
@@ -148,6 +149,7 @@ def latest_pixel(
             maxcloud=maxcloud,
             level=level,
             bands=bands,
+            sort=sort,
         )
         # Return early if no items could be found.
         if not items:
@@ -326,8 +328,12 @@ def configure_pixel_stack(
             )
             for item in response
         ]
-    elif mode == "latest_pixel":
+    elif mode in ["latest_pixel", "cloud_sorted_pixel"]:
         collect = latest_pixel
+        if mode == "latest_pixel":
+            sort = "sensing_time"
+        else:
+            sort = "cloud_cover"
         # Construct array of latest pixel calls with varying dates.
         dates = [
             (
@@ -342,6 +348,7 @@ def configure_pixel_stack(
                 maxcloud,
                 level,
                 step[0],
+                sort,
             )
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
