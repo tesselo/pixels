@@ -668,7 +668,7 @@ def get_and_write_raster_from_item(
         for config in configs:
             config["out_path"] = out_path
             pixel_stack(**config)
-    out_paths = list_files_in_folder(out_path, filetype="tif")
+    out_paths = list_files_in_folder(f"{out_path}/", filetype="tif")
     out_paths = list(np.unique(out_paths))
     # Parse data to stac catalogs.
     x_cat = parse_data(
