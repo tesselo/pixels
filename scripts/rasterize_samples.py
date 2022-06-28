@@ -55,7 +55,8 @@ def rasterize_samples(
     data = gpd.read_file(source)
     if srid:
         data = data.to_crs(epsg=srid)
-
+    else:
+        srid = data.crs.to_epsg()
     if sample_column not in data.columns:
         raise ValueError(
             f"Sample column {sample_column} not found. Options are {data.columns}"
