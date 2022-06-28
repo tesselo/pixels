@@ -68,6 +68,7 @@ def rasterize_samples(
     for index, row in data.iterrows():
         # Get class digital number from feature.
         sample_value = row.get(sample_column)
+        sample_date = None
         if date_column:
             sample_date = parser.parse(row.get(date_column)).date()
         # Compute target raster definition.
