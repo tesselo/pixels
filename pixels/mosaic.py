@@ -450,6 +450,7 @@ def fetch_write_images(collect, search, out_path):
             "No scenes in search response.",
             funk="pixel_stack",
             search_date_end=dates,
+            search_config=search,
         )
         return None
     return write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
