@@ -2,22 +2,23 @@ import json
 import math
 import os
 import tempfile
-import zipfile
 from multiprocessing import Pool
 
-import boto3
 import numpy as np
+import rasterio
 from tensorflow import keras
 
+from pixels import tio
 from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
-from pixels.generator import filters, generator_augmentation_2D, generator_utils
-from pixels.generator.stac_utils import check_file_exists, list_files_in_folder
+from pixels.generator import filters, generator_augmentation_2D
+from pixels.generator.generator_utils import (
+    class_sample_weights_builder,
+    fill_missing_dimensions,
+    multiclass_builder,
+)
 from pixels.log import logger
-from pixels.utils import BoundLogger, load_dictionary, open_file_from_s3
-
-# S3 class instantiation.
-s3 = boto3.client("s3")
+from pixels.utils import BoundLogger
 
 # Mode Definitions
 GENERATOR_MODE_TRAINING = "training"
@@ -151,7 +152,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
 
         self.path_collection_catalog = path_collection_catalog
         # Open the indexing dictionary.
-        self.collection_catalog = load_dictionary(self.path_collection_catalog)
+        self.collection_catalog = tio.load_dictionary(self.path_collection_catalog)
 
         if download_data:
             temp_dir = None
@@ -278,46 +279,38 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         return (self.class_definitions is not None) and self.train
 
     def download_and_parse_data(self, download_dir):
-        # Data can only be downloaded from s3.
-        if not self.path_collection_catalog.startswith("s3"):
-            self.warning("Data can only be downloaded if on S3.")
+        if not tio.is_remote(self.path_collection_catalog):
+            self.warning("Data can only be downloaded if on remote storage.")
             return
 
         self.info("Download all data")
-        # List all collected images in pixelsdata folder.
-        list_of_tifs = list_files_in_folder(
-            os.path.dirname(self.path_collection_catalog), filetype="tif"
+        list_of_tifs = tio.list_files(
+            os.path.dirname(self.path_collection_catalog), suffix=".tif"
         )
         # Download the Pixels Data images in parallel.
         with Pool(min(len(list_of_tifs), 12)) as p:
             p.starmap(
-                generator_utils.download_object_from_s3,
+                tio.download,
                 zip(list_of_tifs, [download_dir] * len(list_of_tifs)),
             )
         # Retrieve path for training data.
         y_path_file = self.collection_catalog[list(self.collection_catalog.keys())[0]][
             "y_path"
         ]
+        parsed_y_path_file = rasterio.path.parse_path(y_path_file)
         # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
         collection_catalog_str = json.dumps(self.collection_catalog)
-        # If the training data comes from a zip file, download and extract it.
-        if y_path_file.startswith("zip"):
-            # Change the file name format from the rasterio reading format to an absolute one.
-            # Get only the zip, and not the first item inside the zip.
-            y_path_file = y_path_file.replace("zip://", "").split("!")[0]
-            y_path_file = generator_utils.download_object_from_s3(
-                y_path_file, download_dir
-            )
-            with zipfile.ZipFile(y_path_file, "r") as zipi:
-                # extract all files
-                zipi.extractall(y_path_file.replace(".zip", ""))
-            # Inside the catalog change the y_path, from rasterio and s3 reading format
+
+        if tio.is_archive_parsed(parsed_y_path_file):
+            with tio.open_zip(parsed_y_path_file.archive) as z:
+                z.extractall(y_path_file.replace(".zip", ""))
+            # Inside the catalog change the y_path, from rasterio and remote reading format
             # to absolute downloaded path.
             collection_catalog_str = collection_catalog_str.replace(
                 "zip://", ""
             ).replace(".zip!", "")
         if y_path_file.endswith("geojson"):
-            generator_utils.download_object_from_s3(y_path_file, download_dir)
+            tio.download(y_path_file, download_dir)
         bucket_name = self.path_collection_catalog.split("/")[2]
         # Change paths in collection catalog.
         collection_catalog_str = collection_catalog_str.replace(
@@ -333,10 +326,10 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         # Making this a list will help in future implementation with multiple sources.
         path_collection = os.path.dirname(os.path.dirname(self.path_collection_catalog))
         path_collection_config = os.path.join(path_collection, "config.json")
-        if not check_file_exists(path_collection_config):
+        if not tio.file_exists(path_collection_config):
             self.warning("Collection config file not found.")
             return
-        collection_config = load_dictionary(path_collection_config)
+        collection_config = tio.load_dictionary(path_collection_config)
         platform = collection_config["platforms"]
         self.platforms.add(platform)
         self.bands[platform] = collection_config["bands"]
@@ -436,7 +429,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_path = os.path.join(parent_path, y_path)
         # Open all X images in parallel.
         with Pool(min(len(x_paths), 12)) as p:
-            x_tensor = p.map(generator_utils.read_raster_file, x_paths)
+            x_tensor = p.map(tio.read_raster_tuple, x_paths)
         # Get the imgs list and the meta list.
         x_imgs = np.array(x_tensor, dtype="object")[:, 0]
         # Ensure all images are numpy arrays.
@@ -456,34 +449,27 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 return x_imgs, x_meta
             return x_imgs, None
 
-        if y_path.startswith("zip:"):
+        parsed_y_path = rasterio.path.parse_path(y_path)
+        if tio.is_archive_parsed(parsed_y_path):
             if self.y_zip is None:
-                # Open zip for y training:
-                source_zip_path = y_path.split("!/")[0]
-                if source_zip_path.startswith("zip://s3"):
-                    zip_file = generator_utils.open_object_from_s3(
-                        source_zip_path.split("zip://")[-1]
-                    )
-                else:
-                    zip_file = source_zip_path
-                self.y_zip = zipfile.ZipFile(zip_file, "r")
-            file_inside_zip = y_path.split("!/")[-1]
-            y_img, y_meta = generator_utils.read_raster_inside_opened_zip(
-                file_inside_zip, self.y_zip
-            )
+                self.y_zip = tio.open_zip(parsed_y_path)
+            raster = tio.read_raster(y_path, zip_object=self.y_zip)
+            y_img = raster.img
+            y_meta = raster.meta
+
         elif y_path.endswith("geojson") and self.mode in GENERATOR_Y_VALUE_MODES:
             import geopandas as gp
 
             if self.y_geojson is None:
-                if y_path.startswith("s3"):
-                    data = open_file_from_s3(y_path)
-                    y_path = data["Body"]
-                self.y_geojson = gp.read_file(y_path)
+                y_file = tio.get(y_path)
+                self.y_geojson = gp.read_file(y_file)
             id_x = int([f for f in x_id.split("_") if f.isnumeric()][0])
             y_img = self.y_geojson.iloc[id_x]["class"]
             y_meta = None
         else:
-            y_img, y_meta = generator_utils.read_raster_file(y_path)
+            raster = tio.read_raster(y_path)
+            y_img = raster.img
+            y_meta = raster.meta
         y_img = np.array(y_img)
         if metadata:
             return x_imgs, y_img, x_meta, y_meta
@@ -497,10 +483,10 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         x_id = self.id_list[index]
         catalog = self.collection_catalog[x_id]
         x_paths = catalog["x_paths"]
-        x_meta = generator_utils.read_raster_meta(x_paths[0])
+        x_meta = tio.read_raster_meta(x_paths[0])
         if self.train:
             y_path = catalog["y_path"]
-            y_meta = generator_utils.read_raster_meta(y_path)
+            y_meta = tio.read_raster_meta(y_path)
             return x_meta, y_meta
         return x_meta
 
@@ -517,9 +503,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             # In 2D mode we don't want to fill missing timesteps.
             self.x_open_shape = (x_tensor.shape[0], *self.x_open_shape[1:])
         if x_tensor.shape != self.x_open_shape:
-            x_tensor = generator_utils.fill_missing_dimensions(
-                x_tensor, self.x_open_shape
-            )
+            x_tensor = fill_missing_dimensions(x_tensor, self.x_open_shape)
         # Upsample the X.
         if self.upsampling > 1:
             x_tensor = generator_augmentation_2D.upscale_multiple_images(
@@ -541,7 +525,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if self.train and self.mode in GENERATOR_Y_IMAGE_MODES:
             # Turn to multiclass.
             if self.multiclass_maker:
-                y_tensor = generator_utils.multiclass_builder(
+                y_tensor = multiclass_builder(
                     y_tensor, self.class_definitions, self.y_max_value, self.y_nan_value
                 )
             # Using last class for nan-values.
@@ -557,9 +541,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_tensor = y_tensor[: self.num_classes, : self.y_height, : self.y_width]
             # Fill the gaps with nodata if the array is too small.
             if y_tensor.shape != self.y_open_shape:
-                y_tensor = generator_utils.fill_missing_dimensions(
-                    y_tensor, self.y_open_shape
-                )
+                y_tensor = fill_missing_dimensions(y_tensor, self.y_open_shape)
         return x_tensor, y_tensor
 
     def process_resnet_img(self, X, Y=None):
@@ -633,7 +615,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         X = X[: self.timesteps, : self.num_bands]
         # Fill in missing dimensions.
         x_new_shape = (self.timesteps, self.num_bands, x_new_shape[2])
-        X = generator_utils.fill_missing_dimensions(X, x_new_shape)
+        X = fill_missing_dimensions(X, x_new_shape)
         # Bring pixel dimension to the front.
         X = np.swapaxes(X, 1, 2)
         X = np.swapaxes(X, 0, 1)
@@ -831,7 +813,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if not self.train:
             return X
         if self.class_weights is not None and self.one_hot:
-            sample_weights = generator_utils.class_sample_weights_builder(
+            sample_weights = class_sample_weights_builder(
                 np.argmax(Y, axis=-1), self.class_weights
             )
             return X, Y, sample_weights

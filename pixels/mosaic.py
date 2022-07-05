@@ -5,6 +5,7 @@ import numpy
 import sentry_sdk
 from rasterio.errors import RasterioIOError
 
+from pixels import tio
 from pixels.clouds import pixels_mask
 from pixels.const import (
     DISCRETE_BANDS,
@@ -16,7 +17,6 @@ from pixels.const import (
     SCL_COMPOSITE_CLOUD_BANDS,
 )
 from pixels.exceptions import PixelsException
-from pixels.generator.stac_utils import write_tiff_from_pixels_stack
 from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
@@ -453,7 +453,7 @@ def fetch_write_images(collect, search, out_path):
             search_config=search,
         )
         return None
-    return write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
+    return tio.write_tiff_from_pixels_stack(dates, pixels, out_path, meta)
 
 
 @log_function
