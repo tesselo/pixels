@@ -26,3 +26,4 @@ urllib3
 pydantic
 geojson_pydantic
 kiwi-structlog-config
+slack-sdk
