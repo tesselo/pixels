@@ -6,6 +6,7 @@ from unittest.mock import patch
 import numpy
 import rasterio
 
+from pixels.tio import write_raster
 from pixels.utils import (
     cog_to_jp2_bucket,
     compute_transform,
@@ -15,7 +16,6 @@ from pixels.utils import (
     jp2_to_gcs_bucket,
     timeseries_steps,
     unwrap_arguments,
-    write_raster,
 )
 from tests.scenarios import product_info_mock
 
@@ -229,7 +229,7 @@ class TestUtils(unittest.TestCase):
             )
         )
 
-    @patch("pixels.utils.open_file_from_s3", product_info_mock)
+    @patch("pixels.tio.load_dictionary", product_info_mock)
     def test_jp2_to_gcs_bucket(self):
         self.assertEqual(
             jp2_to_gcs_bucket(

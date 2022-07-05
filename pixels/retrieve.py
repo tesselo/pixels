@@ -32,7 +32,7 @@ def retrieve(
     Parameters
     ----------
     source : str
-        The raster source location, can be local, html or s3 paths. Anything
+        The raster source location, can be local, html or remote paths. Anything
         that rasterio can open.
     geojson : dict
         The area over which the raster data will be collected. The geometry

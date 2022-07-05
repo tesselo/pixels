@@ -9,11 +9,9 @@ from rasterio.warp import Resampling
 from rasterio.windows import Window
 from shapely.geometry import box
 
+from pixels import tio
 from pixels.const import FLOAT_NODATA_VALUE, INTEGER_NODATA_VALUE
-from pixels.generator.generator_utils import read_raster_meta
-from pixels.generator.stac_utils import list_files_in_folder, upload_files_s3
 from pixels.log import logger
-from pixels.utils import load_dictionary
 
 
 def check_overlaping_features(predictions_bbox):
@@ -401,7 +399,7 @@ def merge_prediction(generator_config_uri):
     predict_path = os.path.dirname(generator_config_uri)
 
     prediction_folder = os.path.join(predict_path, "predictions")
-    prediction_generator_conf = load_dictionary(generator_config_uri)
+    prediction_generator_conf = tio.load_dictionary(generator_config_uri)
     extract_probabilities = prediction_generator_conf.get(
         "extract_probabilities", False
     )
@@ -409,13 +407,12 @@ def merge_prediction(generator_config_uri):
 
     categorical = not extract_probabilities or num_classes == 1
     logger.info("Listing prediction files.")
-    prediction_files = list_files_in_folder(prediction_folder, filetype=".tif")
+    prediction_files = tio.list_files(prediction_folder, suffix=".tif")
 
-    raster_meta = read_raster_meta(prediction_files[0])
+    raster_meta = tio.read_raster_meta(prediction_files[0])
 
-    if predict_path.startswith("s3"):
-        merger_files_folder = predict_path.replace("s3://", "tmp/")
-    merger_files_folder = os.path.join(merger_files_folder, "merger_files")
+    predict_out_path = tio.local_or_temp(predict_path)
+    merger_files_folder = os.path.join(predict_out_path, "merger_files")
     os.makedirs(merger_files_folder, exist_ok=True)
     logger.info("Building vector of tiles bboxes.")
     predictions_bbox = get_rasters_bbox(prediction_files)
@@ -452,6 +449,6 @@ def merge_prediction(generator_config_uri):
             mem_limit=64,
         )
 
-    if predict_path.startswith("s3"):
-        logger.info("Saving files to S3.")
-        upload_files_s3(merger_files_folder, file_type="")
+    if tio.is_remote(predict_path):
+        logger.info("Saving files to remote storage.", remote_path=predict_path)
+        tio.upload(merger_files_folder)

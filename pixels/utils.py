@@ -1,31 +1,26 @@
-import ast
-import io
-import json
 import math
 import os
 from json import JSONEncoder
 from multiprocessing import Pool
 from typing import Any, Dict, Iterable, List, Optional
 
-import boto3
 import numpy
-import rasterio
-import sentry_sdk
 import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
 from rasterio.crs import CRS
-from rasterio.enums import Resampling
 from rasterio.features import bounds, rasterize
 from rasterio.warp import transform
 
+from pixels import tio
 from pixels.const import (
     BBOX_PIXEL_WITH_HEIGHT_TOLERANCE,
     S2_BAND_RESOLUTIONS,
     S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
     WORKERS_LIMIT,
 )
+from pixels.exceptions import PixelsException
 
 logger = structlog.get_logger(__name__)
 
@@ -258,96 +253,9 @@ def timeseries_steps(start, end, interval, interval_step=1):
         here_end += delta
 
 
-def write_raster(
-    data,
-    args,
-    out_path=None,
-    driver="GTiff",
-    dtype="float32",
-    overviews=True,
-    tags=None,
-):
-    """
-    Convert a numpy array into a raster object.
-
-    Given a numpy array and necessary metadata, create either a raster on disk
-    or return the raster in memory as a binary IO buffer. To create a file on
-    disk, provide an output path.
-
-    Parameters
-    ----------
-    data : array_like
-        The pixel values for the raster as numpy array.
-    args : dict
-        Rasterio creation arguments for the new raster.
-    out_path : str, optional
-        The path where the new file should be written on disk. If not provided,
-        a BytesIO object is returned with the raster in memory.
-    driver : str, optional
-        Rasterio driver for creating the new raster.
-    dtype : str, optional
-        Data type string specifying the output datatype.
-    overviews : bool, optional
-        Determines if the internal overviews will be created for the new raster.
-    tags : dict, optional
-        A dictionary of tags to be added to the raster file. The namespace for
-        all tags will be "tesselo".
-
-    Returns
-    -------
-    raster : BytesIO or None
-        If an output path was provided, the raster is written on disk and None
-        is returned. Otherwise, the raster is returned as a binary blob in
-        memory.
-    """
-    # Set the raster metadata as the same as the input
-    out_meta = args
-    # Ensure right shape, the first dimension of the data should be the band count.
-    if len(data.shape) == 2:
-        data = data.reshape((1,) + data.shape)
-    # Ensure correct datatype.
-    data = data.astype(dtype)
-    # Update some fields to ensure COG compatability.
-    out_meta.update(
-        {
-            "count": data.shape[0],
-            "dtype": dtype,
-            "driver": driver,
-            "tiled": "YES",
-            "compress": "DEFLATE",
-        }
-    )
-    # Determine resampling type for overviews.
-    if "int" in str(dtype).lower():
-        resampling = Resampling.nearest
-    else:
-        resampling = Resampling.average
-    # Determine overview factors.
-    factors = [(2**a) for a in range(1, 7) if (2**a) < min(data.shape[-2:])]
-    # If a path is given write an image file on that path
-    if out_path:
-        with rasterio.open(out_path, "w", **out_meta) as dst:
-            # Set the given metadata tags.
-            dst.write(data)
-            if tags:
-                dst.update_tags(**tags)
-            if overviews:
-                dst.build_overviews(factors, resampling)
-    else:
-        # Returns a memory file.
-        output = io.BytesIO()
-        with rasterio.io.MemoryFile() as memfile:
-            with memfile.open(**out_meta) as dst:
-                # Set the given metadata tags.
-                dst.write(data)
-                if tags:
-                    dst.update_tags(**tags)
-                if overviews:
-                    dst.build_overviews(factors, resampling)
-            memfile.seek(0)
-            output.write(memfile.read())
-        output.seek(0)
-        return output
+def check_for_squared_pixels(rst):
+    if abs(rst.transform[0]) != abs(rst.transform[4]):
+        raise PixelsException(f"Pixels are not squared for raster {rst.name}")
 
 
 class NumpyArrayEncoder(JSONEncoder):
@@ -396,8 +304,7 @@ def jp2_to_gcs_bucket(source: str) -> str:
     Transforms a URI from the AWS JP2 bucket GCS one
     """
     infofile_path = f"{source.split('/R')[0]}/productInfo.json"
-    infofile_data = open_file_from_s3(infofile_path, requester_pays=True)["Body"].read()
-    productinfo = json.loads(infofile_data)
+    productinfo = tio.load_dictionary(infofile_path)
     tileinfo = productinfo["tiles"][0]
 
     return S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE.format(
@@ -502,34 +409,3 @@ class BoundLogger:
 
     def error(self, message, **kwargs):
         self.logger.error(message, **self._log_context(), **kwargs)
-
-
-def open_file_from_s3(source_path, requester_pays=False):
-    s3_path = source_path.split("s3://")[1]
-    bucket = s3_path.split("/")[0]
-    path = s3_path.replace(bucket + "/", "")
-    request_payer = "requester" if requester_pays else ""
-    s3 = boto3.client("s3")
-    try:
-        data = s3.get_object(Bucket=bucket, Key=path, RequestPayer=request_payer)
-    except s3.exceptions.NoSuchKey as e:
-        sentry_sdk.capture_exception(e)
-        logger.warning(f"s3.exceptions.NoSuchKey. source_path {source_path}")
-        data = None
-    return data
-
-
-def load_dictionary(path_file):
-    # Open config file and load as dict.
-    if path_file.startswith("s3"):
-        my_str = open_file_from_s3(path_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        dictionary = json.loads(new_str)
-    else:
-        with open(path_file, "r") as json_file:
-            input_config = json_file.read()
-            try:
-                dictionary = ast.literal_eval(input_config)
-            except ValueError:
-                dictionary = json.loads(str(input_config))
-    return dictionary

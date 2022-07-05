@@ -1,9 +1,8 @@
 import datetime
-import io
-import json
 import os
 import zipfile
 from collections import Counter
+from io import BytesIO
 
 import geopandas as gp
 import numpy as np
@@ -14,23 +13,13 @@ from dateutil.relativedelta import relativedelta
 from pystac.validation import STACValidationError
 from rasterio.features import bounds
 
+from pixels import tio
 from pixels.const import ALLOWED_VECTOR_TYPES
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.generator import generator_utils
-from pixels.generator.stac_utils import (
-    check_file_in_s3,
-    get_bbox_and_footprint_and_stats,
-    list_files_in_folder,
-    save_dictionary,
-)
+from pixels.generator.stac_utils import get_bbox_and_footprint_and_stats
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
-from pixels.utils import (
-    load_dictionary,
-    open_file_from_s3,
-    run_starmap_multiprocessing,
-    timeseries_steps,
-)
+from pixels.utils import run_starmap_multiprocessing, timeseries_steps
 from pixels.validators import PixelsConfigValidator
 
 
@@ -85,7 +74,7 @@ def create_stac_item(
 
 
 def create_stac_item_from_raster(
-    path_item,
+    item_path,
     source_path,
     data,
     categorical,
@@ -95,17 +84,19 @@ def create_stac_item_from_raster(
     out_path=None,
     data_value_range=None,
 ):
-    id_raster = os.path.split(path_item)[-1].replace(".tif", "")
-    raster_file = path_item
-    # For zip files, wrap the path with a zip prefix.
-    if source_path.endswith(".zip") and source_path.startswith("s3"):
+    id_raster = os.path.split(item_path)[-1].replace(".tif", "")
+
+    if tio.is_archive(source_path) and tio.is_remote(source_path):
         file_in_zip = zipfile.ZipFile(data, "r")
-        raster_file = file_in_zip.read(path_item)
-        raster_file = io.BytesIO(raster_file)
-        path_item = "zip://{}!/{}".format(source_path, path_item)
-    elif source_path.endswith(".zip"):
-        path_item = "zip://{}!/{}".format(source_path, path_item)
-        raster_file = path_item
+        raster_file = file_in_zip.read(item_path)
+        raster_file = BytesIO(raster_file)
+        item_path = f"zip://{source_path}!/{item_path}"
+    elif tio.is_archive(source_path):
+        item_path = f"zip://{source_path}!/{item_path}"
+        raster_file = item_path
+    else:
+        raster_file = item_path
+
     # Extract metadata from raster.
     (bbox, footprint, datetime, out_meta, stats,) = get_bbox_and_footprint_and_stats(
         raster_file, categorical, hist_range=data_value_range
@@ -128,7 +119,7 @@ def create_stac_item_from_raster(
         bbox,
         datetime,
         out_meta,
-        path_item,
+        item_path,
         media_type=pystac.MediaType.GEOTIFF,
         additional_links=additional_links,
         out_path=out_path,
@@ -222,12 +213,7 @@ def parse_vector_data(
         catalog : dict
             Stac catalog dictionary containing all the raster items.
     """
-
-    if source_path.startswith("s3"):
-        data = open_file_from_s3(source_path)
-        data = data["Body"]
-    else:
-        data = source_path
+    data = tio.get(source_path)
     try:
         tiles = gp.read_file(data)
     except Exception as e:
@@ -261,7 +247,7 @@ def parse_vector_data(
         catalog.add_link(pystac.Link("corresponding_y", additional_links))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
-    # Save files if bool is set.
+
     if save_files:
         catalog.save_object()
     return catalog
@@ -306,24 +292,19 @@ def parse_raster_data(
     """
 
     data = None
-    if source_path.endswith(".zip"):
-        # parse_collections_rasters
-        if source_path.startswith("s3"):
-            data = generator_utils.open_object_from_s3(source_path)
-        else:
-            data = source_path
-        # Open zip file.
+    if tio.is_archive(source_path):
+        data = tio.get(source_path)
         archive = zipfile.ZipFile(data, "r")
         # Create stac catalog.
         id_name = os.path.split(os.path.dirname(source_path))[-1]
         raster_list = []
-        for af in archive.filelist:
-            if af.filename.endswith(".tif"):
-                raster_list.append(af.filename)
+        for file in archive.filelist:
+            if file.filename.endswith(".tif"):
+                raster_list.append(file.filename)
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
-        raster_list = list_files_in_folder(source_path + "/", filetype="tif")
+        raster_list = tio.list_files(source_path, suffix=".tif")
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
     logger.debug(f"Found {len(raster_list)} source rasters.")
@@ -379,7 +360,7 @@ def parse_raster_data(
         catalog.add_link(pystac.Link("corresponding_y", additional_links))
     catalog.make_all_links_absolute()
     catalog.make_all_asset_hrefs_absolute()
-    # Save files if bool is set.
+
     if save_files:
         catalog.save_object()
     return catalog
@@ -391,11 +372,7 @@ def is_allowed_vector(source_path):
 
 
 def is_allowed_raster_container(source_path):
-    return (
-        source_path.endswith(".zip")
-        or os.path.isdir(source_path)
-        or (source_path.startswith("s3") and len(source_path.split(".")) == 1)
-    )
+    return tio.is_archive(source_path) or tio.is_dir(source_path)
 
 
 def parse_data(
@@ -622,7 +599,7 @@ def configure_multi_time_bubbles(config, out_path, item, overwrite=False):
         config["interval"],
         interval_step=config["interval_step"],
     )
-    existing_files = list_files_in_folder(out_path + "/", filetype="tif")
+    existing_files = tio.list_files(out_path, suffix=".tif")
     start, end = existing_timesteps_range(timesteps, existing_files)
     configs = []
     if start is None:
@@ -662,7 +639,7 @@ def get_and_write_raster_from_item(
         for config in configs:
             config["out_path"] = out_path
             pixel_stack(**config)
-    out_paths = list_files_in_folder(f"{out_path}/", filetype="tif")
+    out_paths = tio.list_files(f"{out_path}/", suffix=".tif")
     out_paths = list(np.unique(out_paths))
     # Parse data to stac catalogs.
     x_cat = parse_data(
@@ -680,8 +657,8 @@ def get_and_write_raster_from_item(
             "discrete_training": discrete_training,
         }
     }
-    # Write file and send to s3.
-    save_dictionary(
+
+    tio.save_dictionary(
         os.path.join(
             os.path.dirname(os.path.dirname(stac_catalog_path)),
             "timerange_images_index.json",
@@ -715,7 +692,7 @@ def build_catalog_from_items(
     -------
         catalog : pystac catalog
     """
-    items_list = list_files_in_folder(path_to_items, filetype="_item.json")
+    items_list = tio.list_files(path_to_items, suffix="_item.json")
     # Abort here if there are no items to create a catalog.
     if not items_list:
         logger.warning(f"No items found to create catalog for {path_to_items}.")
@@ -808,15 +785,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
         items_per_job : int
             Number of items per jobs.
     """
-    # Open config file and load as dict.
-    if config_file.startswith("s3"):
-        json_data = open_file_from_s3(config_file)["Body"].read()
-        if isinstance(json_data, bytes):
-            json_data = json_data.decode("utf-8")
-        input_config = json.loads(json_data)
-    else:
-        f = open(config_file)
-        input_config = json.load(f)
+    input_config = tio.load_dictionary(config_file)
     x_folder = os.path.dirname(config_file)
     # Remove geojson attribute from configuration.
     if "geojson" in input_config:
@@ -824,7 +793,7 @@ def collect_from_catalog_subsection(y_catalog_path, config_file, items_per_job):
     overwrite = input_config.pop("overwrite", False)
     # If there is no images in the collection set overwrite to True.
     out_folder = os.path.join(x_folder, "data")
-    list_files = list_files_in_folder(out_folder, filetype=".tif")
+    list_files = tio.list_files(out_folder, suffix=".tif")
     if len(list_files) == 0:
         overwrite = True
     # Batch environment variables.
@@ -869,22 +838,18 @@ def create_x_catalog(x_folder, source_path=None):
     # Build a stac collection from all downloaded data.
     downloads_folder = os.path.join(x_folder, "data")
     x_catalogs = []
-    catalogs_path_list = list_files_in_folder(downloads_folder, filetype="catalog.json")
-    list_cats = list_files_in_folder(
-        downloads_folder, filetype="timerange_images_index.json"
-    )
+    catalogs_path_list = tio.list_files(downloads_folder, suffix="catalog.json")
+    list_cats = tio.list_files(downloads_folder, suffix="timerange_images_index.json")
     if not list_cats:
         raise PixelsException(f"Trying to build an empty catalog from {x_folder}")
 
     # Open all index catalogs and merge them.
     index_catalog = {}
     for cat in list_cats:
-        cat_dict = load_dictionary(cat)
+        cat_dict = tio.load_dictionary(cat)
         index_catalog.update(cat_dict)
-    # FIXME: it is still unknown if the following line has any effect
-    cat_dict["relative_paths"] = False
     cat_path = os.path.join(downloads_folder, "catalogs_dict.json")
-    save_dictionary(cat_path, index_catalog)
+    tio.save_dictionary(cat_path, index_catalog)
     for cat_path in catalogs_path_list:
         x_cat = pystac.Catalog.from_file(cat_path)
         x_catalogs.append(x_cat)
@@ -914,15 +879,7 @@ def collect_from_catalog(y_catalog, config_file, additional_links=None):
         x_collection : pystac collection
             Pystac collection with all the metadata.
     """
-    # Open config file and load as dict.
-    if config_file.startswith("s3"):
-        json_data = open_file_from_s3(config_file)["Body"].read()
-        if isinstance(json_data, bytes):
-            json_data = json_data.decode("utf-8")
-        input_config = json.loads(json_data)
-    else:
-        f = open(config_file)
-        input_config = json.load(f)
+    input_config = tio.load_dictionary(config_file)
     x_folder = os.path.dirname(config_file)
     # Remove geojson attribute from configuration.
     if "geojson" in input_config:
@@ -995,12 +952,7 @@ def create_and_collect(source_path, config_file):
         collection_id="final",
         path_to_pixels=os.path.dirname(source_path),
     )
-    file_check = False
-    if existing_collection_path.startswith("s3"):
-        file_check = check_file_in_s3(existing_collection_path)
-    else:
-        file_check = os.path.exists(existing_collection_path)
-    if file_check:
+    if tio.file_exists(existing_collection_path):
         # Read old collection, merge them together
         existing_collection = pystac.Catalog.from_file(existing_collection_path)
         for child in existing_collection.get_children():

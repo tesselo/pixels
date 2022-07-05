@@ -1,5 +1,9 @@
 import datetime
+import json
 from unittest.mock import MagicMock
+
+# Mock data for sentinel 2.
+from pixels import tio
 
 sentinel_2_data_mock = MagicMock(
     return_value=[
@@ -1678,5 +1682,5 @@ sample_geojson = {
 }
 
 product_info_mock = MagicMock(
-    return_value={"Body": open("tests/data/productInfo.json")}
+    return_value=json.loads(tio.read("tests/data/productInfo.json"))
 )

@@ -1,7 +1,7 @@
-import io
 import json
 import os
 import tempfile
+from io import BufferedReader, BytesIO
 
 import h5py
 import numpy as np
@@ -10,6 +10,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from rasterio import Affine
 
+from pixels import tio
 from pixels.const import (
     ALLOWED_CUSTOM_LOSSES,
     EVALUATION_PERCENTAGE_LIMIT,
@@ -19,19 +20,9 @@ from pixels.const import (
 )
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
-from pixels.generator.stac_utils import (
-    list_files_in_folder,
-    upload_files_s3,
-    upload_obj_s3,
-)
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
-from pixels.utils import (
-    NumpyArrayEncoder,
-    load_dictionary,
-    open_file_from_s3,
-    write_raster,
-)
+from pixels.utils import NumpyArrayEncoder
 
 MODE_PREDICTION_PER_PIXEL = [
     generator.GENERATOR_PIXEL_MODEL,
@@ -40,15 +31,13 @@ MODE_PREDICTION_PER_PIXEL = [
 MODE_PREDICTION_PER_IMAGE = generator.GENERATOR_UNET_MODEL
 
 
-def _save_and_write_tif(out_path, img, meta):
-    out_path_tif = out_path
-    if out_path.startswith("s3"):
-        out_path_tif = out_path_tif.replace("s3://", "tmp/")
-    if not os.path.exists(os.path.dirname(out_path_tif)):
-        os.makedirs(os.path.dirname(out_path_tif))
-    write_raster(img, meta, out_path=out_path_tif, dtype=img.dtype.name)
-    if out_path.startswith("s3"):
-        upload_files_s3(os.path.dirname(out_path_tif), file_type="tif")
+def _save_and_write_tif(uri, img, meta):
+    out_path = tio.local_or_temp(uri)
+    out_dir = os.path.dirname(out_path)
+    os.makedirs(out_dir, exist_ok=True)
+    tio.write_raster(img, meta, out_path=out_path, dtype=img.dtype.name)
+    if tio.is_remote(uri):
+        tio.upload(out_dir, suffix=".tif")
 
 
 def create_pystac_item(
@@ -96,19 +85,9 @@ def create_pystac_item(
     return item
 
 
-def load_model_from_file(model_configuration_file):
-    # Open config file and load as dict.
-    if model_configuration_file.startswith("s3"):
-        my_str = open_file_from_s3(model_configuration_file)["Body"].read()
-        new_str = my_str.decode("utf-8")
-        input_config = json.loads(new_str)
-        input_config = json.dumps(input_config)
-    else:
-        # Reading the model from JSON file
-        with open(model_configuration_file, "r") as json_file:
-            input_config = json_file.read()
-    model_j = tf.keras.models.model_from_json(input_config)
-    return model_j
+def load_model(model_path):
+    input_config = tio.load_dictionary(model_path)
+    return tf.keras.models.model_from_config(input_config)
 
 
 def load_loss_function(loss, loss_arguments):
@@ -152,20 +131,17 @@ def load_existing_model_from_file(
     model_uri, loss="nan_mean_squared_error_loss", loss_arguments=None
 ):
     loss_arguments = loss_arguments or {}
-    # Load model data from S3 if necessary.
-    if model_uri.startswith("s3"):
-        obj = open_file_from_s3(model_uri)["Body"]
-        fid_ = io.BufferedReader(obj._raw_stream)
-        read_in_memory = fid_.read()
-        bio_ = io.BytesIO(read_in_memory)
-        f = h5py.File(bio_, "r")
-        model_uri = f
+    obj = tio.get(model_uri)
+    fid = BufferedReader(obj._raw_stream)
+    read_in_memory = fid.read()
+    bio = BytesIO(read_in_memory)
+    f = h5py.File(bio, "r")
+    model_uri = f
     loss_function = load_loss_function(loss, loss_arguments)
-    model = tf.keras.models.load_model(
+    return tf.keras.models.load_model(
         model_uri,
         custom_objects={"loss": loss_function},
     )
-    return model
 
 
 def load_keras_model(
@@ -181,22 +157,22 @@ def load_keras_model(
             path_model, loss=loss_name, loss_arguments=loss_arguments
         )
     else:
-        model = load_model_from_file(model_config_uri)
+        model = load_model(model_config_uri)
         loss_function = load_loss_function(loss_name, loss_arguments)
         model.compile(loss=loss_function, **compile_args)
     return model
 
 
-class SaveModel_S3(tf.keras.callbacks.Callback):
+class SaveModel(tf.keras.callbacks.Callback):
     """
-    Custom Callback function to save and upload to s3 models on epoch end.
+    Custom Callback function to save and upload to remote storage models on epoch end.
 
     Parameters
     ----------
         passed_epochs : int
             Number of epochs already trained on the model.
         path : string
-            Path to model folder.
+            Path to local or remote storage model folder.
     """
 
     def __init__(self, passed_epochs, path):
@@ -206,18 +182,9 @@ class SaveModel_S3(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         epoch_number = epoch + self.passed_epochs + 1
-        path_model = os.path.join(self.path, f"model_epoch_{epoch_number}.hdf5")
-        # Store the model in bucket.
-        if path_model.startswith("s3"):
-            with io.BytesIO() as fl:
-                with h5py.File(fl, mode="w") as h5fl:
-                    self.model.save(h5fl)
-                    h5fl.flush()
-                    h5fl.close()
-                upload_obj_s3(path_model, fl.getvalue())
-        else:
-            with h5py.File(path_model, mode="w") as h5fl:
-                self.model.save(h5fl)
+        uri = os.path.join(self.path, f"model_epoch_{epoch_number}.hdf5")
+
+        tio.save_model(uri, self.model)
 
 
 class LogProgress(tf.keras.callbacks.Callback):
@@ -280,9 +247,9 @@ def train_model_function(
             Model trained with catalog data.
     """
     # Load the generator arguments.
-    gen_args = load_dictionary(generator_arguments_uri)
-    compile_args = load_dictionary(model_compile_arguments_uri)
-    fit_args = load_dictionary(model_fit_arguments_uri)
+    gen_args = tio.load_dictionary(generator_arguments_uri)
+    compile_args = tio.load_dictionary(model_compile_arguments_uri)
+    fit_args = tio.load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
     loss_arguments = compile_args.pop("loss_args", {})
     train_with_array = gen_args.pop("train_with_array", None)
@@ -304,7 +271,7 @@ def train_model_function(
     use_existing_model = compile_args.pop("use_existing_model", False)
     if use_existing_model:
         last_training_epochs = len(
-            list_files_in_folder(os.path.dirname(model_config_uri), filetype=".hdf5")
+            tio.list_files(os.path.dirname(model_config_uri), suffix=".hdf5")
         )
     else:
         last_training_epochs = 0
@@ -328,7 +295,7 @@ def train_model_function(
             class_weight = fit_args["class_weight"]
         else:
             # Open x catalog.
-            x_catalog = load_dictionary(catalog_uri)
+            x_catalog = tio.load_dictionary(catalog_uri)
             # Get origin files zip link from dictionary.
             origin_files = [
                 dat for dat in x_catalog["links"] if dat["rel"] == "origin_files"
@@ -338,7 +305,7 @@ def train_model_function(
                 os.path.dirname(origin_files), "stac", "catalog.json"
             )
             # Open y catalog.
-            y_catalog = load_dictionary(str(y_catalog_uri))
+            y_catalog = tio.load_dictionary(str(y_catalog_uri))
             # Get stats from y catalog.
             class_weight = y_catalog["class_weight"]
         # Ensure class weights have integer keys.
@@ -388,7 +355,7 @@ def train_model_function(
             Y,
             **fit_args,
             callbacks=[
-                SaveModel_S3(
+                SaveModel(
                     passed_epochs=last_training_epochs,
                     path=os.path.dirname(model_config_uri),
                 ),
@@ -402,7 +369,7 @@ def train_model_function(
             dtgen,
             **fit_args,
             callbacks=[
-                SaveModel_S3(
+                SaveModel(
                     passed_epochs=last_training_epochs,
                     path=os.path.dirname(model_config_uri),
                 ),
@@ -411,10 +378,7 @@ def train_model_function(
             verbose=0,
         )
     # Write history.
-    if model_config_uri.startswith("s3"):
-        path_ep_md = os.path.dirname(model_config_uri).replace("s3://", "tmp/")
-    else:
-        path_ep_md = os.path.dirname(model_config_uri)
+    path_ep_md = tio.local_or_temp(model_config_uri)
     if not os.path.exists(path_ep_md):
         os.makedirs(path_ep_md)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
@@ -423,17 +387,7 @@ def train_model_function(
         # Write data.
         json.dump(hist_data, f, cls=NumpyArrayEncoder)
 
-    # Store the model in bucket.
-    if path_model.startswith("s3"):
-        with io.BytesIO() as fl:
-            with h5py.File(fl, mode="w") as h5fl:
-                model.save(h5fl)
-                h5fl.flush()
-                h5fl.close()
-            upload_obj_s3(path_model, fl.getvalue())
-    else:
-        with h5py.File(path_model, mode="w") as h5fl:
-            model.save(h5fl)
+    tio.save_model(path_model, model)
 
     # Evaluate model on test set.
     gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
@@ -458,9 +412,9 @@ def train_model_function(
     # Export evaluation statistics to json file.
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
-    if model_config_uri.startswith("s3"):
-        upload_files_s3(path_ep_md, file_type=".hdf5", delete_folder=False)
-        upload_files_s3(path_ep_md, file_type="_stats.json")
+    if tio.is_remote(model_config_uri):
+        tio.upload(path_ep_md, suffix=".hdf5", delete_original=False)
+        tio.upload(path_ep_md, suffix="_stats.json")
     if gen_args.get("download_data"):
         tmpdir.cleanup()
     return model
@@ -488,8 +442,8 @@ def predict_function_batch(
         items_per_job : int
             Number of items per jobs.
     """
-    gen_args = load_dictionary(generator_config_uri)
-    compile_args = load_dictionary(
+    gen_args = tio.load_dictionary(generator_config_uri)
+    compile_args = tio.load_dictionary(
         os.path.join(os.path.dirname(model_uri), "compile_arguments.json")
     )
     # Load arguments for loss functions and force nan_value from generator.
