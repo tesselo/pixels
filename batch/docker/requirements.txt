@@ -15,18 +15,18 @@ attrs==21.4.0
     #   fiona
     #   jsonschema
     #   rasterio
-awscli==1.23.11
+awscli==1.25.22
     # via -r ./batch/docker/requirements.in
-backoff==2.0.1
+backoff==2.1.2
     # via -r ./batch/docker/requirements.in
-boto3==1.22.11
+boto3==1.24.22
     # via -r ./batch/docker/requirements.in
-botocore==1.25.11
+botocore==1.27.22
     # via
     #   awscli
     #   boto3
     #   s3transfer
-certifi==2021.10.8
+certifi==2022.6.15
     # via
     #   fiona
     #   pyproj
@@ -53,21 +53,21 @@ colorama==0.4.4
     #   kiwi-structlog-config
 cycler==0.11.0
     # via matplotlib
-docutils==0.15.2
+docutils==0.16
     # via awscli
 fiona==1.8.21
     # via
     #   -r ./batch/docker/requirements.in
     #   geopandas
-geojson-pydantic==0.3.4
+geojson-pydantic==0.4.2
     # via -r ./batch/docker/requirements.in
-geopandas==0.10.2
+geopandas==0.11.0
     # via -r ./batch/docker/requirements.in
 greenlet==1.1.2
     # via sqlalchemy
 h5py==2.10.0
     # via -r ./batch/docker/requirements.in
-jmespath==1.0.0
+jmespath==1.0.1
     # via
     #   boto3
     #   botocore
@@ -75,13 +75,13 @@ jsonschema==3.2.0
     # via -r ./batch/docker/requirements.in
 kiwi-structlog-config==0.1.8
     # via -r ./batch/docker/requirements.in
-kiwisolver==1.4.2
+kiwisolver==1.4.3
     # via matplotlib
 matplotlib==3.3.4
     # via -r ./batch/docker/requirements.in
 munch==2.5.0
     # via fiona
-numpy==1.22.3
+numpy==1.23.0
     # via
     #   -r ./batch/docker/requirements.in
     #   h5py
@@ -90,17 +90,19 @@ numpy==1.22.3
     #   pygeos
     #   rasterio
     #   snuggs
-pandas==1.4.2
+packaging==21.3
+    # via geopandas
+pandas==1.4.3
     # via
     #   -r ./batch/docker/requirements.in
     #   geopandas
-pg8000==1.26.1
+pg8000==1.29.1
     # via -r ./batch/docker/requirements.in
-pillow==9.1.0
+pillow==9.2.0
     # via matplotlib
 pyasn1==0.4.8
     # via rsa
-pydantic==1.9.0
+pydantic==1.9.1
     # via
     #   -r ./batch/docker/requirements.in
     #   geojson-pydantic
@@ -109,6 +111,7 @@ pygeos==0.12.0
 pyparsing==3.0.9
     # via
     #   matplotlib
+    #   packaging
     #   snuggs
 pyproj==3.2.1
     # via
@@ -132,13 +135,13 @@ rasterio==1.2.10
     # via -r ./batch/docker/requirements.in
 rsa==4.7.2
     # via awscli
-s3transfer==0.5.2
+s3transfer==0.6.0
     # via
     #   awscli
     #   boto3
 scramp==1.4.1
     # via pg8000
-sentry-sdk==1.5.12
+sentry-sdk==1.6.0
     # via
     #   -r ./batch/docker/requirements.in
     #   structlog-sentry
@@ -153,9 +156,11 @@ six==1.16.0
     #   jsonschema
     #   munch
     #   python-dateutil
+slack-sdk==3.17.2
+    # via -r ./batch/docker/requirements.in
 snuggs==1.4.7
     # via rasterio
-sqlalchemy==1.4.36
+sqlalchemy==1.4.39
     # via -r ./batch/docker/requirements.in
 structlog==21.5.0
     # via
@@ -169,7 +174,7 @@ tqdm==4.64.0
     # via -r ./batch/docker/requirements.in
 typeguard==2.13.3
     # via tensorflow-addons
-typing-extensions==4.2.0
+typing-extensions==4.3.0
     # via pydantic
 urllib3==1.26.9
     # via
