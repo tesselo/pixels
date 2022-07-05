@@ -15,7 +15,7 @@ The main difficulty in specifying the generator arguments are to properly align 
 
 `path_collection_catalog`: string
 
-Path to the dictonary containing the training set. Either in s3 or locally. Has to be a catalogs_dict.json file.
+Path to the dictionary containing the training set. Either remotely or locally. Has to be a catalogs_dict.json file.
 
 `split`: float
 
