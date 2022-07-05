@@ -25,6 +25,7 @@ from pixels.generator.stac_utils import (
     upload_obj_s3,
 )
 from pixels.log import log_function, logger
+from pixels.slack import SlackClient
 from pixels.utils import (
     NumpyArrayEncoder,
     load_dictionary,
@@ -224,11 +225,16 @@ class LogProgress(tf.keras.callbacks.Callback):
     Custom Callback function to log training progress.
     """
 
+    def __init__(self):
+        super().__init__()
+        self.slack = SlackClient()
+
     def _log_status(self, state, logs=None, epoch=None):
         extra = logs or {}
         if epoch is not None:
             extra["current_epoch"] = epoch + 1
             extra["all_epochs"] = self.params["epochs"]
+        self.slack.log_keras_progress(state, extra)
         logger.info(state, **extra)
 
     def on_epoch_begin(self, epoch, logs=None):
