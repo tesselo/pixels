@@ -56,6 +56,7 @@ numpy==1.23.0
     #   h5py
     #   pandas
     #   rasterio
+    #   scipy
     #   snuggs
 packaging==21.3
     # via geopandas
@@ -83,6 +84,8 @@ python-dateutil==2.8.2
 pytz==2022.1
     # via pandas
 rasterio==1.2.10
+    # via -r requirements.in
+scipy==1.8.1
     # via -r requirements.in
 scramp==1.4.1
     # via pg8000
@@ -113,7 +116,7 @@ structlog-sentry==1.4.0
     # via -r requirements.in
 typing-extensions==4.3.0
     # via pydantic
-urllib3==1.26.9
+urllib3==1.26.10
     # via sentry-sdk
 
 # The following packages are considered to be unsafe in a requirements file:
