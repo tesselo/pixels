@@ -166,5 +166,5 @@ def local_or_temp(uri: str) -> str:
 
 
 def open_zip(parsed_path: rasterio.path.ParsedPath) -> zipfile.ZipFile:
-    zip_file = read(parsed_path.archive)
+    zip_file = read(parsed_path.archive, decode=False)
     return zipfile.ZipFile(zip_file, "r")
