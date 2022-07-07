@@ -28,9 +28,14 @@ class S3:
         return data
 
     def get(self):
-        return self.s3.Object(self.bucket, self.key).get(
-            RequestPayer=self.requester_pays
-        )["Body"]
+        try:
+            return self.s3.Object(self.bucket, self.key).get(
+                RequestPayer=self.requester_pays
+            )["Body"]
+        except KeyError:
+            raise PixelsException(
+                f"Object not found in S3: {self.key} in {self.bucket}"
+            )
 
     def write(self, data) -> None:
         obj = self.s3.Object(self.bucket, self.key)
