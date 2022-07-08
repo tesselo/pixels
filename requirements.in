@@ -2,7 +2,7 @@ h5py==2.10.0  # Pinned for backwards compatability of our model objects.
 pg8000
 pyparsing
 pystac==0.5.4
-rasterio
+rasterio==1.2.10
 sentry-sdk
 SQLAlchemy
 backoff

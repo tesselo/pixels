@@ -124,7 +124,7 @@ tqdm==4.64.0
     # via semgrep
 typing-extensions==4.3.0
     # via black
-urllib3==1.26.9
+urllib3==1.26.10
     # via requests
 virtualenv==20.15.1
     # via pre-commit
