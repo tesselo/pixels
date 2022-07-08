@@ -1,11 +1,9 @@
 import math
-import os
 from json import JSONEncoder
 from multiprocessing import Pool
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 import numpy
-import structlog
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 from rasterio import Affine
@@ -21,8 +19,6 @@ from pixels.const import (
     WORKERS_LIMIT,
 )
 from pixels.exceptions import PixelsException
-
-logger = structlog.get_logger(__name__)
 
 
 def compute_number_of_pixels(distance: (int, float), scale: (int, float)) -> int:
@@ -359,53 +355,3 @@ def run_starmap_multiprocessing(
         result_list = pool.starmap(func=func, iterable=iterator)
 
     return result_list
-
-
-class BoundLogger:
-    def __init__(
-        self, bind=None, context: Optional[Dict[str, str]] = None, log_id=None
-    ):
-        """
-        Parameters
-        ----------
-            bind: ref
-                The object to associate the logger with
-            context: dict
-                Contains a dictionary with the human names and
-                the attribute names of the instance that we
-                want to print in every logging message.
-            log_id: str
-                An ID for this logger, generated if None
-        """
-        self.bind = bind or self
-        # Unique and fast id for the instance
-        self.log_id = log_id or os.urandom(4).hex()
-        self.logger = structlog.get_logger(self.log_id)
-
-        self.context = context or {}
-
-        if os.environ.get("AWS_BATCH_JOB_ID"):
-            self.context["AWS_BATCH_JOB_ID"] = os.environ.get("AWS_BATCH_JOB_ID")
-            self.context["AWS_BATCH_JOB_ATTEMPT"] = os.environ.get(
-                "AWS_BATCH_JOB_ATTEMPT"
-            )
-
-    def _log_context(self):
-        context = {"log_id": self.log_id}
-
-        for name, key in self.context.items():
-            context[name] = key
-
-        return context
-
-    def debug(self, message, **kwargs):
-        self.logger.debug(message, **self._log_context(), **kwargs)
-
-    def info(self, message, **kwargs):
-        self.logger.info(message, **self._log_context(), **kwargs)
-
-    def warning(self, message, **kwargs):
-        self.logger.warning(message, **self._log_context(), **kwargs)
-
-    def error(self, message, **kwargs):
-        self.logger.error(message, **self._log_context(), **kwargs)
