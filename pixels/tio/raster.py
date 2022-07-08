@@ -7,9 +7,14 @@ import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 
+from pixels.exceptions import PixelsException
 from pixels.log import logger
 from pixels.tio.virtual import is_remote, local_or_temp, open_zip, upload
-from pixels.utils import check_for_squared_pixels
+
+
+def check_for_squared_pixels(rst):
+    if abs(rst.transform[0]) != abs(rst.transform[4]):
+        raise PixelsException(f"Pixels are not squared for raster {rst.name}")
 
 
 @dataclass
