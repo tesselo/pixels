@@ -153,7 +153,7 @@ def read_raster(path, img=True, meta=True, zip_object=None) -> Raster:
         if hasattr(parsed_path, "archive") and parsed_path.archive:
             if zip_object is None:
                 zip_object = open_zip(parsed_path)
-            raster_file = zip_object.read(parsed_path.path)
+            raster_file = zip_object.read(parsed_path.path.lstrip("/"))
             raster_file = BytesIO(raster_file)
         else:
             raster_file = path
