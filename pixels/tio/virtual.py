@@ -3,7 +3,7 @@ import json
 import os
 import zipfile
 from io import BytesIO
-from typing import Any, AnyStr, List
+from typing import Any, AnyStr, List, Union
 
 import h5py
 import rasterio.path
@@ -73,6 +73,19 @@ def get(uri: str) -> AnyStr:
         return S3(uri).get()
     else:
         return uri
+
+
+def get_zippable(uri: str) -> Union[AnyStr, BytesIO]:
+    """
+    Returns a zippable handler from an uri.
+    """
+    if is_remote(uri):
+        zip_contents = read(uri, decode=False)
+        zip_file = BytesIO(zip_contents)
+    else:
+        zip_file = get(uri)
+
+    return zip_file
 
 
 def read(uri: str, decode: bool = True, encoding: str = "utf-8") -> AnyStr:
@@ -165,10 +178,10 @@ def local_or_temp(uri: str) -> str:
     return uri
 
 
-def open_zip(parsed_path: rasterio.path.ParsedPath) -> zipfile.ZipFile:
-    if is_remote(parsed_path.archive):
-        zip_contents = read(parsed_path.archive, decode=False)
-        zip_file = BytesIO(zip_contents)
+def open_zip(uri: Union[rasterio.path.ParsedPath, str]) -> zipfile.ZipFile:
+    if is_archive_parsed(uri):
+        path = uri.archive
     else:
-        zip_file = get(parsed_path.archive)
+        path = uri
+    zip_file = get_zippable(path)
     return zipfile.ZipFile(zip_file, "r")

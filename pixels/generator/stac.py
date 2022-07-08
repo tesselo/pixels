@@ -76,7 +76,7 @@ def create_stac_item(
 def create_stac_item_from_raster(
     item_path,
     source_path,
-    data,
+    archive_data,
     categorical,
     reference_date,
     additional_links,
@@ -87,7 +87,7 @@ def create_stac_item_from_raster(
     id_raster = os.path.split(item_path)[-1].replace(".tif", "")
 
     if tio.is_archive(source_path) and tio.is_remote(source_path):
-        file_in_zip = zipfile.ZipFile(data, "r")
+        file_in_zip = zipfile.ZipFile(archive_data, "r")
         raster_file = file_in_zip.read(item_path)
         raster_file = BytesIO(raster_file)
         item_path = f"zip://{source_path}!/{item_path}"
@@ -291,10 +291,10 @@ def parse_raster_data(
             Stac catalog dictionary containing all the raster items.
     """
 
-    data = None
+    archive_data = None
     if tio.is_archive(source_path):
-        data = tio.get(source_path)
-        archive = zipfile.ZipFile(data, "r")
+        archive_data = tio.get_zippable(source_path)
+        archive = zipfile.ZipFile(archive_data, "r")
         # Create stac catalog.
         id_name = os.path.split(os.path.dirname(source_path))[-1]
         raster_list = []
@@ -317,7 +317,7 @@ def parse_raster_data(
         raster_list,
         [
             source_path,
-            data,
+            archive_data,
             categorical,
             reference_date,
             additional_links,
