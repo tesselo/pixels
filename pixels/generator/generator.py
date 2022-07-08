@@ -17,8 +17,7 @@ from pixels.generator.generator_utils import (
     fill_missing_dimensions,
     multiclass_builder,
 )
-from pixels.log import logger
-from pixels.utils import BoundLogger
+from pixels.log import BoundLogger, logger
 
 # Mode Definitions
 GENERATOR_MODE_TRAINING = "training"
