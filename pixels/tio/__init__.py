@@ -11,6 +11,7 @@ from pixels.tio.virtual import (
     download,
     file_exists,
     get,
+    get_zippable,
     is_archive,
     is_archive_parsed,
     is_dir,
