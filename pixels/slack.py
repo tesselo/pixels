@@ -22,7 +22,9 @@ class SlackClient(WebClient):
         return self.send_message(os.environ["SLACK_UPDATES_CHANNEL"], message)
 
     def log_keras_progress(self, state: str, metrics: dict):
-        message = f"Model doing {state} in BatchID {logger.context['AWS_BATCH_JOB_ID']}"
+        message = (
+            f"Model doing {state} in BatchID {logger.context.get('AWS_BATCH_JOB_ID')}"
+        )
         if metrics:
             message += ":\n"
             for key, value in metrics.items():
