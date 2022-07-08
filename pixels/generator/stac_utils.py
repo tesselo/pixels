@@ -4,7 +4,6 @@ import rasterio
 from pystac import STAC_IO
 
 from pixels import tio
-from pixels.utils import check_for_squared_pixels
 
 
 def write_method(uri, txt):
@@ -64,7 +63,7 @@ def get_bbox_and_footprint_and_stats(
         Statistics of the data, counts by unique value or histogram.
     """
     with rasterio.open(raster_uri) as ds:
-        check_for_squared_pixels(ds)
+        tio.raster.check_for_squared_pixels(ds)
         # Get bounds.
         bounds = ds.bounds
         # Create bbox as list.

@@ -18,7 +18,6 @@ from pixels.const import (
     S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
     WORKERS_LIMIT,
 )
-from pixels.exceptions import PixelsException
 
 
 def compute_number_of_pixels(distance: (int, float), scale: (int, float)) -> int:
@@ -247,11 +246,6 @@ def timeseries_steps(start, end, interval, interval_step=1):
         # Increment intermediate timestamps.
         here_start += delta
         here_end += delta
-
-
-def check_for_squared_pixels(rst):
-    if abs(rst.transform[0]) != abs(rst.transform[4]):
-        raise PixelsException(f"Pixels are not squared for raster {rst.name}")
 
 
 class NumpyArrayEncoder(JSONEncoder):
