@@ -69,8 +69,9 @@ class S3:
             shutil.rmtree(base_dir)
 
     def download(self, directory: str) -> str:
-        os.makedirs(directory, exist_ok=True)
         save_path = os.path.join(directory, self.key)
+        if not os.path.exists(save_path):
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
         bucket = self.s3.Bucket(self.bucket)
         bucket.download_file(self.key, save_path)
         return save_path
