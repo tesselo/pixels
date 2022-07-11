@@ -1,4 +1,3 @@
-import glob
 import os
 import shutil
 from typing import AnyStr, List
@@ -16,7 +15,7 @@ class S3:
         self.s3 = boto3.resource("s3")
         self.parsed = urlparse(uri)
         self.bucket = self.parsed.netloc
-        self.key = self.parsed.path[1:]
+        self.key = self.parsed.path.lstrip("/")
         self.requester_pays = (
             "requester" if self.bucket in REQUESTER_PAYS_BUCKETS else ""
         )
@@ -52,8 +51,7 @@ class S3:
     def file_exists(self):
         return self.uri in self.list(suffix="")
 
-    def upload(self, suffix: str, delete_original: bool) -> None:
-        file_list = glob.glob(f"{self.uri}**/**/*{suffix}", recursive=True)
+    def upload(self, file_list: List[str], delete_original: bool) -> None:
         base_dir, bucket, *_ = self.uri.split("/")
         local_start = f"{base_dir}/{bucket}/"
 
