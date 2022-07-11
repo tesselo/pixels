@@ -44,13 +44,13 @@ class S3:
     def list(self, suffix) -> List[AnyStr]:
         bucket = self.s3.Bucket(self.bucket)
         return [
-            obj.key
+            "s3://" + self.bucket + "/" + obj.key
             for obj in bucket.objects.filter(Prefix=self.key)
             if obj.key.endswith(suffix)
         ]
 
     def file_exists(self):
-        return self.key in self.list(suffix="")
+        return self.uri in self.list(suffix="")
 
     def upload(self, suffix: str, delete_original: bool) -> None:
         file_list = glob.glob(f"{self.uri}**/**/*{suffix}", recursive=True)
