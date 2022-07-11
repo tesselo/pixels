@@ -124,9 +124,13 @@ def download(uri: str, destination: str) -> str:
 
 def upload(uri: str, suffix: str = "", delete_original=True) -> None:
     """
-    Uploads a file to a specific location based on the uri.
+    Uploads a file or the contents of a dir to a specific location based on the uri.
     """
-    S3(uri).upload(suffix, delete_original)
+    if is_dir(uri):
+        file_list = glob.glob(f"{uri}**/**/*{suffix}", recursive=True)
+    else:
+        file_list = [uri]
+    S3(uri).upload(file_list, delete_original)
 
 
 def load_dictionary(uri: str) -> dict:
