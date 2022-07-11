@@ -301,7 +301,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         collection_catalog_str = json.dumps(self.collection_catalog)
 
         if tio.is_archive_parsed(parsed_y_path_file):
-            with tio.open_zip(parsed_y_path_file.archive) as z:
+            y_path_file = tio.download(parsed_y_path_file.archive, download_dir)
+            with tio.open_zip(y_path_file) as z:
                 z.extractall(y_path_file.replace(".zip", ""))
             # Inside the catalog change the y_path, from rasterio and remote reading format
             # to absolute downloaded path.
