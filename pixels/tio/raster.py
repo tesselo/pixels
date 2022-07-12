@@ -169,7 +169,11 @@ def read_raster(path, img=True, meta=True, zip_object=None) -> Raster:
             if meta:
                 raster.meta = src.meta
     except Exception as e:
+        import glob
+
         logger.warning(f"Generator error in read_raster: {e}")
+        logger.info("Files in tmp", tmp_files=glob.glob("tmp/**"))
+        logger.info("Files in /tmp", tmp_files=glob.glob("/tmp/**"))
     return raster
 
 

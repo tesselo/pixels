@@ -134,7 +134,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
 
         super().__init__(
             log_id=logger.log_id,
-            context={"mode": "mode", "usage_type": "usage_type", "data_type": "dtype"},
+            context={"mode": mode, "usage_type": usage_type, "data_type": dtype},
         )
 
         # Multiclass transform.
@@ -282,10 +282,13 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             self.warning("Data can only be downloaded if on remote storage.")
             return
 
-        self.info("Download all data")
+        self.info(
+            f"Download all data from {os.path.dirname(self.path_collection_catalog)}"
+        )
         list_of_tifs = tio.list_files(
             os.path.dirname(self.path_collection_catalog), suffix=".tif"
         )
+        self.info(f"Downloading {len(list_of_tifs)} images")
         # Download the Pixels Data images in parallel.
         with Pool(min(len(list_of_tifs), 12)) as p:
             p.starmap(
