@@ -450,6 +450,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             x_meta.append(np.array(raster.meta))
         if temp_dir:
             temp_dir.cleanup()
+        x_imgs = np.array(x_imgs)
 
         if (
             SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
@@ -487,7 +488,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_img = raster.img
             y_meta = raster.meta
         y_img = np.array(y_img)
-        x_imgs = np.array(x_imgs)
         if metadata:
             return x_imgs, y_img, x_meta, y_meta
         return x_imgs, y_img
