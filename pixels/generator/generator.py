@@ -430,21 +430,34 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             parent_path = os.path.dirname(self.path_collection_catalog)
             x_paths = [os.path.join(parent_path, path) for path in x_paths]
             y_path = os.path.join(parent_path, y_path)
-        # Open all X images in parallel.
-        with Pool(min(len(x_paths), 12)) as p:
-            x_tensor = p.map(tio.read_raster_tuple, x_paths)
-        # Get the imgs list and the meta list.
-        x_imgs = np.array(x_tensor, dtype="object")[:, 0]
-        # Ensure all images are numpy arrays.
-        x_imgs = np.array([np.array(x) for x in x_imgs])
-        x_meta = np.array(x_tensor, dtype="object")[:, 1]
+        # Download images in parallel.
+        temp_dir = None
+        if tio.is_remote(x_paths[0]):
+            temp_dir = tempfile.TemporaryDirectory()
+            download_dir = temp_dir.name
+            with Pool(min(len(x_paths), 12)) as p:
+                downloaded = p.starmap(
+                    tio.download,
+                    zip(x_paths, [download_dir] * len(x_paths)),
+                )
+        else:
+            downloaded = x_paths
+        x_imgs = []
+        x_meta = []
+        for image in downloaded:
+            raster = tio.read_raster(image)
+            x_imgs.append(np.array(raster.img))
+            x_meta.append(np.array(raster.meta))
+        if temp_dir:
+            temp_dir.cleanup()
+
         if (
             SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
         ) and self.cloud_sort:
             # Now we only use one platform.
             sat_platform = [f for f in self.platforms][0]
             x_imgs = filters.order_tensor_on_cloud_mask(
-                np.array(x_imgs), max_images=self.timesteps, sat_platform=sat_platform
+                x_imgs, max_images=self.timesteps, sat_platform=sat_platform
             )
 
         if not self.train:
@@ -474,6 +487,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_img = raster.img
             y_meta = raster.meta
         y_img = np.array(y_img)
+        x_imgs = np.array(x_imgs)
         if metadata:
             return x_imgs, y_img, x_meta, y_meta
         return x_imgs, y_img
