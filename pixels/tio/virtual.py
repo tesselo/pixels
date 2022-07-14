@@ -7,7 +7,6 @@ from typing import Any, AnyStr, List, Union
 
 import h5py
 import rasterio.path
-import tensorflow as tf
 
 from pixels.tio.s3 import S3
 
@@ -153,7 +152,7 @@ def save_dictionary(uri: str, dictionary: dict) -> None:
         )
 
 
-def save_model(uri: str, model: tf.keras.Model):
+def save_model(uri: str, model):
     """
     Saves a model to a file.
     """
