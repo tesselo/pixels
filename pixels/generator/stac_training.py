@@ -378,7 +378,7 @@ def train_model_function(
             verbose=0,
         )
     # Write history.
-    path_ep_md = tio.local_or_temp(model_config_uri)
+    path_ep_md = os.path.dirname(tio.local_or_temp(model_config_uri))
     if not os.path.exists(path_ep_md):
         os.makedirs(path_ep_md)
     with open(os.path.join(path_ep_md, "history_stats.json"), "w") as f:
@@ -413,7 +413,6 @@ def train_model_function(
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
     if tio.is_remote(model_config_uri):
-        tio.upload(path_ep_md, suffix=".hdf5", delete_original=False)
         tio.upload(path_ep_md, suffix="_stats.json")
     if gen_args.get("download_data"):
         tmpdir.cleanup()
