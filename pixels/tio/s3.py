@@ -31,7 +31,7 @@ class S3:
             return self.s3.Object(self.bucket, self.key).get(
                 RequestPayer=self.requester_pays
             )["Body"]
-        except KeyError:
+        except (KeyError, self.s3.meta.client.exceptions.NoSuchKey):
             raise PixelsException(
                 f"Object not found in S3: {self.key} in {self.bucket}"
             )
