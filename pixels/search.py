@@ -1,7 +1,7 @@
 from pixels.config.db_config import create_db_engine_pxsearch
-from pixels.const import S2_PLATFORMS
 from pixels.log import logger
 from pixels.utils import compute_wgs83_bbox
+from pixels.validators import PixelsSearchValidator
 
 engine = create_db_engine_pxsearch()
 
@@ -28,61 +28,46 @@ def determine_band_name(asset_key, asset, bands):
     return None
 
 
-def search_data(
-    geojson,
-    start=None,
-    end=None,
-    platforms=None,
-    maxcloud=None,
-    level=None,
-    limit=10,
-    sort="sensing_time",
-    bands=None,
-):
-
-    xmin, ymin, xmax, ymax = compute_wgs83_bbox(geojson, return_bbox=True)
-
-    search_platforms = [platform for platform in platforms if "LANDSAT" in platform]
-    if "SENTINEL_2" in platforms:
-        search_platforms += S2_PLATFORMS
+def build_query(data: PixelsSearchValidator):
+    xmin, ymin, xmax, ymax = compute_wgs83_bbox(data.geojson, return_bbox=True)
 
     query = f"""
     SELECT id, collection_id, datetime, properties, assets FROM data.items
     WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), geometry)
-    AND (properties ->> 'platform') IN ({prep_in_array_query(search_platforms)})
+    AND (properties ->> 'platform') IN ({prep_in_array_query(data.query_platforms)})
     """
 
-    collections = []
-    if any(["LANDSAT" in platform for platform in platforms]):
-        collections.append("landsat-c2l2-sr")
-    if any(["SENTINEL_2" == platform for platform in platforms]):
-        if level == "L2A":
-            collections.append("sentinel-s2-l2a-cogs")
-        else:
-            collections.append("sentinel-s2-l1c")
-    if collections:
-        query += f" AND collection_id IN ({prep_in_array_query(collections)})"
+    if data.query_collections:
+        query += (
+            f" AND collection_id IN ({prep_in_array_query(data.query_collections)})"
+        )
 
-    if start is not None:
-        query += f" AND datetime >= timestamp '{start}' "
-    if end is not None:
-        query += f" AND datetime <= timestamp '{end}' "
-    if maxcloud is not None:
-        query += f" AND (properties -> 'eo:cloud_cover')::float < {maxcloud}"
-    if sort == "cloud_cover":
+    if data.start is not None:
+        query += f" AND datetime >= timestamp '{data.start}' "
+    if data.end is not None:
+        query += f" AND datetime <= timestamp '{data.end}' "
+    if data.maxcloud is not None:
+        query += f" AND (properties -> 'eo:cloud_cover')::float < {data.maxcloud}"
+    if data.sort == "cloud_cover":
         query += " ORDER BY properties -> 'eo:cloud_cover' ASC"
-    elif sort:
+    elif data.sort:
         query += " ORDER BY datetime DESC"
-    if limit is not None:
-        query += " LIMIT {}".format(limit)
+    if data.limit is not None:
+        query += " LIMIT {}".format(data.limit)
 
+    return query
+
+
+def search_data(data: PixelsSearchValidator):
+
+    query = build_query(data)
     query_results = execute_query(query)
 
     result = []
     for item in query_results:
         item_bands_hrefs = {}
         for asset_key, asset in item["assets"].items():
-            band_name = determine_band_name(asset_key, asset, bands)
+            band_name = determine_band_name(asset_key, asset, data.bands)
             if not band_name:
                 continue
 
@@ -91,7 +76,7 @@ def search_data(
             else:
                 item_bands_hrefs[band_name] = asset["href"]
 
-        missing_bands = set(bands) - set(item_bands_hrefs.keys())
+        missing_bands = set(data.bands) - set(item_bands_hrefs.keys())
         if missing_bands:
             logger.warning(f"Bands {missing_bands} not found in item {item['id']}")
 
