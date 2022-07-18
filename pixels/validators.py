@@ -152,7 +152,7 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
 
     @validator("bands")
     def check_scl_level(cls, v, values):
-        if "SCL" in v and values["level"] != "L2A":
+        if "SCL" in v and values["level"] != SentinelLevelOption.l2a:
             raise ValueError("SCL can only be requested for level L2A")
         return v
 
@@ -214,6 +214,7 @@ class PixelsSearchValidator(PixelsBaseValidator):
 
         if any([platform in SentinelPlatform for platform in self.platforms]):
             if self.level == SentinelLevelOption.l2a:
+                collections.append(SearchStacCollectionOption.sentinel_s2_l2a)
                 collections.append(SearchStacCollectionOption.sentinel_s2_l2a_cogs)
             else:
                 collections.append(SearchStacCollectionOption.sentinel_s2_l1c)

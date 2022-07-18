@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from pixels.search import search_data
+from pixels.search import build_query, search_data
 from pixels.validators import PixelsSearchValidator
 from tests.scenarios import empty_data_mock, landsat_data_mock, sentinel_2_data_mock
 
@@ -110,3 +110,57 @@ class SearchTest(unittest.TestCase):
 
         actual = search_data(data)
         self.assertEqual(actual, [])
+
+    def test_build_query_l1c(self):
+        self.maxDiff = None
+        data = PixelsSearchValidator(
+            geojson=geojson,
+            start="2020-12-01",
+            end="2021-01-01",
+            maxcloud=100,
+            limit=2,
+            platforms="SENTINEL_2",
+            level="L1C",
+            bands=["B01", "B02"],
+        )
+        query = build_query(data)
+        self.assertEqual(
+            query,
+            "SELECT id, collection_id, datetime, properties, assets FROM data.items WHERE ST_Intersects(ST_MakeEnvelope(-48.52081457543516, -1.4848032319778461,-48.42374328200645,-1.381535093272429,4326), geometry) AND (properties ->> 'platform') IN ('sentinel-2a','sentinel-2b','sentinel-2c','sentinel-2d') AND collection_id IN ('sentinel-s2-l1c') AND datetime >= timestamp '2020-12-01' AND datetime <= timestamp '2021-01-01' AND (properties -> 'eo:cloud_cover')::float < 100 ORDER BY datetime DESC LIMIT 2",
+        )
+
+    def test_build_query_l2a(self):
+        self.maxDiff = None
+        data = PixelsSearchValidator(
+            geojson=geojson,
+            start="2020-12-01",
+            end="2021-01-01",
+            maxcloud=100,
+            limit=2,
+            platforms="SENTINEL_2",
+            level="L2A",
+            bands=["B01", "B02"],
+        )
+        query = build_query(data)
+        self.assertEqual(
+            query,
+            "SELECT * FROM ( SELECT DISTINCT ON (id) * FROM ( SELECT id, collection_id, datetime, properties, assets FROM data.items WHERE ST_Intersects(ST_MakeEnvelope(-48.52081457543516, -1.4848032319778461,-48.42374328200645,-1.381535093272429,4326), geometry) AND (properties ->> 'platform') IN ('sentinel-2a','sentinel-2b','sentinel-2c','sentinel-2d') AND collection_id IN ('sentinel-s2-l2a','sentinel-s2-l2a-cogs') AND datetime >= timestamp '2020-12-01' AND datetime <= timestamp '2021-01-01' AND (properties -> 'eo:cloud_cover')::float < 100 ORDER BY id, collection_id DESC) AS s2table_distinct ) AS s2table_ordered ORDER BY datetime DESC LIMIT 2",
+        )
+
+    def test_build_query_landsat(self):
+        self.maxDiff = None
+        data = PixelsSearchValidator(
+            geojson=geojson,
+            start="2020-12-01",
+            end="2021-01-01",
+            maxcloud=100,
+            limit=2,
+            platforms="LANDSAT_8",
+            level="L2",
+            bands=["B2", "B4", "B5"],
+        )
+        query = build_query(data)
+        self.assertEqual(
+            query,
+            "SELECT id, collection_id, datetime, properties, assets FROM data.items WHERE ST_Intersects(ST_MakeEnvelope(-48.52081457543516, -1.4848032319778461,-48.42374328200645,-1.381535093272429,4326), geometry) AND (properties ->> 'platform') IN ('LANDSAT_8') AND collection_id IN ('landsat-c2l2-sr') AND datetime >= timestamp '2020-12-01' AND datetime <= timestamp '2021-01-01' AND (properties -> 'eo:cloud_cover')::float < 100 ORDER BY datetime DESC LIMIT 2",
+        )
