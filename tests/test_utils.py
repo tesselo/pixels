@@ -17,6 +17,7 @@ from pixels.utils import (
     timeseries_steps,
     unwrap_arguments,
 )
+from pixels.validators import FeatureCollectionCRS
 from tests.scenarios import product_info_mock
 
 
@@ -149,7 +150,10 @@ class TestUtils(unittest.TestCase):
 
     def test_compute_wgs84_bbox(self):
         # Geojson feature case.
-        bbox = compute_wgs83_bbox(self.geojson)
+        data = FeatureCollectionCRS(
+            features=self.geojson["features"], crs={"init": "EPSG:3857"}
+        )
+        bbox = compute_wgs83_bbox(data)
         expected = [
             [
                 [-9.165115585146461, 38.70848390053471],
@@ -162,7 +166,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(bbox["type"], "Polygon")
         numpy.testing.assert_almost_equal(bbox["coordinates"], expected)
         # BBox case.
-        bbox = compute_wgs83_bbox(self.geojson, return_bbox=True)
+        bbox = compute_wgs83_bbox(data, return_bbox=True)
         expected = (
             -9.165115585146461,
             38.70848390053471,

@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from pixels.search import search_data
+from pixels.validators import PixelsSearchValidator
 from tests.scenarios import empty_data_mock, landsat_data_mock, sentinel_2_data_mock
 
 # AOI.
@@ -60,8 +61,8 @@ geojson_MZ = {
 class SearchTest(unittest.TestCase):
     @patch("pixels.search.execute_query", sentinel_2_data_mock)
     def test_result_sentinel(self):
-        actual = search_data(
-            geojson,
+        data = PixelsSearchValidator(
+            geojson=geojson,
             start="2020-12-01",
             end="2021-01-01",
             maxcloud=100,
@@ -70,6 +71,7 @@ class SearchTest(unittest.TestCase):
             platforms="SENTINEL_2",
             bands=["B04", "B8A", "B02"],
         )
+        actual = search_data(data)
         self.assertEqual(actual[0]["id"], "S2A_29TNG_20170128_0_L2A")
         self.assertEqual(
             actual[0]["bands"]["B8A"],
@@ -78,8 +80,8 @@ class SearchTest(unittest.TestCase):
 
     @patch("pixels.search.execute_query", landsat_data_mock)
     def test_result_landsat(self):
-        actual = search_data(
-            geojson,
+        data = PixelsSearchValidator(
+            geojson=geojson,
             start="2020-12-01",
             end="2021-01-01",
             maxcloud=100,
@@ -87,6 +89,7 @@ class SearchTest(unittest.TestCase):
             platforms="LANDSAT_8",
             bands=["B2", "B4", "B5"],
         )
+        actual = search_data(data)
         self.assertEqual(actual[0]["id"], "LC08_L2SP_204031_20170106_20200905_02_T1_SR")
         self.assertEqual(
             actual[0]["bands"]["B5"],
@@ -95,8 +98,8 @@ class SearchTest(unittest.TestCase):
 
     @patch("pixels.search.execute_query", empty_data_mock)
     def test_result_empty(self):
-        actual = search_data(
-            geojson,
+        data = PixelsSearchValidator(
+            geojson=geojson,
             start="2020-12-01",
             end="2021-01-01",
             maxcloud=100,
@@ -104,4 +107,6 @@ class SearchTest(unittest.TestCase):
             platforms="LANDSAT_8",
             bands=["B99"],
         )
+
+        actual = search_data(data)
         self.assertEqual(actual, [])

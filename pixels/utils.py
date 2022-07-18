@@ -18,6 +18,7 @@ from pixels.const import (
     S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
     WORKERS_LIMIT,
 )
+from pixels.validators import FeatureCollectionCRS
 
 
 def compute_number_of_pixels(distance: (int, float), scale: (int, float)) -> int:
@@ -138,7 +139,7 @@ def compute_mask(
     return mask
 
 
-def compute_wgs83_bbox(geojson, return_bbox=False):
+def compute_wgs83_bbox(geojson: FeatureCollectionCRS, return_bbox: bool = False):
     """
     Computes the bounding box of the input geojson in WGS84 coordinates.
 
@@ -160,9 +161,9 @@ def compute_wgs83_bbox(geojson, return_bbox=False):
     bbox = bounds(geojson)
     # Get crs string from geojson.
     crs = (
-        geojson["crs"]["init"]
-        if "init" in geojson["crs"]
-        else geojson["crs"]["properties"]["name"]
+        geojson.crs["init"]
+        if "init" in geojson.crs
+        else geojson.crs["properties"]["name"]
     )
     # Transform the bbox if necessary.
     if crs != "EPSG:4326":

@@ -476,6 +476,4 @@ SCENE_CLASS_RANK_FLAT = (
 # 11: SNOW
 SCL_COMPOSITE_CLOUD_BANDS = [0, 1, 3, 7, 8, 9, 10]
 
-S2_PLATFORMS = ["sentinel-2a", "sentinel-2b", "sentinel-2c", "sentinel-2d"]
-
 REQUESTER_PAYS_BUCKETS = ["sentinel-s2-l1c", "sentinel-s2-l2a", "usgs-landsat"]
