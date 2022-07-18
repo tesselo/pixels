@@ -95,3 +95,13 @@ def get_bbox_and_footprint_and_stats(
             stats = {int(key): int(val) for key, val in zip(hist, bin_edges)}
 
         return bbox, footprint, datetime, ds.meta, stats
+
+
+def close_path_name(path):
+    """Some paths might come withou the closing dash, needed to do the listing.
+    This function will close the path.
+    """
+    if path[-1] != "/":
+        return f"{path}/"
+    else:
+        return path

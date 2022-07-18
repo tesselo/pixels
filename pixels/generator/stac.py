@@ -16,7 +16,10 @@ from rasterio.features import bounds
 from pixels import tio
 from pixels.const import ALLOWED_VECTOR_TYPES
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.generator.stac_utils import get_bbox_and_footprint_and_stats
+from pixels.generator.stac_utils import (
+    close_path_name,
+    get_bbox_and_footprint_and_stats,
+)
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
 from pixels.utils import run_starmap_multiprocessing, timeseries_steps
@@ -304,6 +307,7 @@ def parse_raster_data(
         out_path = os.path.dirname(source_path)
     else:
         id_name = os.path.split(source_path)[-1]
+        source_path = close_path_name(source_path)
         raster_list = tio.list_files(source_path, suffix=".tif")
         out_path = source_path
     catalog = pystac.Catalog(id=id_name, description=description)
@@ -633,13 +637,14 @@ def get_and_write_raster_from_item(
     # Build a complete configuration json for pixels.
     config = prepare_pixels_config(item, input_config)
     out_path = os.path.join(x_folder, "data", f"pixels_{str(item.id)}")
+    out_path = close_path_name(out_path)
     configs = configure_multi_time_bubbles(config, out_path, item, overwrite)
     if configs is not None:
         # Run pixels.
         for config in configs:
             config["out_path"] = out_path
             pixel_stack(**config)
-    out_paths = tio.list_files(f"{out_path}/", suffix=".tif")
+    out_paths = tio.list_files(out_path, suffix=".tif")
     out_paths = list(np.unique(out_paths))
     # Parse data to stac catalogs.
     x_cat = parse_data(
