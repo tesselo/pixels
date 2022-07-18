@@ -159,16 +159,10 @@ def compute_wgs83_bbox(geojson: FeatureCollectionCRS, return_bbox: bool = False)
     """
     # Compute bounding box in original coordinates.
     bbox = bounds(geojson)
-    # Get crs string from geojson.
-    crs = (
-        geojson.crs["init"]
-        if "init" in geojson.crs
-        else geojson.crs["properties"]["name"]
-    )
     # Transform the bbox if necessary.
-    if crs != "EPSG:4326":
+    if geojson.rasterio_crs.to_epsg() != 4326:
         # Setup crs objects for source and destination.
-        src_crs = CRS({"init": crs})
+        src_crs = geojson.rasterio_crs
         dst_crs = CRS({"init": "EPSG:4326"})
         # Compute transformed coordinates.
         transformed_coords = transform(

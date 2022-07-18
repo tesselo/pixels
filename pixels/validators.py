@@ -65,7 +65,7 @@ class SentinelLevelOption(str, Enum):
 
 
 class FeatureCollectionCRS(FeatureCollection):
-    crs: dict
+    crs: Optional[dict] = {"init": "EPSG:4326"}
 
     @validator("crs")
     def validate_crs(cls, v):
@@ -74,6 +74,10 @@ class FeatureCollectionCRS(FeatureCollection):
         except CRSError:
             raise ValueError("crs dictionary is not valid")
         return v
+
+    @property
+    def rasterio_crs(self):
+        return CRS(self.crs)
 
 
 class SearchOrderOption(str, Enum):
