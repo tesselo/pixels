@@ -1,7 +1,11 @@
 from pixels.config.db_config import create_db_engine_pxsearch
 from pixels.log import logger
 from pixels.utils import compute_wgs83_bbox
-from pixels.validators import PixelsSearchValidator, SearchOrderOption
+from pixels.validators import (
+    PixelsSearchValidator,
+    SearchOrderOption,
+    SentinelLevelOption,
+)
 
 engine = create_db_engine_pxsearch()
 
@@ -32,28 +36,39 @@ def build_query(data: PixelsSearchValidator):
     xmin, ymin, xmax, ymax = compute_wgs83_bbox(data.geojson, return_bbox=True)
 
     query = f"""
-    SELECT id, collection_id, datetime, properties, assets FROM data.items
+    SELECT id, collection_id, datetime, properties, assets
+    FROM data.items
     WHERE ST_Intersects(ST_MakeEnvelope({xmin}, {ymin},{xmax},{ymax},4326), geometry)
     AND (properties ->> 'platform') IN ({prep_in_array_query(data.query_platforms)})
+    AND collection_id IN ({prep_in_array_query(data.query_collections)})
     """
 
-    if data.query_collections:
-        query += (
-            f" AND collection_id IN ({prep_in_array_query(data.query_collections)})"
-        )
-
     if data.start is not None:
-        query += f" AND datetime >= timestamp '{data.start}' "
+        query += f" AND datetime >= timestamp '{data.start}'"
     if data.end is not None:
-        query += f" AND datetime <= timestamp '{data.end}' "
+        query += f" AND datetime <= timestamp '{data.end}'"
     if data.maxcloud is not None:
         query += f" AND (properties -> 'eo:cloud_cover')::float < {data.maxcloud}"
+
+    # Handle missing data from the l2a-cogs bucket by allowing l2a bucket files
+    # for IDs that are not in the l2a-cogs bucket.
+    if data.level == SentinelLevelOption.l2a:
+        query += " ORDER BY id, collection_id DESC"
+        query = f"""
+            SELECT * FROM (
+                SELECT DISTINCT ON (id) *
+                FROM ({query}) AS s2table_distinct
+            ) AS s2table_ordered
+        """
+
     if data.sort == SearchOrderOption.cloud_cover:
         query += " ORDER BY properties -> 'eo:cloud_cover' ASC"
     elif data.sort:
         query += " ORDER BY datetime DESC"
     if data.limit is not None:
         query += " LIMIT {}".format(data.limit)
+
+    query = " ".join(query.split())
 
     return query
 
