@@ -27,7 +27,7 @@ colorama==0.4.5
     # via semgrep
 coverage[toml]==6.4.2
     # via pytest-cov
-distlib==0.3.4
+distlib==0.3.5
     # via virtualenv
 filelock==3.7.1
     # via virtualenv
