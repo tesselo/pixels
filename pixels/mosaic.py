@@ -21,6 +21,7 @@ from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
+from pixels.validators import PixelsSearchValidator
 
 
 def calculate_start_date(end_date):
@@ -144,15 +145,17 @@ def first_valid_pixel(
         items = end_date
     else:
         items = search_data(
-            geojson=geojson,
-            start=start_date,
-            end=end_date,
-            limit=limit,
-            platforms=platforms,
-            maxcloud=maxcloud,
-            level=level,
-            bands=bands,
-            sort=sort,
+            PixelsSearchValidator(
+                geojson=geojson,
+                start=start_date,
+                end=end_date,
+                limit=limit,
+                platforms=platforms,
+                maxcloud=maxcloud,
+                level=level,
+                bands=bands,
+                sort=sort,
+            )
         )
         # Return early if no items could be found.
         if not items:
@@ -295,14 +298,16 @@ def configure_pixel_stack(
         collect = first_valid_pixel
         # Get all scenes of for this date range.
         response = search_data(
-            geojson=geojson,
-            start=start,
-            end=end,
-            limit=limit,
-            platforms=platforms,
-            maxcloud=maxcloud,
-            level=level,
-            bands=bands,
+            PixelsSearchValidator(
+                geojson=geojson,
+                start=start,
+                end=end,
+                limit=limit,
+                platforms=platforms,
+                maxcloud=maxcloud,
+                level=level,
+                bands=bands,
+            )
         )
 
         if not response:
@@ -626,15 +631,17 @@ def composite(
 
     # Search scenes.
     items = search_data(
-        geojson=geojson,
-        start=start,
-        end=end,
-        limit=limit,
-        platforms=["SENTINEL_2"],
-        maxcloud=maxcloud,
-        level=level,
-        sort=sort,
-        bands=bands_copy,
+        PixelsSearchValidator(
+            geojson=geojson,
+            start=start,
+            end=end,
+            limit=limit,
+            platforms=["SENTINEL_2"],
+            maxcloud=maxcloud,
+            level=level,
+            sort=sort,
+            bands=bands_copy,
+        )
     )
 
     if not items:
