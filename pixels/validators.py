@@ -1,6 +1,6 @@
 from datetime import date
 from enum import Enum
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from geojson_pydantic.features import FeatureCollection
 from pydantic import BaseModel, Extra, root_validator, validator
@@ -122,7 +122,9 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
     geojson: FeatureCollectionCRS
     start: Optional[str]
     end: Optional[str]
-    platforms: Union[LandsatPlatform, SentinelPlatform, list, tuple]
+    platforms: Union[
+        LandsatPlatform, SentinelPlatform, List[LandsatPlatform], List[SentinelPlatform]
+    ]
     maxcloud: int = 20
     level: Optional[Union[SentinelLevelOption, LandsatLevelOption]]
     limit: Optional[int]
@@ -154,11 +156,14 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
             raise ValueError(f"Level {v} is only for Sentinel-2")
         return v
 
-    @validator("bands")
-    def check_scl_level(cls, v, values):
-        if "SCL" in v and values["level"] != SentinelLevelOption.l2a:
+    @root_validator(pre=True)
+    def check_scl_level(cls, values):
+        if (
+            "SCL" in values.get("bands", [])
+            and values.get("level") != SentinelLevelOption.l2a
+        ):
             raise ValueError("SCL can only be requested for level L2A")
-        return v
+        return values
 
 
 class PixelsConfigValidator(PixelsBaseValidator, extra=Extra.forbid):
@@ -212,7 +217,6 @@ class PixelsSearchValidator(PixelsBaseValidator):
     @property
     def query_collections(self):
         collections = []
-
         if any([platform in LandsatPlatform for platform in self.platforms]):
             collections.append(SearchStacCollectionOption.landsat_c2l2_sr)
 
