@@ -1,3 +1,4 @@
+import datetime
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -104,8 +105,8 @@ class TestUtils(unittest.TestCase):
 
     def test_timeseries_steps(self):
         expected = [
-            ("2021-01-01", "2021-01-14"),
-            ("2021-01-15", "2021-01-28"),
+            (datetime.date(2021, 1, 1), datetime.date(2021, 1, 14)),
+            (datetime.date(2021, 1, 15), datetime.date(2021, 1, 28)),
         ]
         result = list(timeseries_steps("2021-01-01", "2021-02-01", "weeks", 2))
         self.assertEqual(result, expected)

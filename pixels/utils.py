@@ -221,7 +221,7 @@ def timeseries_steps(start, end, interval, interval_step=1):
     Returns
     -------
     intervals : list of tuples
-        A list of string date tuples. Each tuple is of length two, representing the
+        A list of date tuples. Each tuple is of length two, representing the
         start and end date of a single interval.
     """
     # Convert input into dates if provided as str.
@@ -237,7 +237,7 @@ def timeseries_steps(start, end, interval, interval_step=1):
     here_end = start + delta
     # Loop through timesteps.
     while (here_end - one_day) <= end:
-        yield str(here_start.date()), str((here_end - one_day).date())
+        yield here_start.date(), (here_end - one_day).date()
         # Increment intermediate timestamps.
         here_start += delta
         here_end += delta

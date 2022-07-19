@@ -120,8 +120,8 @@ class SearchStacCollectionOption(str, Enum):
 
 class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
     geojson: FeatureCollectionCRS
-    start: Optional[str]
-    end: Optional[str]
+    start: Optional[Union[str, date]]
+    end: Optional[Union[str, date]]
     platforms: Union[
         LandsatPlatform, SentinelPlatform, List[LandsatPlatform], List[SentinelPlatform]
     ]
@@ -132,8 +132,8 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
 
     @validator("start", "end")
     def is_date(cls, v):
-        date.fromisoformat(v)
-        return v
+        if isinstance(v, date) or date.fromisoformat(v):
+            return v
 
     @validator("platforms")
     def validate_platform_list(cls, v):
