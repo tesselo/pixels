@@ -121,6 +121,8 @@ class TestMosaic(unittest.TestCase):
                 scale=500,
                 bands=["B01", "B02"],
                 clip=False,
+                platforms="SENTINEL_2",
+                maxcloud=100,
             )
 
         # Test regular latest pixel.
@@ -130,6 +132,8 @@ class TestMosaic(unittest.TestCase):
             scale=500,
             bands=["B01", "B02"],
             clip=False,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
@@ -141,6 +145,8 @@ class TestMosaic(unittest.TestCase):
             scale=500,
             bands=["B01", "B02"],
             clip=True,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         expected = [[[2956, 0], [0, 0]], [[2956, 0], [0, 0]]]
         numpy.testing.assert_array_equal(stack, expected)
@@ -152,6 +158,8 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02"],
             clip=False,
             pool_bands=True,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
@@ -165,6 +173,8 @@ class TestMosaic(unittest.TestCase):
             clip=False,
             pool_bands=True,
             sort="cloud_cover",
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         self.assertEqual(first_end_date, "2020-01-20")
         expected = [[[2956, 2996], [7003, 7043]], [[2956, 2996], [7003, 7043]]]
@@ -194,6 +204,8 @@ class TestMosaic(unittest.TestCase):
             clip=False,
             level="L2A",
             pool_size=5,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         dates = []
         stack = []
@@ -234,6 +246,8 @@ class TestMosaic(unittest.TestCase):
             clip=False,
             level="L2A",
             pool_size=1,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         dates = []
         stack = []
@@ -264,6 +278,8 @@ class TestMosaic(unittest.TestCase):
             pool_size=1,
             mode="composite",
             composite_method="SCL",
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         dates = []
         stack = []
@@ -296,6 +312,8 @@ class TestMosaic(unittest.TestCase):
             level="L2A",
             pool_size=1,
             mode="composite",
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         dates = []
         stack = []
@@ -316,6 +334,8 @@ class TestMosaic(unittest.TestCase):
             scale=500,
             bands=bands,
             clip=False,
+            platforms="SENTINEL_2",
+            maxcloud=100,
         )
         ndvi = parser.evaluate("(B01 + 2 * B02) / (B01 + B02)", bands, stack)
         expected = [[1.5, 1.5], [1.5, 1.5]]
