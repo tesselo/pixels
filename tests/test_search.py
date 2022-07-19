@@ -86,7 +86,7 @@ class SearchTest(unittest.TestCase):
             end="2021-01-01",
             maxcloud=100,
             limit=2,
-            platforms="LANDSAT_8",
+            platforms=["LANDSAT_8"],
             bands=["B2", "B4", "B5"],
         )
         actual = search_data(data)
