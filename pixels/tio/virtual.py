@@ -172,6 +172,17 @@ def save_model(uri: str, model):
             model.save(h5fl)
 
 
+def model_uri(config_uri: str) -> str:
+    """
+    Returns de admin URL of a model for remote and the local dir path otherwise
+    """
+    if is_remote(config_uri):
+        model_id = config_uri.split("/")[4]
+        return f"https://devpixels.tesselo.com/admin/pipeline/kerasmodel/{model_id}/change/"
+    else:
+        return os.path.dirname(config_uri)
+
+
 def local_or_temp(uri: str) -> str:
     """
     Returns the local path of a file or a temporary path.
