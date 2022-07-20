@@ -22,6 +22,7 @@ from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
+from pixels.tio.virtual import model_uri
 from pixels.utils import NumpyArrayEncoder
 
 MODE_PREDICTION_PER_PIXEL = [
@@ -147,7 +148,6 @@ def load_existing_model_from_file(
 def load_keras_model(
     model_config_uri, compile_args, loss_arguments=None, use_existing_model=False
 ):
-
     loss_name = compile_args.pop("loss", None)
     loss_arguments = loss_arguments or {}
 
@@ -192,16 +192,18 @@ class LogProgress(tf.keras.callbacks.Callback):
     Custom Callback function to log training progress.
     """
 
-    def __init__(self):
+    def __init__(self, name: str, uri: str):
         super().__init__()
         self.slack = SlackClient()
+        self.model_name = name
+        self.model_uri = uri
 
     def _log_status(self, state, logs=None, epoch=None):
         extra = logs or {}
         if epoch is not None:
             extra["current_epoch"] = epoch + 1
             extra["all_epochs"] = self.params["epochs"]
-        self.slack.log_keras_progress(state, extra)
+        self.slack.log_keras_progress(state, extra, self.model_name, self.model_uri)
         logger.info(state, **extra)
 
     def on_epoch_begin(self, epoch, logs=None):
@@ -224,6 +226,7 @@ def train_model_function(
     model_compile_arguments_uri,
     model_fit_arguments_uri,
     generator_arguments_uri,
+    model_name=None,
 ):
     """
     From a catalog and the configurations files build a model and train on the
@@ -241,6 +244,7 @@ def train_model_function(
             File of dictionary containing the fit arguments.
         generator_arguments_uri : path to json file
             File of dictionary containing the generator configuration.
+        model_name: optional string to identify the model in logs
     Returns
     -------
         model : tensorflow trained model
@@ -326,6 +330,13 @@ def train_model_function(
     if dtgen.one_hot:
         fit_args.pop("class_weight")
 
+    # Instantiate keras callbacks
+    save_model = SaveModel(
+        passed_epochs=last_training_epochs,
+        path=os.path.dirname(model_config_uri),
+    )
+    log_progress = LogProgress(name=model_name, uri=model_uri(model_config_uri))
+
     if train_with_array:
         # Stack all items into one array.
         X = []
@@ -354,13 +365,7 @@ def train_model_function(
             X,
             Y,
             **fit_args,
-            callbacks=[
-                SaveModel(
-                    passed_epochs=last_training_epochs,
-                    path=os.path.dirname(model_config_uri),
-                ),
-                LogProgress(),
-            ],
+            callbacks=[save_model, log_progress],
             verbose=0,
         )
     else:
@@ -368,13 +373,7 @@ def train_model_function(
         history = model.fit(
             dtgen,
             **fit_args,
-            callbacks=[
-                SaveModel(
-                    passed_epochs=last_training_epochs,
-                    path=os.path.dirname(model_config_uri),
-                ),
-                LogProgress(),
-            ],
+            callbacks=[save_model, log_progress],
             verbose=0,
         )
     # Write history.
@@ -408,7 +407,11 @@ def train_model_function(
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
     dpredgen = generator.DataGenerator(**gen_args)
-    results = model.evaluate(dpredgen, callbacks=[LogProgress()], verbose=0)
+    results = model.evaluate(
+        dpredgen,
+        callbacks=[log_progress],
+        verbose=0,
+    )
     # Export evaluation statistics to json file.
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
