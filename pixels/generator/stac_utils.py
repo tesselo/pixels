@@ -97,6 +97,28 @@ def get_bbox_and_footprint_and_stats(
         return bbox, footprint, datetime, ds.meta, stats
 
 
+def plot_history(history, path, name):
+    import matplotlib.pyplot as plt
+
+    name = name or "Unnamed model"
+    x = history.pop("current_epoch")
+    history.pop("all_epochs")
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    ax.set_xlabel("Epochs")
+    ax.set_xticks(x)
+    fig.subplots_adjust(bottom=0.3, wspace=0.33)
+
+    for metric, values in history.items():
+        ax.plot(x, values, label=metric)
+
+    plt.title(name)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), shadow=True, ncol=4)
+
+    plt.savefig(path)
+
+
 def close_path_name(path):
     """Some paths might come withou the closing dash, needed to do the listing.
     This function will close the path.

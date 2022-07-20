@@ -20,6 +20,7 @@ from pixels.const import (
 )
 from pixels.generator import generator, losses
 from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
+from pixels.generator.stac_utils import plot_history
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
 from pixels.tio.virtual import model_uri
@@ -388,6 +389,11 @@ def train_model_function(
 
     tio.save_model(path_model, model)
 
+    # Send history graph to slack
+    graph_path = os.path.join(path_ep_md, "history_graph.png")
+    plot_history(history.history, graph_path, model_name)
+    SlackClient().send_history_graph(graph_path)
+
     # Evaluate model on test set.
     gen_args["usage_type"] = generator.GENERATOR_MODE_EVALUATION
     gen_args.pop("class_weights")
@@ -416,6 +422,7 @@ def train_model_function(
     with open(os.path.join(path_ep_md, "evaluation_stats.json"), "w") as f:
         json.dump(results, f, cls=NumpyArrayEncoder)
     if tio.is_remote(model_config_uri):
+        tio.upload(path_ep_md, suffix=".png", delete_original=False)
         tio.upload(path_ep_md, suffix="_stats.json")
     if gen_args.get("download_data"):
         tmpdir.cleanup()
