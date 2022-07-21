@@ -41,12 +41,19 @@ class S3:
         obj.put(Body=data)
 
     def list(self, suffix) -> List[AnyStr]:
-        bucket = self.s3.Bucket(self.bucket)
-        return [
-            "s3://" + self.bucket + "/" + obj.key
-            for obj in bucket.objects.filter(Prefix=self.key)
-            if obj.key.endswith(suffix)
-        ]
+        paginator = self.s3.meta.client.get_paginator("list_objects_v2")
+        paginated = paginator.paginate(Bucket=self.bucket, Prefix=self.key)
+
+        all_objects = [ob["Contents"] for ob in paginated if "Contents" in ob]
+        filtered_objects = []
+        for object_group in all_objects:
+            objs = [
+                "s3://" + self.bucket + "/" + f["Key"]
+                for f in object_group
+                if f["Key"].endswith(suffix)
+            ]
+            filtered_objects += objs
+        return filtered_objects
 
     def file_exists(self):
         return self.uri in self.list(suffix="")
