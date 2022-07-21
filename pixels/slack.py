@@ -20,6 +20,12 @@ class SlackClient(WebClient):
         except SlackApiError as e:
             logger.error("Failed to send a message to slack", error=e)
 
+    def send_history_graph(self, path: str):
+        try:
+            self.files_upload(file=path, channels=os.environ["SLACK_UPDATES_CHANNEL"])
+        except SlackApiError as e:
+            logger.error("Failed to send a graph to slack", error=e)
+
     def send_to_updates(self, message: str, blocks: List[dict]) -> SlackResponse:
         return self.send_message(os.environ["SLACK_UPDATES_CHANNEL"], message, blocks)
 
