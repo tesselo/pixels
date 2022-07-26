@@ -49,6 +49,8 @@ h5py==2.10.0
     # via -r requirements.in
 kiwi-structlog-config==0.1.8
     # via -r requirements.in
+mpire==2.4.0
+    # via -r requirements.in
 munch==2.5.0
     # via fiona
 numpy==1.23.1
@@ -86,7 +88,7 @@ rasterio==1.3.0
     # via -r requirements.in
 scramp==1.4.1
     # via pg8000
-sentry-sdk==1.7.2
+sentry-sdk==1.8.0
     # via
     #   -r requirements.in
     #   structlog-sentry
@@ -99,18 +101,20 @@ six==1.16.0
     #   fiona
     #   h5py
     #   python-dateutil
-slack-sdk==3.17.2
+slack-sdk==3.18.0
     # via -r requirements.in
 snuggs==1.4.7
     # via rasterio
 sqlalchemy==1.4.39
     # via -r requirements.in
-structlog==21.5.0
+structlog==22.1.0
     # via
     #   -r requirements.in
     #   kiwi-structlog-config
 structlog-sentry==1.4.0
     # via -r requirements.in
+tqdm==4.64.0
+    # via mpire
 typing-extensions==4.3.0
     # via pydantic
 urllib3==1.26.10
