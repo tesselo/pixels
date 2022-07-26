@@ -2,10 +2,10 @@ import json
 import math
 import os
 import tempfile
-from multiprocessing import Pool
 
 import numpy as np
 import rasterio
+from mpire import WorkerPool
 from tensorflow import keras
 
 from pixels import tio
@@ -290,8 +290,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         )
         self.info(f"Downloading {len(list_of_tifs)} images")
         # Download the Pixels Data images in parallel.
-        with Pool(min(len(list_of_tifs), 12)) as p:
-            p.starmap(
+        with WorkerPool(n_jobs=min(len(list_of_tifs), 12)) as p:
+            p.map(
                 tio.download,
                 zip(list_of_tifs, [download_dir] * len(list_of_tifs)),
             )
@@ -435,8 +435,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if tio.is_remote(x_paths[0]):
             temp_dir = tempfile.TemporaryDirectory()
             download_dir = temp_dir.name
-            with Pool(min(len(x_paths), 12)) as p:
-                downloaded = p.starmap(
+            with WorkerPool(n_jobs=min(len(x_paths), 12)) as p:
+                downloaded = p.map(
                     tio.download,
                     zip(x_paths, [download_dir] * len(x_paths)),
                 )

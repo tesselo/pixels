@@ -1,11 +1,11 @@
 import math
 from json import JSONEncoder
-from multiprocessing import Pool
 from typing import Any, Iterable, List, Optional
 
 import numpy
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+from mpire import WorkerPool
 from rasterio import Affine
 from rasterio.crs import CRS
 from rasterio.features import bounds, rasterize
@@ -340,7 +340,7 @@ def run_starmap_multiprocessing(
         iterator_size = len(variable_arguments)
     num_processes = min(iterator_size, workers_limit)
 
-    with Pool(processes=num_processes) as pool:
-        result_list = pool.starmap(func=func, iterable=iterator)
+    with WorkerPool(n_jobs=num_processes) as pool:
+        result_list = pool.map(func, iterator)
 
     return result_list
