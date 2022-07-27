@@ -361,8 +361,6 @@ def configure_pixel_stack(
     elif mode == "composite":
         collect = composite
         platforms = "SENTINEL_2"
-        shadow_threshold = 0.1
-        light_clouds = True
         sort = "cloud_cover"
         finish_early_cloud_cover_percentage = 0.05
         # Create input list with date ranges.
@@ -377,8 +375,6 @@ def configure_pixel_stack(
                 clip,
                 pool_bands,
                 maxcloud,
-                shadow_threshold,
-                light_clouds,
                 level,
                 sort,
                 finish_early_cloud_cover_percentage,
@@ -584,8 +580,6 @@ def composite(
     clip=False,
     pool_bands=False,
     maxcloud=None,
-    shadow_threshold=0.1,
-    light_clouds=True,
     level="L2A",
     sort="cloud_cover",
     finish_early_cloud_cover_percentage=0.05,
