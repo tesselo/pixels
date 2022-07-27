@@ -579,7 +579,7 @@ def composite(
     start,
     end,
     scale,
-    bands=None,
+    bands,
     limit=10,
     clip=False,
     pool_bands=False,
@@ -596,7 +596,6 @@ def composite(
     Get the composite over the input features.
     """
     logger.info(f"Compositing pixels from {start} to {end}")
-    bands = bands or ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
     # Check if is list or tuple
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
