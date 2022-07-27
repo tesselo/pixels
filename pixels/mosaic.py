@@ -6,13 +6,11 @@ import sentry_sdk
 from rasterio.errors import RasterioIOError
 
 from pixels import tio
-from pixels.clouds import pixels_mask
 from pixels.const import (
     DISCRETE_BANDS,
     LANDSAT_1_LAUNCH_DATE,
     MAX_COMPOSITE_BAND_WORKERS,
     NODATA_VALUE,
-    S2_BANDS_REQUIRED_FOR_COMPOSITES,
     SCENE_CLASS_RANK_FLAT,
     SCL_COMPOSITE_CLOUD_BANDS,
 )
@@ -612,22 +610,12 @@ def composite(
     bands_copy = bands.copy()
     # Check band list.
     remove_scl_from_output = False
-    if composite_method in ["SCL", "FULL"]:
-        if "SCL" not in bands_copy:
-            bands_copy.append("SCL")
-            # If the SCL band has not been requested for output, remove it
-            # from the stack before returning the result.
-            remove_scl_from_output = True
-        scl_band_index = bands_copy.index("SCL")
-    else:
-        missing = [
-            band for band in S2_BANDS_REQUIRED_FOR_COMPOSITES if band not in bands_copy
-        ]
-        if missing:
-            raise PixelsException("Missing {} bands for composite.".format(missing))
-        required_band_indices = [
-            bands_copy.index(band) for band in S2_BANDS_REQUIRED_FOR_COMPOSITES
-        ]
+    if "SCL" not in bands_copy:
+        bands_copy.append("SCL")
+        # If the SCL band has not been requested for output, remove it
+        # from the stack before returning the result.
+        remove_scl_from_output = True
+    scl_band_index = bands_copy.index("SCL")
 
     # Search scenes.
     items = search_data(
@@ -693,13 +681,7 @@ def composite(
                 stack = []
             stack.append((layer, cloud_probs))
             continue
-        else:
-            # Compute cloud mask for new layer.
-            layer_clouds = pixels_mask(
-                *(layer[idx] for idx in required_band_indices),
-                light_clouds=light_clouds,
-                shadow_threshold=shadow_threshold,
-            )
+
         logger.debug(
             "Layer masked count {} %".format(
                 int(100 * numpy.sum(layer_clouds) / layer_clouds.size)

@@ -49,7 +49,6 @@ class ModeOption(str, Enum):
 
 
 class CompositeMethodOption(str, Enum):
-    index = "INDEX"
     scl = "SCL"
     full = "FULL"
 
