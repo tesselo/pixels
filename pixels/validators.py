@@ -91,6 +91,23 @@ class Sentinel2PlatformOption(str, Enum):
     sentinel_2d = "sentinel-2d"
 
 
+class Sentinel2BandOption(str, Enum):
+    b1 = "B01"
+    b2 = "B02"
+    b3 = "B03"
+    b4 = "B04"
+    b5 = "B05"
+    b6 = "B06"
+    b7 = "B07"
+    b8 = "B08"
+    b8a = "B8A"
+    b9 = "B09"
+    b10 = "B10"
+    b11 = "B11"
+    b12 = "B12"
+    scl = "SCL"
+
+
 class SearchStacCollectionOption(str, Enum):
     landsat_8_l1_c1 = "landsat-8-l1-c1"
     landsat_c1l1_ = "landsat-c1l1"
@@ -158,7 +175,7 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
     @root_validator(pre=True)
     def check_scl_level(cls, values):
         if (
-            "SCL" in values.get("bands", [])
+            Sentinel2BandOption.scl in values.get("bands", [])
             and values.get("level") != SentinelLevelOption.l2a
         ):
             raise ValueError("SCL can only be requested for level L2A")
@@ -199,6 +216,15 @@ class PixelsConfigValidator(PixelsBaseValidator, extra=Extra.forbid):
     def check_pool_bands(cls, v, values):
         if v and values.get("pool_size") > 1:
             raise ValueError("Bands pooling can not be combined with dates pooling")
+
+    @root_validator(pre=True)
+    def check_scl_composite_bands(cls, values):
+        if values.get("composite_method") == CompositeMethodOption.scl and not (
+            Sentinel2BandOption.b4 in values["bands"]
+            and Sentinel2BandOption.b8 in values["bands"]
+        ):
+            raise ValueError("SCL mode needs bands B04 and B08")
+        return values
 
 
 class PixelsSearchValidator(PixelsBaseValidator):
