@@ -1,6 +1,6 @@
 import numpy as np
 
-from pixels.clouds import _composite_or_cloud, landsat_cloud_mask
+from pixels.clouds import landsat_cloud_mask, sentinel_2_cloud_mask
 from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException
 
@@ -22,30 +22,6 @@ def _make_mask_on_value(img, mask_value):
             The mask.
     """
     mask_img = img == mask_value
-    return mask_img
-
-
-def sentinel_2_cloud_mask(images, bands_index):
-    B02 = images[:, bands_index["B02"]]
-    B03 = images[:, bands_index["B03"]]
-    B04 = images[:, bands_index["B04"]]
-    B08 = images[:, bands_index["B08"]]
-    B8A = images[:, bands_index["B8A"]]
-    B11 = images[:, bands_index["B11"]]
-    B12 = images[:, bands_index["B12"]]
-    mask_img = _composite_or_cloud(
-        B02,
-        B03,
-        B04,
-        B08,
-        B8A,
-        B11,
-        B12,
-        cloud_only=True,
-        light_clouds=False,
-        snow=True,
-        shadow_threshold=0.2,
-    )
     return mask_img
 
 
