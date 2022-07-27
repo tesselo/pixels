@@ -121,19 +121,7 @@ def visualize_in_item(X, Y, prediction=False, in_out="IN", RGB=None, scaling=100
                     raise
 
     # Compute composite.
-    # X = src['x_data']
-    # cidx  = composite_index(X[:, 8], X[:, 7], X[:, 6], X[:, 2], X[:, 1], X[:, 0], X[:, 9])
-    # idx1, idx2 = np.indices(X.shape[2:])
-    # composite = X[cidx, :, idx1, idx2]
-    # rgb = np.dstack([
-    #   255 * (np.clip(composite[:256, :256, 8], 0, 1000) / 1000),
-    #   255 * (np.clip(composite[:256, :256, 7], 0, 1000) / 1000),
-    #   255 * (np.clip(composite[:256, :256, 6], 0, 1000) / 1000),
-    # ]).astype('uint8')
-    # target[:256, (256 + padding):(512 + padding), :] = rgb
     for i in range(len(X)):
-        # date = src['dates'][i][0]['properties']['datetime'][:10]
-        # print(date)
         if in_out == "IN":
             rgb = np.dstack(
                 [
