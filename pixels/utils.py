@@ -72,6 +72,9 @@ def compute_transform(geojson, scale):
     height : int
         Pixel height for raster.
     """
+    # Temporary fix: remove none bbbox
+    if "bbox" in geojson and geojson["bbox"] is None:
+        del geojson["bbox"]
     # Compute bounding box of input geojson.
     extent = bounds(geojson)
     # Compute the transform that defines the raster to create.
