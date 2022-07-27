@@ -264,7 +264,6 @@ class TestMosaic(unittest.TestCase):
 
     def test_pixel_stack_composite(self):
         # Test weekly latest pixel stack.
-
         funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -272,7 +271,7 @@ class TestMosaic(unittest.TestCase):
             scale=250,
             interval="weeks",
             interval_step=1,
-            bands=["B01", "B02"],
+            bands=["B01", "B02", "B04", "B08"],
             clip=False,
             level="L2A",
             pool_size=1,
@@ -293,13 +292,11 @@ class TestMosaic(unittest.TestCase):
         self.assertEqual(
             dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
         )
-        # expected = [[[[2956, 2996], [7003, 7043]]] * 2] * 4
         expected = [
-            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 2
+            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 4
         ] * 4
         numpy.testing.assert_array_equal(stack, expected)
         # Interval step 2 reduces number of layers to 2.
-
         funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -307,11 +304,12 @@ class TestMosaic(unittest.TestCase):
             scale=500,
             interval="weeks",
             interval_step=2,
-            bands=["B01", "B02"],
+            bands=["B01", "B02", "B04", "B08"],
             clip=False,
             level="L2A",
             pool_size=1,
             mode="composite",
+            composite_method="SCL",
             platforms="SENTINEL_2",
             maxcloud=100,
         )
@@ -324,6 +322,75 @@ class TestMosaic(unittest.TestCase):
         dates = [f for f in dates if f is not None]
         stack = [f for f in stack if f is not None]
         self.assertEqual(dates, ["2020-01-20", "2020-01-20"])
+
+    def test_pixel_stack_composite_full(self):
+        # Test weekly latest pixel stack.
+        funk, search_configurations = configure_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=250,
+            interval="weeks",
+            interval_step=1,
+            bands=["B01", "B02", "B04", "B08"],
+            clip=False,
+            level="L2A",
+            pool_size=1,
+            mode="composite",
+            composite_method="FULL",
+            platforms="SENTINEL_2",
+            maxcloud=100,
+        )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
+        self.assertEqual(
+            dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
+        )
+        expected = [
+            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 4
+        ] * 4
+        numpy.testing.assert_array_equal(stack, expected)
+        # Test weekly latest pixel stack.
+        funk, search_configurations = configure_pixel_stack(
+            self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=250,
+            interval="weeks",
+            interval_step=1,
+            bands=["B01", "B02", "B04", "B08", "SCL"],
+            clip=False,
+            level="L2A",
+            pool_size=1,
+            mode="composite",
+            composite_method="FULL",
+            platforms="SENTINEL_2",
+            maxcloud=100,
+        )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
+        self.assertEqual(
+            dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
+        )
+        expected = [
+            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 4
+            + [[[7, 6, 7], [8, 5, 7], [5, 7, 5]]]
+        ] * 4
+        numpy.testing.assert_array_equal(stack, expected)
 
     def test_algebra(self):
         # Test regular latest pixel.

@@ -19,7 +19,17 @@ from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
-from pixels.validators import PixelsSearchValidator
+from pixels.validators import (
+    CompositeMethodOption,
+    ModeOption,
+    PixelsConfigValidator,
+    PixelsSearchValidator,
+    PlatformOption,
+    SearchOrderOption,
+    Sentinel2BandOption,
+    SentinelLevelOption,
+    TimeStepOption,
+)
 
 
 def calculate_start_date(end_date):
@@ -269,18 +279,18 @@ def configure_pixel_stack(
     start,
     end,
     scale,
-    interval="weeks",
+    interval=TimeStepOption.weeks,
     interval_step=1,
     bands=None,
-    platforms="SENTINEL_2",
+    platforms=PlatformOption.sentinel_2,
     limit=100,
     clip=False,
     maxcloud=None,
     pool_size=5,
     pool_bands=False,
     level=None,
-    mode="latest_pixel",
-    composite_method="SCL",
+    mode=ModeOption.latest_pixel,
+    composite_method=Sentinel2BandOption.scl,
 ):
     """
     Get the configurations and select function to use.
@@ -289,7 +299,7 @@ def configure_pixel_stack(
     if not isinstance(platforms, (list, tuple)):
         platforms = [platforms]
 
-    if mode == "all" or interval == "all":
+    if mode == ModeOption.all or interval == TimeStepOption.all:
         # For all mode, the date range is constructed around each scene, and
         # then latest pixel is used for each date. This way, latest pixel will
         # only have one possible input every time.
@@ -334,12 +344,12 @@ def configure_pixel_stack(
             )
             for item in response
         ]
-    elif mode in ["latest_pixel", "cloud_sorted_pixel"]:
+    elif mode in [ModeOption.latest_pixel, ModeOption.cloud_sorted_pixel]:
         collect = first_valid_pixel
-        if mode == "latest_pixel":
-            sort = "sensing_time"
+        if mode == ModeOption.latest_pixel:
+            sort = SearchOrderOption.sensing_time
         else:
-            sort = "cloud_cover"
+            sort = SearchOrderOption.cloud_cover
         # Construct array of latest pixel calls with varying dates.
         dates = [
             (
@@ -358,10 +368,10 @@ def configure_pixel_stack(
             )
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
-    elif mode == "composite":
+    elif mode == ModeOption.composite:
         collect = composite
-        platforms = "SENTINEL_2"
-        sort = "cloud_cover"
+        platforms = PlatformOption.sentinel_2
+        sort = SearchOrderOption.cloud_cover
         finish_early_cloud_cover_percentage = 0.05
         # Create input list with date ranges.
         dates = [
@@ -384,7 +394,7 @@ def configure_pixel_stack(
             for step in timeseries_steps(start, end, interval, interval_step)
         ]
 
-    if mode != "all":
+    if mode != ModeOption.all:
         logger.info(f"Getting {len(dates)} {interval} {mode} images for this stack.")
 
     return collect, dates
@@ -461,18 +471,18 @@ def pixel_stack(
     start,
     end,
     scale,
-    interval="weeks",
+    interval=TimeStepOption.weeks,
     interval_step=1,
     bands=None,
-    platforms="SENTINEL_2",
+    platforms=PlatformOption.sentinel_2,
     limit=100,
     clip=False,
     maxcloud=None,
     pool_size=5,
     pool_bands=False,
     level=None,
-    mode="latest_pixel",
-    composite_method="SCL",
+    mode=ModeOption.latest_pixel,
+    composite_method=Sentinel2BandOption.scl,
     out_path="",
 ):
     """
@@ -570,6 +580,48 @@ def retrieve_item_bands(
     return creation_args, pixels_arrays
 
 
+def get_composite_items(input: PixelsConfigValidator, sort: bool):
+    """
+    Yield all items required for composites.
+    """
+    items = search_data(
+        PixelsSearchValidator(
+            geojson=input.geojson,
+            start=input.start,
+            end=input.end,
+            maxcloud=input.maxcloud,
+            limit=input.limit,
+            level=input.level,
+            platforms=input.platforms,
+            bands=input.bands,
+            sort=sort,
+        )
+    )
+
+    if not items:
+        logger.info(
+            "No scenes in search response.",
+            funk="composite",
+            search_date_end=input.end,
+            search_date_start=input.start,
+        )
+
+    if Sentinel2BandOption.scl in input.bands:
+        bands = input.bands
+    else:
+        bands = list(input.bands) + [Sentinel2BandOption.scl]
+
+    for item in items:
+        creation_args, layer = retrieve_item_bands(
+            item, input.geojson.dict(), input.scale, bands, input.pool_bands
+        )
+        if any(band is None for band in layer):
+            continue
+        end_date = str(item["sensing_time"].date())
+
+        yield creation_args, end_date, layer
+
+
 def composite(
     geojson,
     start,
@@ -580,86 +632,62 @@ def composite(
     clip=False,
     pool_bands=False,
     maxcloud=None,
-    level="L2A",
-    sort="cloud_cover",
+    level=SentinelLevelOption.l2a,
+    sort=SearchOrderOption.cloud_cover,
     finish_early_cloud_cover_percentage=0.05,
-    platforms="SENTINEL_2",
-    composite_method="SCL",
+    platforms=PlatformOption.sentinel_2,
+    composite_method=CompositeMethodOption.scl,
 ):
     """
     Get the composite over the input features.
     """
     logger.info(f"Compositing pixels from {start} to {end}")
-    # Check if is list or tuple
-    if not isinstance(platforms, (list, tuple)):
-        platforms = [platforms]
-
-    # Currently, limited to S2 and L2A.
-    if len(platforms) > 1 or platforms[0] != "SENTINEL_2" or level != "L2A":
-        raise PixelsException(
-            "For composites platforms and level must be Sentinel-2 L2A."
-        )
-    # Copy band list to avoid race conditions.
-    bands_copy = bands.copy()
-    # Check band list.
-    remove_scl_from_output = False
-    if "SCL" not in bands_copy:
-        bands_copy.append("SCL")
-        # If the SCL band has not been requested for output, remove it
-        # from the stack before returning the result.
-        remove_scl_from_output = True
-    scl_band_index = bands_copy.index("SCL")
-
-    # Search scenes.
-    items = search_data(
-        PixelsSearchValidator(
-            geojson=geojson,
-            start=start,
-            end=end,
-            limit=limit,
-            platforms=["SENTINEL_2"],
-            maxcloud=maxcloud,
-            level=level,
-            sort=sort,
-            bands=bands_copy,
-        )
+    input = PixelsConfigValidator(
+        geojson=geojson,
+        start=start,
+        end=end,
+        scale=scale,
+        bands=bands,
+        limit=limit,
+        clip=clip,
+        pool_bands=pool_bands,
+        maxcloud=maxcloud,
+        level=level,
+        platforms=platforms,
+        mode=ModeOption.composite,
+        composite_method=composite_method,
     )
 
-    if not items:
-        logger.info(
-            "No scenes in search response.",
-            funk="composite",
-            search_date_end=end,
-            search_date_start=start,
-        )
-        return None, None, None
+    if Sentinel2BandOption.scl in list(input.bands):
+        scl_band_index = input.bands.index(Sentinel2BandOption.scl)
+    else:
+        # SCL will be added at the end of the list if its not present.
+        scl_band_index = -1
 
     stack = None
     creation_args = None
     mask = None
-    first_end_date = str(items[0]["sensing_time"].date())
+    first_end_date = None
 
-    for item in items:
-        new_creation_args, layer = retrieve_item_bands(
-            item, geojson, scale, bands_copy, pool_bands
-        )
-        if any(band is None for band in layer):
-            continue
+    for new_creation_args, new_end_date, layer in get_composite_items(input, sort):
+
+        if first_end_date is None:
+            first_end_date = new_end_date
 
         if creation_args is None:
             creation_args = new_creation_args
 
-        if composite_method == "SCL":
+        if composite_method == CompositeMethodOption.scl:
             layer_clouds = numpy.isin(layer[scl_band_index], SCL_COMPOSITE_CLOUD_BANDS)
-        elif composite_method == "FULL":
+        elif composite_method == CompositeMethodOption.full:
             # Use SCL layer to select pixel ranks.
             cloud_probs = numpy.choose(
                 layer[scl_band_index], SCENE_CLASS_RANK_FLAT
             ).astype("float")
 
             # Compute NDVI, avoiding zero division.
-            B4 = layer[bands_copy.index("B04")].astype("float")
-            B8 = layer[bands_copy.index("B08")].astype("float")
+            B4 = layer[input.bands.index(Sentinel2BandOption.b4)].astype("float")
+            B8 = layer[input.bands.index(Sentinel2BandOption.b8)].astype("float")
             ndvi_diff = B8 - B4
             ndvi_sum = B8 + B4
             ndvi_sum[ndvi_sum == 0] = 1
@@ -690,7 +718,7 @@ def composite(
             # new pixels are not nodata.
             layer_data_mask = layer[0] != NODATA_VALUE
             local_update_mask = mask & layer_data_mask
-            for i in range(len(bands_copy)):
+            for i in range(stack.shape[0]):
                 stack[i][local_update_mask] = layer[i][local_update_mask]
             # Update cloud mask.
             mask = mask & layer_clouds
@@ -703,12 +731,16 @@ def composite(
             logger.debug("Finalized compositing early.")
             break
 
-    if composite_method == "FULL" and stack is not None:
+    if stack is None:
+        return None, None, None
+
+    if composite_method == CompositeMethodOption.full:
         # Compute an array of scene indices with the lowest cloud probability.
         cloud_probs = [scene[1] for scene in stack]
         selector_index = numpy.argmin(cloud_probs, axis=0)
+        band_count = stack[0][0].shape[0]
         result = []
-        for index in range(len(bands_copy)):
+        for index in range(band_count):
             # Merge scene tiles for this band into a composite tile using the selector index.
             bnds = numpy.array([dat[0][index] for dat in stack])
             # Construct final composite band array from selector index.
@@ -720,19 +752,18 @@ def composite(
         stack = numpy.array(result)
 
     # Clip stack to geometry if requested.
-    if stack is not None:
-        if clip and creation_args:
-            mask = compute_mask(
-                geojson,
-                creation_args["height"],
-                creation_args["width"],
-                creation_args["transform"],
-            )
-            for i in range(len(stack)):
-                stack[i][mask] = NODATA_VALUE
+    if clip and creation_args:
+        mask = compute_mask(
+            geojson,
+            creation_args["height"],
+            creation_args["width"],
+            creation_args["transform"],
+        )
+        for i in range(len(stack)):
+            stack[i][mask] = NODATA_VALUE
 
     # Remove scl if required.
-    if remove_scl_from_output:
+    if Sentinel2BandOption.scl not in input.bands:
         stack = numpy.delete(stack, scl_band_index, 0)
 
     return creation_args, first_end_date, numpy.array(stack)
