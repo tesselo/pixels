@@ -46,46 +46,6 @@ def sentinel_2_cloud_mask(images, bands_index):
     return mask_img
 
 
-def pixels_mask(
-    B02,
-    B03,
-    B04,
-    B08,
-    B8A,
-    B11,
-    B12,
-    clouds=True,
-    light_clouds=False,
-    snow=True,
-    shadow_threshold=0.1,
-):
-    """
-    Central mask function, choose what to include.
-    """
-    return _composite_or_cloud(
-        B02,
-        B03,
-        B04,
-        B08,
-        B8A,
-        B11,
-        B12,
-        cloud_only=True,
-        light_clouds=light_clouds,
-        snow=snow,
-        shadow_threshold=shadow_threshold,
-    )
-
-
-def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
-    """
-    Shortcut for cloud mask.
-    """
-    return _composite_or_cloud(
-        B02, B03, B04, B08, B8A, B11, B12, cloud_only=True, light_clouds=True
-    )
-
-
 def _composite_or_cloud(
     B02in,
     B03in,
