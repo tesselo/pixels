@@ -50,36 +50,6 @@ def pixels_mask(
     )
 
 
-def composite_index(
-    B02,
-    B03,
-    B04,
-    B08,
-    B8A,
-    B11,
-    B12,
-    light_clouds=False,
-    snow=False,
-    shadow_threshold=0.5,
-):
-    """
-    Shortcut for composite index.
-    """
-    return _composite_or_cloud(
-        B02,
-        B03,
-        B04,
-        B08,
-        B8A,
-        B11,
-        B12,
-        cloud_only=False,
-        light_clouds=light_clouds,
-        snow=snow,
-        shadow_threshold=shadow_threshold,
-    )
-
-
 def cloud_or_snow_mask(B02, B03, B04, B08, B8A, B11, B12):
     """
     Shortcut for cloud mask.
