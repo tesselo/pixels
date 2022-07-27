@@ -179,9 +179,6 @@ L1_L2_L3_BANDS = ["B4", "B5", "B6", "B7"]
 LS_COGS_BANDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]
 DISCRETE_BANDS = ["SCL"]
 
-# Bands for composite mode.
-S2_BANDS_REQUIRED_FOR_COMPOSITES = ["B02", "B03", "B04", "B08", "B8A", "B11", "B12"]
-
 # Create const dict for band correspondence for each platform
 BANDS_CORRESPONDENCE_S2 = {
     BAND_COASTAL: "B01",
