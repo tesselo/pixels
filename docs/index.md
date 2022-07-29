@@ -85,11 +85,13 @@ as individual slices. This will result in varying numbers of image slices for
 each item.
 
 For the `composite` mode, you can specify the method for compositing using the
-`composite_method` parameter. Current choices are `SCL` and `FULL`. SCL will use
-the SCL classification and will stop once there are only very few cloudy pixels
-left. For the `FULL` mode, the SCL classification is used as well, but all available
-images are collected and the highest NDVI is used to select the best cloud free
-pixel from the available images.
+`composite_method` parameter. Current choices are `SCL` and `FULL` for 
+Sentinel-2, and `QA_PIXEL` for Landsat-8. `SCL` will use the SCL classification
+and will stop once there are only very few cloudy pixels left. `QA_PIXEL` works
+sthe same way but uses the landsat `qa_pixel` band for cloud masking. For the
+`FULL` mode, the SCL classification is used as well, but all available images
+are collected and the highest NDVI is used to select the best cloud free pixel
+from the available images.
 
 The `latest_pixel` mode and the `composite` mode will group images for discrete
 time slices. These modes will require two additional arguments: `interval` and

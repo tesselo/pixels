@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy
 import sentry_sdk
 from rasterio.errors import RasterioIOError
+from rasterio.features import sieve
 
 from pixels import tio
 from pixels.const import (
@@ -21,6 +22,7 @@ from pixels.search import search_data
 from pixels.utils import compute_mask, timeseries_steps
 from pixels.validators import (
     CompositeMethodOption,
+    LandsatBandOption,
     ModeOption,
     PixelsConfigValidator,
     PixelsSearchValidator,
@@ -370,7 +372,6 @@ def configure_pixel_stack(
         ]
     elif mode == ModeOption.composite:
         collect = composite
-        platforms = PlatformOption.sentinel_2
         sort = SearchOrderOption.cloud_cover
         finish_early_cloud_cover_percentage = 0.05
         # Create input list with date ranges.
@@ -580,7 +581,9 @@ def retrieve_item_bands(
     return creation_args, pixels_arrays
 
 
-def get_composite_items(input: PixelsConfigValidator, sort: bool):
+def get_composite_items(
+    input: PixelsConfigValidator, sort: bool, composite_method: CompositeMethodOption
+):
     """
     Yield all items required for composites.
     """
@@ -606,10 +609,18 @@ def get_composite_items(input: PixelsConfigValidator, sort: bool):
             search_date_start=input.start,
         )
 
-    if Sentinel2BandOption.scl in input.bands:
-        bands = input.bands
+    if (
+        composite_method in (CompositeMethodOption.scl, CompositeMethodOption.full)
+        and Sentinel2BandOption.scl not in input.bands
+    ):
+        bands = list(input.bands) + [Sentinel2BandOption.scl.value]
+    elif (
+        composite_method == CompositeMethodOption.qa_pixel
+        and LandsatBandOption.qa_pixel not in input.bands
+    ):
+        bands = list(input.bands) + [LandsatBandOption.qa_pixel.value]
     else:
-        bands = list(input.bands) + [Sentinel2BandOption.scl]
+        bands = input.bands
 
     for item in items:
         creation_args, layer = retrieve_item_bands(
@@ -658,31 +669,63 @@ def composite(
         composite_method=composite_method,
     )
 
-    if Sentinel2BandOption.scl in list(input.bands):
-        scl_band_index = input.bands.index(Sentinel2BandOption.scl)
+    if composite_method in (
+        CompositeMethodOption.scl,
+        CompositeMethodOption.full,
+    ) and Sentinel2BandOption.scl in list(input.bands):
+        cloud_band_index = input.bands.index(Sentinel2BandOption.scl)
+    elif (
+        composite_method == CompositeMethodOption.qa_pixel
+        and LandsatBandOption.qa_pixel in list(input.bands)
+    ):
+        cloud_band_index = input.bands.index(LandsatBandOption.qa_pixel)
     else:
-        # SCL will be added at the end of the list if its not present.
-        scl_band_index = -1
+        # Cloud class band will be added at the end of the list if its not present.
+        cloud_band_index = -1
 
     stack = None
     creation_args = None
     mask = None
     first_end_date = None
 
-    for new_creation_args, new_end_date, layer in get_composite_items(input, sort):
-
+    for new_creation_args, new_end_date, layer in get_composite_items(
+        input, sort, composite_method
+    ):
         if first_end_date is None:
             first_end_date = new_end_date
 
         if creation_args is None:
             creation_args = new_creation_args
 
+        layer_clouds = None
+
         if composite_method == CompositeMethodOption.scl:
-            layer_clouds = numpy.isin(layer[scl_band_index], SCL_COMPOSITE_CLOUD_BANDS)
+            layer_clouds = numpy.isin(
+                layer[cloud_band_index], SCL_COMPOSITE_CLOUD_BANDS
+            )
+        elif composite_method == CompositeMethodOption.qa_pixel:
+            qa = layer[cloud_band_index]
+            # Bit 1 is dilated cloud, 3 is cloud, 4 is cloud shadow.
+            nodata_byte = numpy.array(1 << 0, dtype=qa.dtype)
+            dilated_cloud_byte = numpy.array(1 << 1, dtype=qa.dtype)
+            cloud_byte = numpy.array(1 << 3, dtype=qa.dtype)
+            shadow_byte = numpy.array(1 << 4, dtype=qa.dtype)
+
+            nodata_mask = numpy.bitwise_and(qa, nodata_byte)
+            dilated_cloud = numpy.bitwise_and(qa, dilated_cloud_byte)
+            cloud = numpy.bitwise_and(qa, cloud_byte)
+            shadow = numpy.bitwise_and(qa, shadow_byte)
+
+            layer_clouds = (dilated_cloud | cloud | shadow | nodata_mask).astype(
+                dtype="bool"
+            )
+            # The landsat cloud mask has lots of 1 or 2 pixel speckles should can
+            # be removed to improve quality of output.
+            layer_clouds = sieve(layer_clouds.astype("uint8"), 3).astype("bool")
         elif composite_method == CompositeMethodOption.full:
             # Use SCL layer to select pixel ranks.
             cloud_probs = numpy.choose(
-                layer[scl_band_index], SCENE_CLASS_RANK_FLAT
+                layer[cloud_band_index], SCENE_CLASS_RANK_FLAT
             ).astype("float")
 
             # Compute NDVI, avoiding zero division.
@@ -708,27 +751,28 @@ def composite(
                 int(100 * numpy.sum(layer_clouds) / layer_clouds.size)
             )
         )
-        # Create stack.
         if stack is None:
-            # Set first return as stack.
             stack = layer
             mask = layer_clouds
         else:
-            # Update nodata values in stack with new pixels, but only if the
+            # Update cloudy values in stack with new pixels, but only if the
             # new pixels are not nodata.
             layer_data_mask = layer[0] != NODATA_VALUE
             local_update_mask = mask & layer_data_mask
             for i in range(stack.shape[0]):
                 stack[i][local_update_mask] = layer[i][local_update_mask]
-            # Update cloud mask.
+
             mask = mask & layer_clouds
 
         logger.debug(
             "Remaining masked count {} %".format(int(100 * numpy.sum(mask) / mask.size))
         )
-        # If no cloudy pixels are left, stop getting more data.
-        if numpy.sum(mask) / mask.size <= finish_early_cloud_cover_percentage:
-            logger.debug("Finalized compositing early.")
+
+        if numpy.sum(stack[0] == NODATA_VALUE):
+            logger.debug("There are remaining NA values continuing compositing")
+            continue
+        elif numpy.sum(mask) / mask.size <= finish_early_cloud_cover_percentage:
+            logger.debug("Very little clouds left, finalizing compositing early.")
             break
 
     if stack is None:
@@ -763,7 +807,13 @@ def composite(
             stack[i][mask] = NODATA_VALUE
 
     # Remove scl if required.
-    if Sentinel2BandOption.scl not in input.bands:
-        stack = numpy.delete(stack, scl_band_index, 0)
+    if (
+        composite_method in (CompositeMethodOption.scl, CompositeMethodOption.full)
+        and Sentinel2BandOption.scl not in input.bands
+    ) or (
+        composite_method == CompositeMethodOption.qa_pixel
+        and LandsatBandOption.qa_pixel not in input.bands
+    ):
+        stack = numpy.delete(stack, cloud_band_index, 0)
 
     return creation_args, first_end_date, numpy.array(stack)
