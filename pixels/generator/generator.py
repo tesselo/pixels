@@ -5,7 +5,6 @@ import tempfile
 
 import numpy as np
 import rasterio
-from mpire import WorkerPool
 from tensorflow import keras
 
 from pixels import tio
@@ -18,6 +17,7 @@ from pixels.generator.generator_utils import (
     multiclass_builder,
 )
 from pixels.log import BoundLogger, logger
+from pixels.utils import run_multiprocessed
 
 # Mode Definitions
 GENERATOR_MODE_TRAINING = "training"
@@ -290,11 +290,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         )
         self.info(f"Downloading {len(list_of_tifs)} images")
         # Download the Pixels Data images in parallel.
-        with WorkerPool(n_jobs=min(len(list_of_tifs), 12)) as p:
-            p.map(
-                tio.download,
-                zip(list_of_tifs, [download_dir] * len(list_of_tifs)),
-            )
+        run_multiprocessed(
+            tio.download, variable_arguments=list_of_tifs, static_arguments=download_dir
+        )
         # Retrieve path for training data.
         y_path_file = self.collection_catalog[list(self.collection_catalog.keys())[0]][
             "y_path"
@@ -435,11 +433,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if tio.is_remote(x_paths[0]):
             temp_dir = tempfile.TemporaryDirectory()
             download_dir = temp_dir.name
-            with WorkerPool(n_jobs=min(len(x_paths), 12)) as p:
-                downloaded = p.map(
-                    tio.download,
-                    zip(x_paths, [download_dir] * len(x_paths)),
-                )
+            downloaded = run_multiprocessed(
+                tio.download, variable_arguments=x_paths, static_arguments=download_dir
+            )
         else:
             downloaded = x_paths
         x_imgs = []
