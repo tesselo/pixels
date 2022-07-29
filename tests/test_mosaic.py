@@ -17,28 +17,52 @@ from pixels.mosaic import (
 from tests.scenarios import sample_geojson
 
 
-def mock_search_data(
-    geojson,
-    start=None,
-    end=None,
-    platforms=None,
-    maxcloud=None,
-    scene=None,
-    level=None,
-    limit=10,
-    sort="sensing_time",
-    bands=None,
-):
+def mock_search_data(input):
     response = []
+    if input.platforms == ["SENTINEL_2"]:
+        bands = {
+            "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B02": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B03": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B04": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B05": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B06": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B07": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B08": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B8A": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B09": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "SCL": os.path.join(os.path.dirname(__file__), "data/SCL.tif"),
+        }
+    else:
+        bands = {
+            "B1": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "B2": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+            "qa_pixel": os.path.join(os.path.dirname(__file__), "data/SCL.tif"),
+        }
+
     for i in range(3):
         response.append(
             {
                 "id": "S2A_MSIL2A_20200130T112311_{}".format(i),
                 "sensing_time": datetime.datetime(2020, 1, 20 + i, 11, 30, 39, 918000),
                 "cloud_cover": 70.091273,
+                "bands": bands,
+            },
+        )
+
+    if input.platforms == ["SENTINEL_2"]:
+        # Append zero scene.
+        response.append(
+            {
+                "id": "S2A_MSIL2A_20200130T112311_{}".format(i),
+                "sensing_time": datetime.datetime(2020, 2, 1, 11, 30, 39, 918000),
+                "cloud_cover": 70.091273,
                 "bands": {
-                    "B01": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                    "B02": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
+                    "B01": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
+                    "B02": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
                     "B03": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B04": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
                     "B05": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
@@ -54,30 +78,6 @@ def mock_search_data(
                 },
             },
         )
-    # Append zero scene.
-    response.append(
-        {
-            "id": "S2A_MSIL2A_20200130T112311_{}".format(i),
-            "sensing_time": datetime.datetime(2020, 2, 1, 11, 30, 39, 918000),
-            "cloud_cover": 70.091273,
-            "bands": {
-                "B01": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
-                "B02": os.path.join(os.path.dirname(__file__), "data/B02.tif"),
-                "B03": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B04": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B05": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B06": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B07": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B08": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B8A": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B09": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B10": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B11": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "B12": os.path.join(os.path.dirname(__file__), "data/B01.tif"),
-                "SCL": os.path.join(os.path.dirname(__file__), "data/SCL.tif"),
-            },
-        },
-    )
     return response
 
 
@@ -322,6 +322,40 @@ class TestMosaic(unittest.TestCase):
         dates = [f for f in dates if f is not None]
         stack = [f for f in stack if f is not None]
         self.assertEqual(dates, ["2020-01-20", "2020-01-20"])
+
+    def test_pixel_stack_composite_qa_pixel(self):
+        funk, search_configurations = configure_pixel_stack(
+            geojson=self.geojson,
+            start="2020-01-01",
+            end="2020-02-02",
+            scale=250,
+            interval="weeks",
+            interval_step=1,
+            bands=["B1", "B2"],
+            clip=False,
+            level="L2",
+            pool_size=1,
+            mode="composite",
+            composite_method="QA_PIXEL",
+            platforms="LANDSAT_8",
+            maxcloud=100,
+        )
+        dates = []
+        stack = []
+        for search in search_configurations:
+            creation_args, date, img = process_search_images(funk, search)
+            dates.append(date)
+            stack.append(img)
+        dates = [f for f in dates if f is not None]
+        stack = [f for f in stack if f is not None]
+
+        self.assertEqual(
+            dates, ["2020-01-20", "2020-01-20", "2020-01-20", "2020-01-20"]
+        )
+        expected = [
+            [[[1453, 1475, 1500], [3714, 3737, 3762], [6214, 6237, 6262]]] * 2
+        ] * 4
+        numpy.testing.assert_array_equal(stack, expected)
 
     def test_pixel_stack_composite_full(self):
         # Test weekly latest pixel stack.
