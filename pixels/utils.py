@@ -331,7 +331,7 @@ def unwrap_arguments(variable_arguments: List[Iterable], static_arguments: List[
         yield (*args, *static_arguments)
 
 
-def run_starmap_multiprocessing(
+def run_multiprocessed(
     func: callable,
     variable_arguments: Iterable,
     static_arguments: List[Any],

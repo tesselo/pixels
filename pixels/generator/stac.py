@@ -22,7 +22,7 @@ from pixels.generator.stac_utils import (
 )
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
-from pixels.utils import run_starmap_multiprocessing, timeseries_steps
+from pixels.utils import run_multiprocessed, timeseries_steps
 from pixels.validators import PixelsConfigValidator
 
 
@@ -228,10 +228,10 @@ def parse_vector_data(
     # For every tile geojson file create an item, add it to catalog.
     out_stac_folder = os.path.join(os.path.dirname(source_path), "stac")
     catalog.normalize_hrefs(out_stac_folder)
-    result_parse = run_starmap_multiprocessing(
+    result_parse = run_multiprocessed(
         create_stac_item_from_vector,
-        tiles.iterrows(),
-        [
+        variable_arguments=tiles.iterrows(),
+        static_arguments=[
             reference_date,
             source_path,
             categorical,
@@ -316,10 +316,10 @@ def parse_raster_data(
     # Parse the raster data images in parallel.
     out_stac_folder = os.path.join(out_path, "stac")
     catalog.normalize_hrefs(out_stac_folder)
-    result_parse = run_starmap_multiprocessing(
+    result_parse = run_multiprocessed(
         create_stac_item_from_raster,
-        raster_list,
-        [
+        variable_arguments=raster_list,
+        static_arguments=[
             source_path,
             archive_data,
             categorical,
