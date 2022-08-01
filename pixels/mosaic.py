@@ -721,7 +721,8 @@ def composite(
             )
             # The landsat cloud mask has lots of 1 or 2 pixel speckles should can
             # be removed to improve quality of output.
-            layer_clouds = sieve(layer_clouds.astype("uint8"), 3).astype("bool")
+            if layer_clouds.size > 3:
+                layer_clouds = sieve(layer_clouds.astype("uint8"), 3).astype("bool")
         elif composite_method == CompositeMethodOption.full:
             # Use SCL layer to select pixel ranks.
             cloud_probs = numpy.choose(
