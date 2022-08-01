@@ -291,7 +291,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.info(f"Downloading {len(list_of_tifs)} images")
         # Download the Pixels Data images in parallel.
         run_multiprocessed(
-            tio.download, variable_arguments=list_of_tifs, static_arguments=download_dir
+            tio.download,
+            variable_arguments=list_of_tifs,
+            static_arguments=[download_dir],
         )
         # Retrieve path for training data.
         y_path_file = self.collection_catalog[list(self.collection_catalog.keys())[0]][
@@ -434,7 +436,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             temp_dir = tempfile.TemporaryDirectory()
             download_dir = temp_dir.name
             downloaded = run_multiprocessed(
-                tio.download, variable_arguments=x_paths, static_arguments=download_dir
+                tio.download,
+                variable_arguments=x_paths,
+                static_arguments=[download_dir],
             )
         else:
             downloaded = x_paths
