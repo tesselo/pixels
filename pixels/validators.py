@@ -159,7 +159,7 @@ class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
     ]
     maxcloud: int = 20
     level: Optional[Union[SentinelLevelOption, LandsatLevelOption]]
-    limit: Optional[int]
+    limit: Optional[int] = 100
     bands: Union[list, tuple]
 
     @validator("start", "end")
