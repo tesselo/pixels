@@ -587,6 +587,19 @@ def get_composite_items(
     """
     Yield all items required for composites.
     """
+    if (
+        composite_method in (CompositeMethodOption.scl, CompositeMethodOption.full)
+        and Sentinel2BandOption.scl not in input.bands
+    ):
+        bands = list(input.bands) + [Sentinel2BandOption.scl.value]
+    elif (
+        composite_method == CompositeMethodOption.qa_pixel
+        and LandsatBandOption.qa_pixel not in input.bands
+    ):
+        bands = list(input.bands) + [LandsatBandOption.qa_pixel.value]
+    else:
+        bands = input.bands
+
     items = search_data(
         PixelsSearchValidator(
             geojson=input.geojson,
@@ -608,19 +621,6 @@ def get_composite_items(
             search_date_end=input.end,
             search_date_start=input.start,
         )
-
-    if (
-        composite_method in (CompositeMethodOption.scl, CompositeMethodOption.full)
-        and Sentinel2BandOption.scl not in input.bands
-    ):
-        bands = list(input.bands) + [Sentinel2BandOption.scl.value]
-    elif (
-        composite_method == CompositeMethodOption.qa_pixel
-        and LandsatBandOption.qa_pixel not in input.bands
-    ):
-        bands = list(input.bands) + [LandsatBandOption.qa_pixel.value]
-    else:
-        bands = input.bands
 
     for item in items:
         creation_args, layer = retrieve_item_bands(
