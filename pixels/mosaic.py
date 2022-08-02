@@ -609,7 +609,7 @@ def get_composite_items(
             limit=input.limit,
             level=input.level,
             platforms=input.platforms,
-            bands=input.bands,
+            bands=bands,
             sort=sort,
         )
     )
