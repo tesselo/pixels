@@ -330,7 +330,7 @@ def configure_pixel_stack(
 
         logger.info(f"Getting {len(response)} scenes for this stack.")
 
-        dates = [
+        configs = [
             (
                 geojson,
                 [item],
@@ -352,7 +352,7 @@ def configure_pixel_stack(
         else:
             sort = SearchOrderOption.cloud_cover
         # Construct array of latest pixel calls with varying dates.
-        dates = [
+        configs = [
             (
                 geojson,
                 step[1],
@@ -374,7 +374,7 @@ def configure_pixel_stack(
         sort = SearchOrderOption.cloud_cover
         finish_early_cloud_cover_percentage = 0.05
         # Create input list with date ranges.
-        dates = [
+        configs = [
             (
                 geojson,
                 step[0],
@@ -395,9 +395,9 @@ def configure_pixel_stack(
         ]
 
     if mode != ModeOption.all:
-        logger.info(f"Getting {len(dates)} {interval} {mode} images for this stack.")
+        logger.info(f"Getting {len(configs)} {interval} {mode} images for this stack.")
 
-    return collect, dates
+    return collect, configs
 
 
 def process_search_images(collect, search):
