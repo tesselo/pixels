@@ -676,7 +676,6 @@ def get_and_write_raster_from_item(
 
 def build_catalog_from_items(
     path_to_items,
-    filetype="_item.json",
     id_name="predictions",
     description="",
     additional_links="",
@@ -688,7 +687,6 @@ def build_catalog_from_items(
     ----------
         path_to_items : str
             Path to items.
-        filetype : str, optional
         id_name : str, optional
         description : str, optional
         additional_links : str, optional
