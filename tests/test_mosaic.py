@@ -182,18 +182,6 @@ class TestMosaic(unittest.TestCase):
 
     def test_pixel_stack(self):
         # Test weekly latest pixel stack.
-        """
-        creation_args, dates, stack = pixel_stack(
-            self.geojson,
-            start="2020-01-01",
-            end="2020-02-02",
-            scale=500,
-            interval="weeks",
-            bands=["B01", "B02"],
-            clip=False,
-            level="L2A",
-            pool_size=5,
-        )"""
         funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -203,7 +191,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
-            pool_size=5,
             platforms="SENTINEL_2",
             maxcloud=100,
         )
@@ -224,18 +211,6 @@ class TestMosaic(unittest.TestCase):
         numpy.testing.assert_array_equal(stack, expected)
 
         # Test all latest pixel.
-        """
-        creation_args, dates, stack = pixel_stack(
-            self.geojson,
-            start="2020-01-01",
-            end="2020-02-01",
-            scale=500,
-            interval="all",
-            bands=["B01", "B02"],
-            clip=False,
-            level="L2A",
-            pool_size=1,
-        )"""
         funk, search_configurations = configure_pixel_stack(
             self.geojson,
             start="2020-01-01",
@@ -245,7 +220,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02"],
             clip=False,
             level="L2A",
-            pool_size=1,
             platforms="SENTINEL_2",
             maxcloud=100,
         )
@@ -274,7 +248,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02", "B04", "B08"],
             clip=False,
             level="L2A",
-            pool_size=1,
             mode="composite",
             composite_method="SCL",
             platforms="SENTINEL_2",
@@ -307,7 +280,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02", "B04", "B08"],
             clip=False,
             level="L2A",
-            pool_size=1,
             mode="composite",
             composite_method="SCL",
             platforms="SENTINEL_2",
@@ -334,7 +306,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B1", "B2"],
             clip=False,
             level="L2",
-            pool_size=1,
             mode="composite",
             composite_method="QA_PIXEL",
             platforms="LANDSAT_8",
@@ -369,7 +340,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02", "B04", "B08"],
             clip=False,
             level="L2A",
-            pool_size=1,
             mode="composite",
             composite_method="FULL",
             platforms="SENTINEL_2",
@@ -402,7 +372,6 @@ class TestMosaic(unittest.TestCase):
             bands=["B01", "B02", "B04", "B08", "SCL"],
             clip=False,
             level="L2A",
-            pool_size=1,
             mode="composite",
             composite_method="FULL",
             platforms="SENTINEL_2",
