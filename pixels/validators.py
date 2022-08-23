@@ -150,6 +150,13 @@ class SearchStacCollectionOption(str, Enum):
     sentinel_s2_l2a_cogs = "sentinel-s2-l2a-cogs"
 
 
+class ConcurrencyOption(str, Enum):
+    threading = "threading"
+    fork = "fork"
+    forkserver = "forkserver"
+    spawn = "spawn"
+
+
 class PixelsBaseValidator(BaseModel, extra=Extra.forbid):
     geojson: FeatureCollectionCRS
     start: Optional[Union[str, date]]

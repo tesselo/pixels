@@ -17,7 +17,7 @@ from pixels.generator.generator_utils import (
     multiclass_builder,
 )
 from pixels.log import BoundLogger, logger
-from pixels.utils import run_multiprocessed
+from pixels.utils import run_concurrently
 
 # Mode Definitions
 GENERATOR_MODE_TRAINING = "training"
@@ -290,7 +290,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         )
         self.info(f"Downloading {len(list_of_tifs)} images")
         # Download the Pixels Data images in parallel.
-        run_multiprocessed(
+        run_concurrently(
             tio.download,
             variable_arguments=list_of_tifs,
             static_arguments=[download_dir],
@@ -435,7 +435,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if tio.is_remote(x_paths[0]):
             temp_dir = tempfile.TemporaryDirectory()
             download_dir = temp_dir.name
-            downloaded = run_multiprocessed(
+            downloaded = run_concurrently(
                 tio.download,
                 variable_arguments=x_paths,
                 static_arguments=[download_dir],

@@ -1,5 +1,4 @@
 import datetime
-from concurrent.futures import ThreadPoolExecutor
 
 import numpy
 import sentry_sdk
@@ -19,9 +18,10 @@ from pixels.exceptions import PixelsException
 from pixels.log import log_function, logger
 from pixels.retrieve import retrieve
 from pixels.search import search_data
-from pixels.utils import compute_mask, timeseries_steps
+from pixels.utils import compute_mask, run_concurrently, timeseries_steps
 from pixels.validators import (
     CompositeMethodOption,
+    ConcurrencyOption,
     LandsatBandOption,
     ModeOption,
     PixelsConfigValidator,
@@ -211,9 +211,12 @@ def first_valid_pixel(
         failed_retrieve = False
         if pool_bands:
             try:
-                with ThreadPoolExecutor(max_workers=len(bands)) as executor:
-                    futures = [executor.submit(retrieve, *band) for band in band_list]
-                    data = [future.result() for future in futures]
+                data = run_concurrently(
+                    retrieve,
+                    variable_arguments=band_list,
+                    concurrency=ConcurrencyOption.threading,
+                    n_jobs=len(bands),
+                )
             except RasterioIOError as e:
                 sentry_sdk.capture_exception(e)
                 logger.warning(f"Rasterio IO Error. item {RasterioIOError}")
@@ -434,16 +437,16 @@ def process_search_images(collect, search):
     return creation_args, dates, pixels
 
 
-def fetch_write_images(collect, search, out_path):
+def fetch_write_images(search, collect, out_path):
     """
     Collect the images, write them to disk
 
     Parameters
     ----------
-        collect : function
-            Funtion to use for collecting.
         search : dict
             Configuration for searching and collecting images.
+        collect : function
+            Funtion to use for collecting.
         out_path : str
             Path to folder containing the item's images.
     Returns
@@ -510,15 +513,16 @@ def pixel_stack(
     logger.info(f"Processing pool size is {pool_size}.")
     raster_list = []
     if pool_size > 1:
-        with ThreadPoolExecutor(max_workers=pool_size) as executor:
-            futures = [
-                executor.submit(fetch_write_images, collect, search, out_path)
-                for search in search_configurations
-            ]
-            raster_list = [future.result() for future in futures]
+        raster_list = run_concurrently(
+            fetch_write_images,
+            variable_arguments=search_configurations,
+            static_arguments=[collect, out_path],
+            concurrency=ConcurrencyOption.threading,
+            n_jobs=pool_size,
+        )
     else:
         for search in search_configurations:
-            raster_list.append(fetch_write_images(collect, search, out_path))
+            raster_list.append(fetch_write_images(search, collect, out_path))
     return raster_list
 
 
@@ -565,9 +569,12 @@ def retrieve_item_bands(
 
     if pool_bands:
         max_workers = min(MAX_COMPOSITE_BAND_WORKERS, len(band_list))
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(retrieve, *band) for band in band_list]
-            data = [future.result() for future in futures]
+        data = run_concurrently(
+            retrieve,
+            variable_arguments=band_list,
+            concurrency=ConcurrencyOption.threading,
+            n_jobs=max_workers,
+        )
     else:
         data = []
         for band in band_list:
