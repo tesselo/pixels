@@ -426,6 +426,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         catalog = self.collection_catalog[x_id]
         x_paths = list(np.unique(catalog["x_paths"]))
         y_path = catalog["y_path"]
+        x_paths = np.sort(x_paths)
+        x_paths = x_paths[max(len(x_paths) - self.timesteps, 0) :]
         if self.relative_paths:
             parent_path = os.path.dirname(self.path_collection_catalog)
             x_paths = [os.path.join(parent_path, path) for path in x_paths]
