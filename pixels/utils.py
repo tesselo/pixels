@@ -18,7 +18,7 @@ from pixels.const import (
     S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
     WORKERS_LIMIT,
 )
-from pixels.validators import FeatureCollectionCRS
+from pixels.validators import ConcurrencyOption, FeatureCollectionCRS
 
 
 def compute_number_of_pixels(distance: (int, float), scale: (int, float)) -> int:
@@ -331,19 +331,48 @@ def unwrap_arguments(variable_arguments: List[Iterable], static_arguments: List[
         yield (*args, *static_arguments)
 
 
-def run_multiprocessed(
-    func: callable,
+def run_concurrently(
+    funk: callable,
     variable_arguments: Iterable,
-    static_arguments: List[Any],
-    iterator_size: Optional[int] = None,
-    workers_limit: Optional[int] = WORKERS_LIMIT,
+    static_arguments: Optional[List[Any]] = None,
+    n_jobs: Optional[int] = None,
+    concurrency: Optional[ConcurrencyOption] = ConcurrencyOption.fork,
 ):
-    iterator = unwrap_arguments([variable_arguments], static_arguments)
-    if not iterator_size:
-        iterator_size = len(variable_arguments)
-    num_processes = min(iterator_size, workers_limit)
+    """
+    Run the desired function in n_jobs parallel spread iterating over
+    a set of variable arguments and repeating the same static arguments
+    on all the calls.
 
-    with WorkerPool(n_jobs=num_processes) as pool:
-        result_list = pool.map(func, iterator)
+    Parameters
+    ----------
+
+        funk: callable
+           The function to call in parallel
+        variable_arguments: Iterable
+            The series of arguments that will be varying between calls
+        static_arguments: List
+            The list of arguments that will be the same for all calls
+        n_jobs: int
+            The number of jobs (processes or threads) to parallelize in
+        concurrency: ConcurrencyOption
+            The way we will parallelize, usually fork or threading
+
+    Returns
+    -------
+
+        result_list: List
+            A list with whatever func returned in each call
+
+    """
+    if static_arguments:
+        iterator = unwrap_arguments([variable_arguments], static_arguments)
+    else:
+        iterator = variable_arguments
+    if not n_jobs:
+        n_jobs = len(variable_arguments)
+    num_processes = min(n_jobs, WORKERS_LIMIT)
+
+    with WorkerPool(n_jobs=num_processes, start_method=concurrency) as pool:
+        result_list = pool.map(funk, iterator)
 
     return result_list
