@@ -69,7 +69,7 @@ GENERATOR_Y_VALUE_MODES = [
 ]
 
 
-class DataGenerator(keras.utils.Sequence, BoundLogger):
+class Generator(keras.utils.Sequence, BoundLogger):
     """
     Defining class for generator.
     """
@@ -169,9 +169,14 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.init_collection_sources()
 
         # Handle image size.
+        # Not for 2D
         self.timesteps = timesteps
+        #
+        # ALL
         self.num_bands = num_bands
         self.num_classes = num_classes
+        #
+        # Not for pixel mode
         self.upsampling = upsampling
         self.width = width
         self.height = height
@@ -179,92 +184,28 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.y_height = y_height
         self.padding = padding
         self.y_padding = y_padding
+        #
+
+        # only Resnet
         if framed_window % 2 == 0:
             framed_window += 1
         self.framed_window = framed_window
+        #
+
+        # Discriminate vector / raster, maybe one property fits all
+        # maybe self.source
         self.y_zip = None
         self.y_geojson = None
+        #
+        # Only multiclass
         self.class_weights = class_weights
         if self.one_hot and self.class_weights:
             weights_sum = sum(class_weights.values())
             self.class_weights = np.array(
                 [f / weights_sum for f in class_weights.values()]
             )
-        if self.mode != GENERATOR_PIXEL_MODEL:
-            self.x_open_shape = (
-                self.timesteps,
-                self.num_bands,
-                self.height,
-                self.width,
-            )
-            if not self.y_width and not self.y_height:
-                self.y_width = self.width * self.upsampling
-                self.y_height = self.height * self.upsampling
-            self.y_open_shape = (1, self.y_height, self.y_width)
-            self.y_width = self.y_width + (self.y_padding * 2)
-            self.y_height = self.y_height + (self.y_padding * 2)
-            self.x_width = (self.width * self.upsampling) + (self.padding * 2)
-            self.x_height = (self.height * self.upsampling) + (self.padding * 2)
-            if self.mode == GENERATOR_3D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number,
-                    self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number,
-                    self.y_height,
-                    self.y_width,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_2D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number * self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number * self.timesteps,
-                    self.y_height,
-                    self.y_width,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_RESNET_2D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number * self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number * self.timesteps,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_RESNET_IMG_3D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number,
-                    self.timesteps,
-                    self.framed_window,
-                    self.framed_window,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number,
-                    self.num_classes,
-                )
-        else:
-            self.expected_x_shape = (
-                self.batch_number,
-                self.timesteps,
-                self.num_bands,
-            )
-            self.expected_y_shape = (
-                self.batch_number,
-                self.num_classes,
-            )
+        #
+        self.define_shapes()
 
     @property
     def train(self):
@@ -275,9 +216,15 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
 
     @property
     def multiclass_maker(self):
+        # TODO: clarify responsibility(this makes classes cry out of whatever)
         return (self.class_definitions is not None) and self.train
 
+    def define_shapes(self):
+        raise NotImplementedError
+
     def download_and_parse_data(self, download_dir):
+        # Is only done if download_data
+        # TODO: fucking break it down into shit pieces, refactor.
         if not tio.is_remote(self.path_collection_catalog):
             self.warning("Data can only be downloaded if on remote storage.")
             return
@@ -420,6 +367,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_meta: dict
                 Dictionary with Y metadata.
         """
+        # TODO: Study source flow differences and discriminators
         # Get the collected id from the index list and its catalog from the
         # index dictionary.
         x_id = self.id_list[index]
@@ -513,6 +461,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         """
         Processing of data on 3D and 2D modes.
         """
+        # ACHTUNG: only Pixel does not use this, study swag and flow
         # Ensure X img size.
         x_tensor = x_tensor[
             : self.timesteps, : self.num_bands, : self.height, : self.width
@@ -662,6 +611,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         return np.array(X), np.array(Y)
 
     def get_and_process(self, index):
+        # TODO: study flows and swags
+
         x_imgs, y_img = self.get_data(index, metadata=False)
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
@@ -750,6 +701,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                     RESNET_IMG_2D_Model:
                         (Batch_number * timesteps * frame_width * frame_height, num_bands).
         """
+        # TODO: study flows and swags
+
         # Build a list of indexes to grab.
         list_indexes = [
             (f * len(self)) + index
@@ -841,3 +794,108 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
     def on_epoch_end(self):
         if self.shuffle:
             np.random.shuffle(self.id_list)
+
+
+class ImageGenerator(Generator):
+    # outputs x and y as images
+    def define_shapes(self):
+        self.x_open_shape = (
+            self.timesteps,
+            self.num_bands,
+            self.height,
+            self.width,
+        )
+        if not self.y_width and not self.y_height:
+            self.y_width = self.width * self.upsampling
+            self.y_height = self.height * self.upsampling
+        self.y_open_shape = (1, self.y_height, self.y_width)
+        self.y_width = self.y_width + (self.y_padding * 2)
+        self.y_height = self.y_height + (self.y_padding * 2)
+        self.x_width = (self.width * self.upsampling) + (self.padding * 2)
+        self.x_height = (self.height * self.upsampling) + (self.padding * 2)
+
+        if self.mode == GENERATOR_2D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number * self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number * self.timesteps,
+                self.y_height,
+                self.y_width,
+                self.num_classes,
+            )
+
+        if self.mode == GENERATOR_3D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number,
+                self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number,
+                self.y_height,
+                self.y_width,
+                self.num_classes,
+            )
+
+
+class PixelGenerator(Generator):
+    # outputs x and y as value (pixel mode)
+    def define_shapes(self):
+        self.expected_x_shape = (
+            self.batch_number,
+            self.timesteps,
+            self.num_bands,
+        )
+        self.expected_y_shape = (
+            self.batch_number,
+            self.num_classes,
+        )
+
+
+class NetGenerator(Generator):
+    # outputs x as image and y as value (resnet mode)
+    def define_shapes(self):
+        self.x_open_shape = (
+            self.timesteps,
+            self.num_bands,
+            self.height,
+            self.width,
+        )
+        if not self.y_width and not self.y_height:
+            self.y_width = self.width * self.upsampling
+            self.y_height = self.height * self.upsampling
+        self.y_open_shape = (1, self.y_height, self.y_width)
+        self.y_width = self.y_width + (self.y_padding * 2)
+        self.y_height = self.y_height + (self.y_padding * 2)
+        self.x_width = (self.width * self.upsampling) + (self.padding * 2)
+        self.x_height = (self.height * self.upsampling) + (self.padding * 2)
+
+        if self.mode == GENERATOR_RESNET_2D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number * self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number * self.timesteps,
+                self.num_classes,
+            )
+        if self.mode == GENERATOR_RESNET_IMG_3D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number,
+                self.timesteps,
+                self.framed_window,
+                self.framed_window,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number,
+                self.num_classes,
+            )

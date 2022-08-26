@@ -1,5 +1,5 @@
 # Pixels Data Generator
-A [DataGenerator](https://github.com/tesselo/pixels/blob/main/pixels/generator/generator.py) is used to feed pixels data to our AI models. This generator transforms the raw imagery stacks from the pixels collection into a format that can be passed to an AI model.
+A [Generator](https://github.com/tesselo/pixels/blob/main/pixels/generator/generator.py) is used to feed pixels data to our AI models. This generator transforms the raw imagery stacks from the pixels collection into a format that can be passed to an AI model.
 
 For super-resolution models, the generator is able to change the resolution of the imagery data.
 
@@ -195,7 +195,7 @@ Path to for the downloaded data directory. If `download_dir` is not set and
 ## Supporting arguments
 This section documents a number of arguments that can be set as generator
 arguments in the stac training algorithm, that are not direct arguments of the
-DataGenerator. These additional arguments are related with formatting the input
+Generator. These additional arguments are related with formatting the input
 and output of the models, as well as handling special cases during prediction.
 
 ### Variable prediction image size

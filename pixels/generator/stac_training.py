@@ -315,7 +315,7 @@ def train_model_function(
     catalog_path = os.path.join(os.path.dirname(catalog_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
     gen_args["usage_type"] = generator.GENERATOR_MODE_TRAINING
-    dtgen = generator.DataGenerator(**gen_args)
+    dtgen = generator.Generator(**gen_args)
     if dtgen.one_hot:
         fit_args.pop("class_weight")
 
@@ -400,7 +400,7 @@ def train_model_function(
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
-    dpredgen = generator.DataGenerator(**gen_args)
+    dpredgen = generator.Generator(**gen_args)
     results = model.evaluate(
         dpredgen,
         callbacks=[log_progress],
@@ -473,7 +473,7 @@ def predict_function_batch(
 
     catalog_path = os.path.join(os.path.dirname(collection_uri), "catalogs_dict.json")
     gen_args["path_collection_catalog"] = catalog_path
-    dtgen = generator.DataGenerator(**gen_args)
+    dtgen = generator.Generator(**gen_args)
     # Get parent folder for prediction.
     predict_path = os.path.dirname(generator_config_uri)
     # Get jobs array.

@@ -7,13 +7,13 @@ The arguments definitions can be seen here:[Pixels Data Generator](../generator.
 When running the generator locally multiple times, it can make sense to download the data so that subsequent runs are faster. To do so, use the following additional parameters: ```download_data``` and ```download_dir```.
 
 ```python
-from pixels.stac_generator.generator import DataGenerator
+from pixels.stac_generator.generator import Generator
 
 # Path to Collection dictionary.
 # It can be on s3 or locally, it has to be a catalogs_dict.json representing the collection.
 path_collection_catalog = 's3://bucket-key/pixelsdata/collection_id_key/data/catalogs_dict.json'
 
-data_training_generator = DataGenerator(
+data_training_generator = Generator(
     path_collection_catalog=path_collection_catalog,
     random_seed = 23,
     split=0.8,
@@ -38,7 +38,7 @@ Considering a dataset with 1000 samples.
 
 ```python
 # This creates a generator with the remaining 20% that were not used in the training.
->>> data_evaluation_generator = DataGenerator(
+>>> data_evaluation_generator = Generator(
         ... # Same as in training
         split=0.2,
         usage_type="evaluation",
@@ -52,7 +52,7 @@ Considering a dataset with 1000 samples.
 ```python
 # This creates a generator with the 10% of the full dataset, only fetching samples not used in the training.
 
->>> data_evaluation_generator = DataGenerator(
+>>> data_evaluation_generator = Generator(
         ... # Same as in training
         split=0.1,
         usage_type="evaluation",
