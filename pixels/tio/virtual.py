@@ -6,8 +6,8 @@ from io import BytesIO
 from typing import Any, AnyStr, List, Union
 
 import h5py
-import rasterio.path
 
+from pixels.path import Path
 from pixels.tio.s3 import S3
 
 
@@ -192,7 +192,7 @@ def local_or_temp(uri: str) -> str:
     return uri
 
 
-def open_zip(uri: Union[rasterio.path.ParsedPath, str]) -> zipfile.ZipFile:
+def open_zip(uri: Union[Path, str]) -> zipfile.ZipFile:
     if is_archive_parsed(uri):
         path = uri.archive
     else:

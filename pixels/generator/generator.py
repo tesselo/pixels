@@ -17,6 +17,7 @@ from pixels.generator.generator_utils import (
     multiclass_builder,
 )
 from pixels.log import BoundLogger, logger
+from pixels.path import Path
 from pixels.utils import run_concurrently
 
 # Mode Definitions
@@ -468,7 +469,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 return x_imgs, x_meta
             return x_imgs, None
 
-        parsed_y_path = rasterio.path.parse_path(y_path)
+        parsed_y_path = Path(y_path)
         if tio.is_archive_parsed(parsed_y_path):
             if self.y_zip is None:
                 self.y_zip = tio.open_zip(parsed_y_path)
