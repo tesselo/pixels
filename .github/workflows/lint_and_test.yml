@@ -88,12 +88,44 @@ jobs:
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v29.0.2
-      - name: Search for dependencies
+      - name: Search for dependencies in batch
+        id: batch-dependencies
         run: |
           if "batch/docker/requirements.txt" in steps.changed-files.outputs.all_changed_files; do
             echo "Batch rebuild needed"
           done
-          
+          echo "::set-output name=changes::yes"
+      - name: Search for dependencies in pixels
+        id: pixel-dependencies
           if "requirements.txt" in steps.changed-files.outputs.all_changed_files; do
             echo "Pixels rebuild needed"
           done
+        echo "::set-output name=changes::yes"
+
+  notify_team_batch_changes:
+    name: Notify the team
+    runs-on: ubuntu-latest
+    needs: [check_dependencies_change]
+    if:  contains('yes', steps.batch-dependencies.changes)
+    steps:
+      - name: Post to the tech channel
+        uses: slackapi/slack-github-action@v1.21.0
+        with:
+          channel-id: 'C01SF1KHC77'
+          slack-message: "Pull Request with rebuild required for Pixels Batch. Rebuild the ECS image."
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  notify_team_pixels_changes:
+    name: Notify the team
+    runs-on: ubuntu-latest
+    needs: [check_dependencies_change]
+    if:  contains('yes', steps.pixels-dependencies.changes)
+    steps:
+      - name: Post to the tech channel
+        uses: slackapi/slack-github-action@v1.21.0
+        with:
+          channel-id: 'C01SF1KHC77'
+          slack-message: "Pull Request with rebuild required for Pixels. Update your main and do make install."
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
