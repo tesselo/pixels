@@ -9,6 +9,7 @@ from rasterio.enums import Resampling
 
 from pixels.exceptions import PixelsException
 from pixels.log import logger
+from pixels.path import Path
 from pixels.tio.virtual import is_remote, local_or_temp, open_zip, upload
 
 
@@ -154,7 +155,7 @@ def write_tiff_from_pixels_stack(date, np_img, out_path, meta):
 def read_raster(path, img=True, meta=True, zip_object=None) -> Raster:
     raster = Raster()
     try:
-        parsed_path = rasterio.path.parse_path(path)
+        parsed_path = Path(path)
         if hasattr(parsed_path, "archive") and parsed_path.archive:
             if zip_object is None:
                 zip_object = open_zip(parsed_path)

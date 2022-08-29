@@ -141,7 +141,6 @@ def create_stac_item_from_vector(
     catalog,
     crs,
 ):
-
     id_raster = str(tile[0])
     dict_data = gp.GeoSeries(tile[1].geometry).__geo_interface__
     bbox = list(dict_data["bbox"])
@@ -387,7 +386,6 @@ def parse_data(
     reference_date=None,
     additional_links=None,
 ):
-
     logger.debug(f"Building stac catalog for {source_path}.")
 
     if isinstance(categorical, str):
@@ -767,8 +765,6 @@ def build_collection_from_pixels(
     if additional_links:
         collection.add_link(pystac.Link("origin_files", additional_links))
     collection.make_all_links_absolute()
-    # collection.normalize_hrefs(path_to_pixels)
-    # collection.validate_all()
     if save_files:
         collection.save(pystac.CatalogType.ABSOLUTE_PUBLISHED)
     return collection
