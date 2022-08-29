@@ -117,13 +117,3 @@ def plot_history(history, path, name):
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), shadow=True, ncol=4)
 
     plt.savefig(path)
-
-
-def close_path_name(path):
-    """Some paths might come withou the closing dash, needed to do the listing.
-    This function will close the path.
-    """
-    if path[-1] != "/":
-        return f"{path}/"
-    else:
-        return path
