@@ -91,14 +91,14 @@ jobs:
       - name: Search for dependencies in batch
         id: batch-dependencies
         run: |
-          if "batch/docker/requirements.txt" in steps.changed-files.outputs.all_changed_files; do
+          if "batch/docker/requirements.txt" in ${{ steps.changed-files.outputs.all_changed_files }}; do
             echo "Batch rebuild needed"
           done
           echo "::set-output name=changes::yes"
       - name: Search for dependencies in pixels
         id: pixel-dependencies
         run: |
-          if "requirements.txt" in steps.changed-files.outputs.all_changed_files; do
+          if "requirements.txt" in ${{ steps.changed-files.outputs.all_changed_files }}; do
             echo "Pixels rebuild needed"
           done
           echo "::set-output name=changes::yes"
