@@ -97,16 +97,17 @@ jobs:
           echo "::set-output name=changes::yes"
       - name: Search for dependencies in pixels
         id: pixel-dependencies
+        run: |
           if "requirements.txt" in steps.changed-files.outputs.all_changed_files; do
             echo "Pixels rebuild needed"
           done
-        echo "::set-output name=changes::yes"
+          echo "::set-output name=changes::yes"
 
   notify_team_batch_changes:
     name: Notify the team
     runs-on: ubuntu-latest
     needs: [check_dependencies_change]
-    if:  contains('yes', steps.batch-dependencies.changes)
+    if:  contains('yes', github.steps.batch-dependencies.changes)
     steps:
       - name: Post to the tech channel
         uses: slackapi/slack-github-action@v1.21.0
@@ -120,7 +121,7 @@ jobs:
     name: Notify the team
     runs-on: ubuntu-latest
     needs: [check_dependencies_change]
-    if:  contains('yes', steps.pixels-dependencies.changes)
+    if:  contains('yes', github.steps.pixels-dependencies.changes)
     steps:
       - name: Post to the tech channel
         uses: slackapi/slack-github-action@v1.21.0
