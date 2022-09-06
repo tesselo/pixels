@@ -2,6 +2,8 @@ import json
 import math
 import os
 import tempfile
+from collections import namedtuple
+from typing import Protocol, TypeVar
 
 import numpy as np
 from tensorflow import keras
@@ -899,3 +901,127 @@ class NetGenerator(Generator):
                 self.batch_number,
                 self.num_classes,
             )
+
+
+class Generator:
+    def __init__(self) -> None:
+        pass
+        # self.data_handler = DataHandler()
+
+    def define_shapes(self):
+        raise NotImplementedError
+
+    def read_data(self):
+        self.data_handler.load
+        raise NotImplementedError
+
+    def process_data(self):
+        raise NotImplementedError
+
+
+XShape3D = namedtuple("XShape3D", ["batch", "timesteps", "height", "width", "bands"])
+XShape2D = namedtuple("XShape2D", ["batch", "height", "width", "bands"])
+XShape1D = namedtuple("XShape1D", ["batch", "timesteps", "bands"])
+
+YShapeND = namedtuple("YShapeND", ["batch", "height", "width", "classes"])
+YShape1D = namedtuple("YShape1D", ["batch", "classes"])
+
+XShape = TypeVar("XShape", XShape1D, XShape2D, XShape3D)
+YShape = TypeVar("YShape", YShape1D, YShapeND)
+
+
+class Data(Protocol):
+    x_shape: XShape
+    y_shape: YShape
+
+    def from_numpy(cls, nparray: np.array) -> "Data":
+        ...
+
+    def from_tiff(cls, path: str) -> "Data":
+        ...
+
+    def from_vector(cls, path: str) -> "Data":
+        ...
+
+    def augment(self):
+        ...
+
+    def upsample(self):
+        ...
+
+    def padd(self):
+        ...
+
+    def cloud_sort(self):
+        ...
+
+    def normalize(self):
+        ...
+
+    def force_dtype(self):
+        ...
+
+    def fill(self):
+        ...
+
+    def shrink(self):
+        ...
+
+    def process():
+        raise NotImplementedError
+
+
+class Data3D(Data):
+    def __init__(self, x_shape: XShape3D, y_shape: YShapeND):
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+
+class Data2D(Data):
+    def __init__(self, x_shape: XShape2D, y_shape: YShapeND):
+
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+
+class Data1D(Data):
+    def __init__(self, x_shape: XShape1D, y_shape: YShape1D):
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+
+class LearningMode:
+    def __init__():
+        pass
+
+    def process_data(self):
+        raise NotImplementedError
+
+    def show_data(self):
+        print(self.X)
+
+    def __getitem__(self, index):
+        return self.X, self.Y, self.weights
+
+    def list_to_use(self):
+        raise
+
+
+class TrainingMode(LearningMode):
+    def __init__(self):
+        self.X = "2"
+        self.Y = "1"
+
+
+class EvalMode(LearningMode):
+    def __init__(self):
+        self.X = "2"
+        self.Y = "1"
+
+
+class PredictMode(LearningMode):
+    def __getitem__(self, index):
+        return self.X
+
+    def predict():
+        pass
