@@ -86,28 +86,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Get changed files
-        id: changed-files
+        id: changed_files
         uses: tj-actions/changed-files@v29.0.2
       - name: Search for dependencies in batch
-        id: batch-dependencies
+        id: dependencies_changes
         run: |
-          if "batch/docker/requirements.txt" in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "Batch rebuild needed"
+          echo ${{ steps.changed_files.outputs.all_changed_files }}
+          echo "::set-output name=batch_changes::yes"
+          for file in ${{ steps.changed_files.outputs.all_changed_files }}; do
+            if [ $file ==  "batch/docker/requirements.txt" ]
+            then
+              echo "Batch rebuild needed"
+              echo "::set-output name=batch_changes::yes"
+            fi
+            if [ $file ==  "requirements.txt" ]
+            then
+              echo "Pixels rebuild needed"
+              echo "::set-output name=pixels_changes::yes"
+            fi
           done
-          echo "::set-output name=changes::yes"
-      - name: Search for dependencies in pixels
-        id: pixel-dependencies
-        run: |
-          if "requirements.txt" in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "Pixels rebuild needed"
-          done
-          echo "::set-output name=changes::yes"
+    outputs:
+      batch_changes: ${{ steps.dependencies_changes.outputs.batch_changes }}
+      pixels_changes: ${{ steps.dependencies_changes.outputs.pixels_changes }}
+
 
   notify_team_batch_changes:
     name: Notify the team
     runs-on: ubuntu-latest
     needs: [check_dependencies_change]
-    if:  contains('yes', github.steps.batch-dependencies.changes)
+    if:  needs.check_dependencies_change.outputs.batch_changes == 'yes'
     steps:
       - name: Post to the tech channel
         uses: slackapi/slack-github-action@v1.21.0
@@ -121,7 +128,7 @@ jobs:
     name: Notify the team
     runs-on: ubuntu-latest
     needs: [check_dependencies_change]
-    if:  contains('yes', github.steps.pixels-dependencies.changes)
+    if:  needs.check_dependencies_change.outputs.pixels_changes == 'yes'
     steps:
       - name: Post to the tech channel
         uses: slackapi/slack-github-action@v1.21.0
