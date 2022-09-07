@@ -14,4 +14,4 @@ pydantic
 geojson_pydantic
 kiwi-structlog-config
 slack-sdk
-mpire
+mpire==2.4.0
