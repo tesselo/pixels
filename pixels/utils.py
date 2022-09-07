@@ -5,7 +5,6 @@ from typing import Any, Iterable, List, Optional
 import numpy
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from mpire import WorkerPool
 from rasterio import Affine
 from rasterio.crs import CRS
 from rasterio.features import bounds, rasterize
@@ -364,6 +363,8 @@ def run_concurrently(
             A list with whatever func returned in each call
 
     """
+    from mpire import WorkerPool
+
     if static_arguments:
         iterator = unwrap_arguments([variable_arguments], static_arguments)
     else:
