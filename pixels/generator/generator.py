@@ -943,11 +943,28 @@ class Data(Protocol):
     def from_vector(cls, path: str) -> "Data":
         ...
 
-    def augment(self):
-        ...
+    def augment(
+        self, x_tensor: np.array, y_tensor: np.array, augmentation_index: int = 0
+    ):  # int or list
+        X, Y = generator_augmentation_2D.do_augmentation_on_batch(
+            x_tensor,
+            y_tensor,
+            self.x_shape.height,
+            self.x_shape.width,
+            self.y_shape.height,
+            self.y_shape.width,
+            augmentation_index=augmentation_index,
+            batch_size=self.x_shape.batch,
+            mode="3D_Model",  # TODO:How to fuck do we handle this?
+        )
+        # TODO: do we return or change the should we be using self.X
+        return X, Y
 
-    def upsample(self):
-        ...
+    def upsample(self, x_tensor: np.array, upscale_factor: int = 1):
+        x_tensor = generator_augmentation_2D.upscale_multiple_images(
+            x_tensor, upscale_factor
+        )
+        return x_tensor
 
     def padd(self):
         ...
@@ -958,8 +975,11 @@ class Data(Protocol):
     def normalize(self):
         ...
 
-    def force_dtype(self):
-        ...
+    def force_dtype(self, x_tensor: np.array, y_tensor: np.array):
+        x_tensor = x_tensor.astype(self.dtype)
+        y_tensor = y_tensor.astype(self.dtype)
+
+        return x_tensor, y_tensor
 
     def fill(self):
         ...
