@@ -4,7 +4,6 @@ import os
 import tempfile
 
 import numpy as np
-import rasterio
 from tensorflow import keras
 
 from pixels import tio
@@ -300,7 +299,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         y_path_file = self.collection_catalog[list(self.collection_catalog.keys())[0]][
             "y_path"
         ]
-        parsed_y_path_file = rasterio.path.parse_path(y_path_file)
+        parsed_y_path_file = Path(y_path_file)
         # Create a string from collection_catalog. Easier to change equal parts on all dictionary.
         collection_catalog_str = json.dumps(self.collection_catalog)
 
