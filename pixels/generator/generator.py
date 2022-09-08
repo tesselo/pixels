@@ -9,7 +9,7 @@ from tensorflow import keras
 from pixels import tio
 from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
-from pixels.generator import filters, generator_augmentation_2D
+from pixels.generator import augmentation, filters
 from pixels.generator.generator_utils import (
     class_sample_weights_builder,
     fill_missing_dimensions,
@@ -525,7 +525,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             x_tensor = fill_missing_dimensions(x_tensor, self.x_open_shape)
         # Upsample the X.
         if self.upsampling > 1:
-            x_tensor = generator_augmentation_2D.upscale_multiple_images(
+            x_tensor = augmentation.upscale_multiple_images(
                 x_tensor, upscale_factor=self.upsampling
             )
         # Add padding.
@@ -781,7 +781,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 Y = np.vstack(Y)
         # Augment data, for more detail see do_augmentation_on_batch() on generator_utils.
         if self.augmentation > 0 and self.mode in GENERATOR_Y_IMAGE_MODES:
-            X, Y = generator_augmentation_2D.do_augmentation_on_batch(
+            X, Y = augmentation.do_augmentation_on_batch(
                 X,
                 Y,
                 augmentation_index=self.augmentation,
