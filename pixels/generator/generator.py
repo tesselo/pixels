@@ -2,8 +2,7 @@ import json
 import math
 import os
 import tempfile
-from collections import namedtuple
-from typing import Protocol, TypeVar
+from typing import List, Protocol, Union
 
 import numpy as np
 from tensorflow import keras
@@ -16,6 +15,15 @@ from pixels.generator.generator_utils import (
     class_sample_weights_builder,
     fill_missing_dimensions,
     multiclass_builder,
+)
+from pixels.generator.types import (
+    XShape,
+    XShape1D,
+    XShape2D,
+    XShape3D,
+    YShape,
+    YShape1D,
+    YShapeND,
 )
 from pixels.log import BoundLogger, logger
 from pixels.path import Path
@@ -919,18 +927,10 @@ class Generator:
         raise NotImplementedError
 
 
-XShape3D = namedtuple("XShape3D", ["batch", "timesteps", "height", "width", "bands"])
-XShape2D = namedtuple("XShape2D", ["batch", "height", "width", "bands"])
-XShape1D = namedtuple("XShape1D", ["batch", "timesteps", "bands"])
-
-YShapeND = namedtuple("YShapeND", ["batch", "height", "width", "classes"])
-YShape1D = namedtuple("YShape1D", ["batch", "classes"])
-
-XShape = TypeVar("XShape", XShape1D, XShape2D, XShape3D)
-YShape = TypeVar("YShape", YShape1D, YShapeND)
-
-
 class Data(Protocol):
+    x_tensor: np.array
+    y_tensor: np.array
+
     x_shape: XShape
     y_shape: YShape
 
@@ -943,36 +943,25 @@ class Data(Protocol):
     def from_vector(cls, path: str) -> "Data":
         ...
 
-    def augment(
-        self, x_tensor: np.array, y_tensor: np.array, augmentation_index: int = 0
-    ):  # int or list
-        X, Y = augmentation.do_augmentation_on_batch(
-            x_tensor,
-            y_tensor,
-            self.x_shape.height,
-            self.x_shape.width,
-            self.y_shape.height,
-            self.y_shape.width,
+    def augment(self, augmentation_index: Union[int, List] = 0):
+        self.x_tensor, self.y_tensor = augmentation.do_augmentation_on_batch(
+            self.x_tensor,
+            self.y_tensor,
+            self.x_shape,
+            self.y_shape,
             augmentation_index=augmentation_index,
-            batch_size=self.x_shape.batch,
-            mode="3D_Model",  # TODO:How do we handle this?
         )
-        # TODO: do we return or change the should we be using self.X
 
-        # Should we change change self.X or should we return X
-        # Should each function treat X and Y or just one
+    def upsample(self, upscale_factor: int = 1):
+        self.x_tensor = augmentation.upscale_multiple_images(
+            self.x_tensor, upscale_factor
+        )
 
-        return X, Y
-
-    def upsample(self, x_tensor: np.array, upscale_factor: int = 1):
-        x_tensor = augmentation.upscale_multiple_images(x_tensor, upscale_factor)
-        return x_tensor
-
-    def padd(self, x_tensor: np.array, padding: int = 0, padding_mode="same"):
+    def padd(self, padding: int = 0, padding_mode="same"):
         # Add padding.
         if padding > 0:
-            x_tensor = np.pad(
-                x_tensor,
+            self.x_tensor = np.pad(
+                self.x_tensor,
                 (
                     (0, 0),
                     (0, 0),
@@ -981,22 +970,18 @@ class Data(Protocol):
                 ),
                 mode=padding_mode,
             )
-        return x_tensor
 
     def cloud_sort(self):
         ...
 
-    def normalize(self, x_tensor: np.array, normalization: float = None):
+    def normalize(self, normalization: float = None):
         if normalization is not None:
             # Normalize data to [0, 1].
-            x_tensor = np.clip(x_tensor, 0, self.normalization) / self.normalization
-        return x_tensor
+            self.x_tensor = np.clip(self.x_tensor, 0, normalization) / normalization
 
-    def force_dtype(self, x_tensor: np.array, y_tensor: np.array):
-        x_tensor = x_tensor.astype(self.dtype)
-        y_tensor = y_tensor.astype(self.dtype)
-
-        return x_tensor, y_tensor
+    def force_dtype(self, dtype):
+        self.x_tensor = self.x_tensor.astype(dtype)
+        self.y_tensor = self.y_tensor.astype(dtype)
 
     def fill(self):
         ...
