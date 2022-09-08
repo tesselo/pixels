@@ -946,7 +946,7 @@ class Data(Protocol):
     def augment(
         self, x_tensor: np.array, y_tensor: np.array, augmentation_index: int = 0
     ):  # int or list
-        X, Y = generator_augmentation_2D.do_augmentation_on_batch(
+        X, Y = augmentation.do_augmentation_on_batch(
             x_tensor,
             y_tensor,
             self.x_shape.height,
@@ -955,25 +955,42 @@ class Data(Protocol):
             self.y_shape.width,
             augmentation_index=augmentation_index,
             batch_size=self.x_shape.batch,
-            mode="3D_Model",  # TODO:How to fuck do we handle this?
+            mode="3D_Model",  # TODO:How do we handle this?
         )
         # TODO: do we return or change the should we be using self.X
+
+        # Should we change change self.X or should we return X
+        # Should each function treat X and Y or just one
+
         return X, Y
 
     def upsample(self, x_tensor: np.array, upscale_factor: int = 1):
-        x_tensor = generator_augmentation_2D.upscale_multiple_images(
-            x_tensor, upscale_factor
-        )
+        x_tensor = augmentation.upscale_multiple_images(x_tensor, upscale_factor)
         return x_tensor
 
-    def padd(self):
-        ...
+    def padd(self, x_tensor: np.array, padding: int = 0, padding_mode="same"):
+        # Add padding.
+        if padding > 0:
+            x_tensor = np.pad(
+                x_tensor,
+                (
+                    (0, 0),
+                    (0, 0),
+                    (padding, padding),
+                    (padding, padding),
+                ),
+                mode=padding_mode,
+            )
+        return x_tensor
 
     def cloud_sort(self):
         ...
 
-    def normalize(self):
-        ...
+    def normalize(self, x_tensor: np.array, normalization: float = None):
+        if normalization is not None:
+            # Normalize data to [0, 1].
+            x_tensor = np.clip(x_tensor, 0, self.normalization) / self.normalization
+        return x_tensor
 
     def force_dtype(self, x_tensor: np.array, y_tensor: np.array):
         x_tensor = x_tensor.astype(self.dtype)
