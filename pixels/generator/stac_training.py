@@ -19,7 +19,6 @@ from pixels.const import (
     TRAIN_WITH_ARRAY_LIMIT,
 )
 from pixels.generator import generator, losses
-from pixels.generator.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from pixels.generator.stac_utils import plot_history
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
@@ -261,17 +260,6 @@ def train_model_function(
     if gen_args.get("download_data"):
         tmpdir = tempfile.TemporaryDirectory()
         gen_args["download_dir"] = tmpdir.name
-
-    # Use custom confusion matrix if requested.
-    if "MultiLabelConfusionMatrix" in compile_args["metrics"]:
-        # Remove string version from metrics.
-        compile_args["metrics"].pop(
-            compile_args["metrics"].index("MultiLabelConfusionMatrix")
-        )
-        # Add complied version to metrics.
-        compile_args["metrics"].append(
-            MultiLabelConfusionMatrix(gen_args.get("num_classes"))
-        )
 
     use_existing_model = compile_args.pop("use_existing_model", False)
     if use_existing_model:
