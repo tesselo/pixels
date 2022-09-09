@@ -25,10 +25,9 @@ def _make_mask_on_value(img, mask_value):
     return mask_img
 
 
-def order_tensor_on_masks(images, mask_value, max_images=12):
+def order_tensor_on_masks(images: np.array, mask_value: float, max_images: int = 12):
     """
     Order a set of images based on a mask count.
-
     Parameters
     ----------
         images : array
@@ -37,7 +36,6 @@ def order_tensor_on_masks(images, mask_value, max_images=12):
             Value to create mask.
         max_images : int
             The maximum number of images to return
-
     Returns
     -------
         image : numpy array

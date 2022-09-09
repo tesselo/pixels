@@ -411,7 +411,6 @@ class Generator(keras.utils.Sequence, BoundLogger):
         if temp_dir:
             temp_dir.cleanup()
         x_imgs = np.array(x_imgs)
-
         if (
             SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
         ) and self.cloud_sort:
@@ -420,7 +419,6 @@ class Generator(keras.utils.Sequence, BoundLogger):
             x_imgs = filters.order_tensor_on_cloud_mask(
                 x_imgs, max_images=self.timesteps, sat_platform=sat_platform
             )
-
         if not self.train:
             if metadata:
                 return x_imgs, x_meta
@@ -927,6 +925,27 @@ class Generator:
         raise NotImplementedError
 
 
+"""
+
+read data
+(several option)
+but return alwasys this shape
+
+
+process data
+a lot of options but shuold always be able to do:
+
+upsampling (optional)
+augmentaiton (Optional)
+padding (Optional)
+nan_sorter (Optional)
+cloud sorter (Optional)
+
+return data
+
+"""
+
+
 class Data(Protocol):
     x_tensor: np.array
     y_tensor: np.array
@@ -971,8 +990,31 @@ class Data(Protocol):
                 mode=padding_mode,
             )
 
-    def cloud_sort(self):
-        ...
+    def nan_value_sorter(self):
+        # TODO: Working only when timesteps is the first dimension. Solve to general case
+        # to integrate batch.
+        # That is why the loop on batch.
+        ordered_tensor = []
+        for batch_images in self.x_tensor:
+            # Choose and order timesteps by level of nan_value density.
+            # Expects X -> (Timesteps, num_bands, width, height)
+            x_imgs = filters.order_tensor_on_masks(
+                batch_images, self.x_nan_value, max_images=self.x_tensor.timesteps
+            )
+            ordered_tensor.append(x_imgs)
+        self.x_tensor = ordered_tensor
+
+    def cloud_sorter(self):
+        # TODO: Working only after data is read, so it is expecting shape:
+        # NOT working probably.
+        if (
+            SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
+        ) and self.cloud_sort:
+            # Now we only use one platform.
+            sat_platform = [f for f in self.platforms][0]
+            self.x_tensor = filters.order_tensor_on_cloud_mask(
+                self.x_tensor, max_images=self.timesteps, sat_platform=sat_platform
+            )
 
     def normalize(self, normalization: float = None):
         if normalization is not None:
@@ -1010,6 +1052,9 @@ class Data1D(Data):
     def __init__(self, x_shape: XShape1D, y_shape: YShape1D):
         self.x_shape = x_shape
         self.y_shape = y_shape
+
+    def padding(self):
+        pass
 
 
 class LearningMode:
