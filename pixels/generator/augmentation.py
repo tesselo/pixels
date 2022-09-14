@@ -1,4 +1,8 @@
+from typing import Union
+
 import numpy as np
+
+from pixels.generator.types import XShape2D, XShape3D, YShapeND
 
 AUGMENTATION_FACTOR = 4
 
@@ -85,7 +89,7 @@ def change_bright(image, ran=1):
     return np.array(image * ran)
 
 
-def apply_augmentation_to_image(img, augmentation_index):
+def augment_image(img, augmentation_index):
     if augmentation_index is None or augmentation_index == 1:
         return img_flip(img)
     if augmentation_index is None or augmentation_index == 2:
@@ -98,13 +102,13 @@ def apply_augmentation_to_image(img, augmentation_index):
         return change_bright(img, ran=10)
 
 
-def apply_augmentation_to_stack(imgs, augmentation_index):
+def augment_stack(imgs, augmentation_index):
     # Do the augmentations on images (number_occurrences, bands, height, width).
     time_aug_imgs = []
     for number_occurrences in imgs:
         aug_img = []
         for bands in number_occurrences:
-            aug_img.append(apply_augmentation_to_image(bands, augmentation_index))
+            aug_img.append(augment_image(bands, augmentation_index))
         time_aug_imgs.append(aug_img)
     # Revert shapes back to (number_occurrences, height, width, bands)
     time_aug_imgs = np.array(time_aug_imgs)
@@ -124,31 +128,29 @@ def apply_augmentation_to_stack(imgs, augmentation_index):
 def augmentation(
     X,
     Y,
-    sizeX_height=None,
-    sizeX_width=None,
-    sizeY_height=None,
-    sizeY_width=None,
+    x_shape: Union[XShape2D, XShape3D],
+    y_shape: YShapeND,
     augmentation_index=None,
 ):
     # To make the augmentations in a standard mode we need to
     # get the tensors on the same shape, and the same number of dimensions.
-    data_X = set_standard_shape(X, sizex=sizeX_height, sizey=sizeX_width)
-    data_Y = set_standard_shape(Y, sizex=sizeY_height, sizey=sizeY_width)
+    data_X = set_standard_shape(X, sizex=x_shape.height, sizey=x_shape.width)
+    data_Y = set_standard_shape(Y, sizex=y_shape.height, sizey=y_shape.width)
     data_Y = np.squeeze(data_Y)
     data_X = np.squeeze(data_X)
     if len(data_X.shape) < 4:
         data_X = np.expand_dims(data_X, list(np.arange(4 - len(data_X.shape))))
     if len(data_Y.shape) < 4:
         data_Y = np.expand_dims(data_Y, list(np.arange(4 - len(data_Y.shape))))
-    resulted_augmentation_X = [X[0]]
-    resulted_augmentation_Y = [Y]
+    augmentation_X = [X[0]]
+    augmentation_Y = [Y]
     for i in augmentation_index:
-        resulted_augmentation_X.append(apply_augmentation_to_stack(data_X, i))
-        resulted_augmentation_Y.append(apply_augmentation_to_stack(data_Y, i))
-    resulted_augmentation_Y = np.squeeze(resulted_augmentation_Y)
+        augmentation_X.append(augment_stack(data_X, i))
+        augmentation_Y.append(augment_stack(data_Y, i))
+    augmentation_Y = np.squeeze(augmentation_Y)
     return (
-        resulted_augmentation_X,
-        resulted_augmentation_Y,
+        augmentation_X,
+        augmentation_Y,
     )
     # Flip
     # Add noise
@@ -158,13 +160,9 @@ def augmentation(
 def do_augmentation_on_batch(
     X,
     Y,
-    sizeX_height,
-    sizeX_width,
-    sizeY_height,
-    sizeY_width,
+    x_shape: Union[XShape2D, XShape3D],
+    y_shape: YShapeND,
     augmentation_index=1,
-    batch_size=1,
-    mode="3D_Model",
 ):
     """
     Define how many augmentations to do, and build the correct input for the augmentation function
@@ -175,6 +173,8 @@ def do_augmentation_on_batch(
             Set of collected images.
         Y : numpy array
             Goal image in training.
+        x_shape : XShape2D or XShape3D
+        y_shape : YShapeND
         augmentation_index : int or list
             Set the number of augmentations. If it is a list, does the augmentations
             with the keys on the list, if it is an int, does all the keys up to that.
@@ -192,16 +192,14 @@ def do_augmentation_on_batch(
         augmentation_index = np.arange(augmentation_index) + 1
     batch_X = np.array([])
     batch_Y = np.array([])
-    if mode == "2D_Model":
+    if len(x_shape) < 5:
         X = np.expand_dims(X, 1)
-    for batch in range(batch_size):
+    for batch in range(x_shape.batch):
         aug_X, aug_Y = augmentation(
             X[batch : batch + 1],
             Y[batch : batch + 1],
-            sizeX_height=sizeX_height,
-            sizeX_width=sizeX_width,
-            sizeY_height=sizeY_height,
-            sizeY_width=sizeY_width,
+            x_shape,
+            y_shape,
             augmentation_index=augmentation_index,
         )
         if not batch_X.any():
@@ -210,7 +208,7 @@ def do_augmentation_on_batch(
         else:
             batch_X = np.concatenate([batch_X, aug_X])
             batch_Y = np.concatenate([batch_Y, aug_Y])
-    if mode == "2D_Model":
+    if len(x_shape) < 5:
         batch_X = np.vstack(batch_X)
     if len(batch_Y.shape) < 4:
         batch_Y = np.expand_dims(batch_Y, -1)

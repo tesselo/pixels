@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pixels.generator.generator import DataGenerator
+from pixels.generator.generator import Generator
 from tests import test_arrays
 
 
@@ -35,7 +35,7 @@ class TestGenerator:
     def test_simple_modes(self, mode, test_tuple):
         gen_args = {**self.gen_args}
         gen_args["mode"] = mode
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
@@ -54,7 +54,7 @@ class TestGenerator:
         gen_args["augmentation"] = 3
         gen_args["mode"] = mode
         gen_args["batch_number"] = batch
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
@@ -81,7 +81,7 @@ class TestGenerator:
         gen_args["upsampling"] = 2
         gen_args["mode"] = mode
         gen_args["augmentation"] = augmentation
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         x, y = dtgen[1]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
@@ -101,7 +101,7 @@ class TestGenerator:
         gen_args = {**self.gen_args}
         gen_args["num_classes"] = 3
         gen_args["mode"] = mode
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         x, y = dtgen[2]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
@@ -167,16 +167,16 @@ class TestGenerator:
         gen_args["timesteps"] = timesteps
         gen_args["padding"] = padding
 
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
         np.testing.assert_array_equal(y, test_tuple[1])
 
     def test_shuffle(self):
         gen_args = {**self.gen_args}
-        dtgen_no_shuffle = DataGenerator(**gen_args)
+        dtgen_no_shuffle = Generator(**gen_args)
         gen_args["shuffle"] = True
-        dtgen = DataGenerator(**gen_args)
+        dtgen = Generator(**gen_args)
         dtgen.on_epoch_end()
         np.testing.assert_array_equal(
             np.sort(dtgen.id_list),

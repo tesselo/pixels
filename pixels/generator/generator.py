@@ -2,6 +2,7 @@ import json
 import math
 import os
 import tempfile
+from typing import List, Protocol, Union
 
 import numpy as np
 from tensorflow import keras
@@ -14,6 +15,15 @@ from pixels.generator.generator_utils import (
     class_sample_weights_builder,
     fill_missing_dimensions,
     multiclass_builder,
+)
+from pixels.generator.types import (
+    XShape,
+    XShape1D,
+    XShape2D,
+    XShape3D,
+    YShape,
+    YShape1D,
+    YShapeND,
 )
 from pixels.log import BoundLogger, logger
 from pixels.path import Path
@@ -69,7 +79,7 @@ GENERATOR_Y_VALUE_MODES = [
 ]
 
 
-class DataGenerator(keras.utils.Sequence, BoundLogger):
+class Generator(keras.utils.Sequence, BoundLogger):
     """
     Defining class for generator.
     """
@@ -169,9 +179,14 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.init_collection_sources()
 
         # Handle image size.
+        # Not for 2D
         self.timesteps = timesteps
+        #
+        # ALL
         self.num_bands = num_bands
         self.num_classes = num_classes
+        #
+        # Not for pixel mode
         self.upsampling = upsampling
         self.width = width
         self.height = height
@@ -179,92 +194,28 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self.y_height = y_height
         self.padding = padding
         self.y_padding = y_padding
+        #
+
+        # only Resnet
         if framed_window % 2 == 0:
             framed_window += 1
         self.framed_window = framed_window
+        #
+
+        # Discriminate vector / raster, maybe one property fits all
+        # maybe self.source
         self.y_zip = None
         self.y_geojson = None
+        #
+        # Only multiclass
         self.class_weights = class_weights
         if self.one_hot and self.class_weights:
             weights_sum = sum(class_weights.values())
             self.class_weights = np.array(
                 [f / weights_sum for f in class_weights.values()]
             )
-        if self.mode != GENERATOR_PIXEL_MODEL:
-            self.x_open_shape = (
-                self.timesteps,
-                self.num_bands,
-                self.height,
-                self.width,
-            )
-            if not self.y_width and not self.y_height:
-                self.y_width = self.width * self.upsampling
-                self.y_height = self.height * self.upsampling
-            self.y_open_shape = (1, self.y_height, self.y_width)
-            self.y_width = self.y_width + (self.y_padding * 2)
-            self.y_height = self.y_height + (self.y_padding * 2)
-            self.x_width = (self.width * self.upsampling) + (self.padding * 2)
-            self.x_height = (self.height * self.upsampling) + (self.padding * 2)
-            if self.mode == GENERATOR_3D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number,
-                    self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number,
-                    self.y_height,
-                    self.y_width,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_2D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number * self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number * self.timesteps,
-                    self.y_height,
-                    self.y_width,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_RESNET_2D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number * self.timesteps,
-                    self.x_height,
-                    self.x_width,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number * self.timesteps,
-                    self.num_classes,
-                )
-            if self.mode == GENERATOR_RESNET_IMG_3D_MODEL:
-                self.expected_x_shape = (
-                    self.batch_number,
-                    self.timesteps,
-                    self.framed_window,
-                    self.framed_window,
-                    self.num_bands,
-                )
-                self.expected_y_shape = (
-                    self.batch_number,
-                    self.num_classes,
-                )
-        else:
-            self.expected_x_shape = (
-                self.batch_number,
-                self.timesteps,
-                self.num_bands,
-            )
-            self.expected_y_shape = (
-                self.batch_number,
-                self.num_classes,
-            )
+        #
+        self.define_shapes()
 
     @property
     def train(self):
@@ -275,9 +226,15 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
 
     @property
     def multiclass_maker(self):
+        # TODO: clarify responsibility(this makes classes cry out of whatever)
         return (self.class_definitions is not None) and self.train
 
+    def define_shapes(self):
+        raise NotImplementedError
+
     def download_and_parse_data(self, download_dir):
+        # Is only done if download_data
+        # TODO: fucking break it down into shit pieces, refactor.
         if not tio.is_remote(self.path_collection_catalog):
             self.warning("Data can only be downloaded if on remote storage.")
             return
@@ -420,6 +377,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             y_meta: dict
                 Dictionary with Y metadata.
         """
+        # TODO: Study source flow differences and discriminators
         # Get the collected id from the index list and its catalog from the
         # index dictionary.
         x_id = self.id_list[index]
@@ -453,7 +411,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         if temp_dir:
             temp_dir.cleanup()
         x_imgs = np.array(x_imgs)
-
         if (
             SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
         ) and self.cloud_sort:
@@ -462,7 +419,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             x_imgs = filters.order_tensor_on_cloud_mask(
                 x_imgs, max_images=self.timesteps, sat_platform=sat_platform
             )
-
         if not self.train:
             if metadata:
                 return x_imgs, x_meta
@@ -513,6 +469,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         """
         Processing of data on 3D and 2D modes.
         """
+        # ACHTUNG: only Pixel does not use this, study swag and flow
         # Ensure X img size.
         x_tensor = x_tensor[
             : self.timesteps, : self.num_bands, : self.height, : self.width
@@ -662,6 +619,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         return np.array(X), np.array(Y)
 
     def get_and_process(self, index):
+        # TODO: study flows and swags
+
         x_imgs, y_img = self.get_data(index, metadata=False)
         # X -> (Timesteps, num_bands, width, height)
         # Y -> (num_classes, width, height)
@@ -750,6 +709,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                     RESNET_IMG_2D_Model:
                         (Batch_number * timesteps * frame_width * frame_height, num_bands).
         """
+        # TODO: study flows and swags
+
         # Build a list of indexes to grab.
         list_indexes = [
             (f * len(self)) + index
@@ -841,3 +802,293 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
     def on_epoch_end(self):
         if self.shuffle:
             np.random.shuffle(self.id_list)
+
+
+class ImageGenerator(Generator):
+    # outputs x and y as images
+    def define_shapes(self):
+        self.x_open_shape = (
+            self.timesteps,
+            self.num_bands,
+            self.height,
+            self.width,
+        )
+        if not self.y_width and not self.y_height:
+            self.y_width = self.width * self.upsampling
+            self.y_height = self.height * self.upsampling
+        self.y_open_shape = (1, self.y_height, self.y_width)
+        self.y_width = self.y_width + (self.y_padding * 2)
+        self.y_height = self.y_height + (self.y_padding * 2)
+        self.x_width = (self.width * self.upsampling) + (self.padding * 2)
+        self.x_height = (self.height * self.upsampling) + (self.padding * 2)
+
+        if self.mode == GENERATOR_2D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number * self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number * self.timesteps,
+                self.y_height,
+                self.y_width,
+                self.num_classes,
+            )
+
+        if self.mode == GENERATOR_3D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number,
+                self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number,
+                self.y_height,
+                self.y_width,
+                self.num_classes,
+            )
+
+
+class PixelGenerator(Generator):
+    # outputs x and y as value (pixel mode)
+    def define_shapes(self):
+        self.expected_x_shape = (
+            self.batch_number,
+            self.timesteps,
+            self.num_bands,
+        )
+        self.expected_y_shape = (
+            self.batch_number,
+            self.num_classes,
+        )
+
+
+class NetGenerator(Generator):
+    # outputs x as image and y as value (resnet mode)
+    def define_shapes(self):
+        self.x_open_shape = (
+            self.timesteps,
+            self.num_bands,
+            self.height,
+            self.width,
+        )
+        if not self.y_width and not self.y_height:
+            self.y_width = self.width * self.upsampling
+            self.y_height = self.height * self.upsampling
+        self.y_open_shape = (1, self.y_height, self.y_width)
+        self.y_width = self.y_width + (self.y_padding * 2)
+        self.y_height = self.y_height + (self.y_padding * 2)
+        self.x_width = (self.width * self.upsampling) + (self.padding * 2)
+        self.x_height = (self.height * self.upsampling) + (self.padding * 2)
+
+        if self.mode == GENERATOR_RESNET_2D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number * self.timesteps,
+                self.x_height,
+                self.x_width,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number * self.timesteps,
+                self.num_classes,
+            )
+        if self.mode == GENERATOR_RESNET_IMG_3D_MODEL:
+            self.expected_x_shape = (
+                self.batch_number,
+                self.timesteps,
+                self.framed_window,
+                self.framed_window,
+                self.num_bands,
+            )
+            self.expected_y_shape = (
+                self.batch_number,
+                self.num_classes,
+            )
+
+
+class Generator:
+    def __init__(self) -> None:
+        pass
+        # self.data_handler = DataHandler()
+
+    def define_shapes(self):
+        raise NotImplementedError
+
+    def read_data(self):
+        self.data_handler.load
+        raise NotImplementedError
+
+    def process_data(self):
+        raise NotImplementedError
+
+
+"""
+
+read data
+(several option)
+but return alwasys this shape
+
+
+process data
+a lot of options but shuold always be able to do:
+
+upsampling (optional)
+augmentaiton (Optional)
+padding (Optional)
+nan_sorter (Optional)
+cloud sorter (Optional)
+
+return data
+
+"""
+
+
+class Data(Protocol):
+    x_tensor: np.array
+    y_tensor: np.array
+
+    x_shape: XShape
+    y_shape: YShape
+
+    def from_numpy(cls, nparray: np.array) -> "Data":
+        ...
+
+    def from_tiff(cls, path: str) -> "Data":
+        ...
+
+    def from_vector(cls, path: str) -> "Data":
+        ...
+
+    def augment(self, augmentation_index: Union[int, List] = 0):
+        self.x_tensor, self.y_tensor = augmentation.do_augmentation_on_batch(
+            self.x_tensor,
+            self.y_tensor,
+            self.x_shape,
+            self.y_shape,
+            augmentation_index=augmentation_index,
+        )
+
+    def upsample(self, upscale_factor: int = 1):
+        self.x_tensor = augmentation.upscale_multiple_images(
+            self.x_tensor, upscale_factor
+        )
+
+    def padd(self, padding: int = 0, padding_mode="same"):
+        # Add padding.
+        if padding > 0:
+            self.x_tensor = np.pad(
+                self.x_tensor,
+                (
+                    (0, 0),
+                    (0, 0),
+                    (padding, padding),
+                    (padding, padding),
+                ),
+                mode=padding_mode,
+            )
+
+    def nan_value_sorter(self):
+        # TODO: Working only when timesteps is the first dimension. Solve to general case
+        # to integrate batch.
+        # That is why the loop on batch.
+        ordered_tensor = []
+        for batch_images in self.x_tensor:
+            # Choose and order timesteps by level of nan_value density.
+            # Expects X -> (Timesteps, num_bands, width, height)
+            x_imgs = filters.order_tensor_on_masks(
+                batch_images, self.x_nan_value, max_images=self.x_tensor.timesteps
+            )
+            ordered_tensor.append(x_imgs)
+        self.x_tensor = ordered_tensor
+
+    def cloud_sorter(self):
+        # TODO: Working only after data is read, so it is expecting shape:
+        # NOT working probably.
+        if (
+            SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
+        ) and self.cloud_sort:
+            # Now we only use one platform.
+            sat_platform = [f for f in self.platforms][0]
+            self.x_tensor = filters.order_tensor_on_cloud_mask(
+                self.x_tensor, max_images=self.timesteps, sat_platform=sat_platform
+            )
+
+    def normalize(self, normalization: float = None):
+        if normalization is not None:
+            # Normalize data to [0, 1].
+            self.x_tensor = np.clip(self.x_tensor, 0, normalization) / normalization
+
+    def force_dtype(self, dtype):
+        self.x_tensor = self.x_tensor.astype(dtype)
+        self.y_tensor = self.y_tensor.astype(dtype)
+
+    def fill(self):
+        ...
+
+    def shrink(self):
+        ...
+
+    def process():
+        raise NotImplementedError
+
+
+class Data3D(Data):
+    def __init__(self, x_shape: XShape3D, y_shape: YShapeND):
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+
+class Data2D(Data):
+    def __init__(self, x_shape: XShape2D, y_shape: YShapeND):
+
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+
+class Data1D(Data):
+    def __init__(self, x_shape: XShape1D, y_shape: YShape1D):
+        self.x_shape = x_shape
+        self.y_shape = y_shape
+
+    def padding(self):
+        pass
+
+
+class LearningMode:
+    def __init__():
+        pass
+
+    def process_data(self):
+        raise NotImplementedError
+
+    def show_data(self):
+        print(self.X)
+
+    def __getitem__(self, index):
+        return self.X, self.Y, self.weights
+
+    def list_to_use(self):
+        raise
+
+
+class TrainingMode(LearningMode):
+    def __init__(self):
+        self.X = "2"
+        self.Y = "1"
+
+
+class EvalMode(LearningMode):
+    def __init__(self):
+        self.X = "2"
+        self.Y = "1"
+
+
+class PredictMode(LearningMode):
+    def __getitem__(self, index):
+        return self.X
+
+    def predict():
+        pass
