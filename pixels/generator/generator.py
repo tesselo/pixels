@@ -458,9 +458,9 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             SENTINEL_2 in self.platforms or LANDSAT_8 in self.platforms
         ) and self.cloud_sort:
             # Now we only use one platform.
-            sat_platform = [f for f in self.platforms][0]
+            platform = [f for f in self.platforms][0]
             x_imgs = filters.order_tensor_on_cloud_mask(
-                x_imgs, max_images=self.timesteps, sat_platform=sat_platform
+                x_imgs, max_images=self.timesteps, platform=platform
             )
 
         if not self.train:

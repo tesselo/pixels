@@ -14,8 +14,8 @@ from pixels.const import FLOAT_NODATA_VALUE, INTEGER_NODATA_VALUE
 from pixels.log import logger
 
 
-def check_overlaping_features(predictions_bbox):
-    """Check if the given shapes have any overlaped features.
+def check_overlapping_features(predictions_bbox):
+    """Check if the given shapes have any overlapped features.
 
     Parameters
     ----------
@@ -26,16 +26,16 @@ def check_overlaping_features(predictions_bbox):
     -------
     bool
     """
-    overlaping_feats = np.sum(
+    overlapping_feats = np.sum(
         gp.sjoin(predictions_bbox, predictions_bbox, "left", predicate="overlaps")[
             "index_right"
         ]
     )
-    return overlaping_feats > 0
+    return overlapping_feats > 0
 
 
 def get_rasters_bbox(rasters):
-    """Creates a GeoDataFrame with all the boundings boxes of the given rasters.
+    """Creates a GeoDataFrame with all the bounding boxes of the given rasters.
 
     Parameters
     ----------
@@ -225,7 +225,7 @@ def merge_all(
     if check_data_type_int(out_type):
         # No predictor (1, default)
         # Horizontal differencing (2)
-        # Floating point predition (3)
+        # Floating point prediction (3)
         # https://gdal.org/drivers/raster/gtiff.html?highlight=predictor#creation-options
         predictor = 2
     else:
@@ -261,7 +261,7 @@ def merge_all(
     return prediction_name
 
 
-def merge_overlaping(
+def merge_overlapping(
     files_to_merge,
     out_type="Byte",
     no_data=None,
@@ -305,13 +305,14 @@ def merge_overlaping(
 
 def merge_prediction(generator_config_uri):
     """Merge all predictions in the given prediction key folder.
-    On overlaped rasters makes an average of all values.
+    On overlapped rasters makes an average of all values.
     Builds a geopackage file with the bounding boxes of the predictions tiles.
     In case the images are probabilities it builds the full probability map and the classes from it.
-    In case there are overlaping images it will build a map containing the sum of all raster and the count.
+    In case there are overlapping images it will build a map containing the sum of all raster and the count.
 
     Limitation:
-    Right now it will merge all files in the folder, which means that if there are multiple timesteps they will be averege out.
+    Right now it will merge all files in the folder,
+    which means that if there are multiple timesteps they will be average out.
     TODO: Build multiple timesteps loop.
 
     Parameters
@@ -342,8 +343,8 @@ def merge_prediction(generator_config_uri):
     predictions_bbox = get_rasters_bbox(prediction_files)
     predictions_bbox_path = os.path.join(merger_files_folder, "predictions_bbox.gpkg")
     predictions_bbox.to_file(predictions_bbox_path, driver="GPKG")
-    if not check_overlaping_features(predictions_bbox) or categorical:
-        logger.info("Non overlaping or categorical rasters. Merging all.")
+    if not check_overlapping_features(predictions_bbox) or categorical:
+        logger.info("Non overlapping or categorical rasters. Merging all.")
         merged_path = merge_all(
             prediction_files,
             out_type=raster_meta["dtype"],
@@ -351,8 +352,8 @@ def merge_prediction(generator_config_uri):
             merger_folder=merger_files_folder,
         )
     else:
-        logger.info("Merging overlaping features.")
-        merged_path = merge_overlaping(
+        logger.info("Merging overlapping features.")
+        merged_path = merge_overlapping(
             prediction_files,
             out_type=raster_meta["dtype"],
             no_data=raster_meta["nodata"],
@@ -360,7 +361,7 @@ def merge_prediction(generator_config_uri):
         )
     predictions_bbox = None
     if extract_probabilities:
-        logger.info("Extrating probabilities. Building class raster.")
+        logger.info("Extracting probabilities. Building class raster.")
         calc = "argmax"
         command_args = {"axis": 0}
         outfile = os.path.join(merger_files_folder, "merged_predictions_classes.tif")

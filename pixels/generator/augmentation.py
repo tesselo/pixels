@@ -9,24 +9,24 @@ def upscaling_sample(tile, factor):
     Upscale array to artificial super resolution.
     Simply copy the value factor number of times. (out_shape) = (in_shape) * factor
     """
-    sizex = tile.shape[0] * factor
-    sizey = tile.shape[1] * factor
+    x_size = tile.shape[0] * factor
+    y_size = tile.shape[1] * factor
     if not isinstance(factor, int):
         import scipy
 
         return scipy.ndimage.zoom(tile, zoom=(factor), order=1)
     # Get data block for this offset. The numpy indexing order is (y, x).
-    data = tile[0 : int(sizex), 0 : int(sizey)]
+    data = tile[0 : int(x_size), 0 : int(y_size)]
     # Expand data repeating values by the factor to get back to the original size.
     return data.repeat(factor, axis=0).repeat(factor, axis=1)
 
 
-def set_standard_shape(tensor, sizex=360, sizey=360):
+def set_standard_shape(tensor, x_size=360, y_size=360):
     """
     Set input data from any shape to (*dims, sizex, sizey)
     """
     shape = tensor.shape
-    size_tuple = (sizex, sizey)
+    size_tuple = (x_size, y_size)
     shape_len = len(shape)
     end = 0
     for i in range(shape_len):
@@ -36,11 +36,11 @@ def set_standard_shape(tensor, sizex=360, sizey=360):
     if end < shape_len:
         tensor = np.swapaxes(tensor, end - 1, end)
         tensor = np.swapaxes(tensor, end - 2, end - 1)
-        tensor = set_standard_shape(tensor, sizex, sizey)
+        tensor = set_standard_shape(tensor, x_size, y_size)
     return tensor
 
 
-def upscale_multiple_images(images_array, upscale_factor=10):
+def upscale_multiple_images(images, upscale_factor=10):
     """
     Upscale multiple images.
 
@@ -48,7 +48,7 @@ def upscale_multiple_images(images_array, upscale_factor=10):
 
     Parameters
     ----------
-        images_array : numpy array
+        images : numpy array
             List of images (Timestep, bands, img).
         upscale_factor : int
 
@@ -57,14 +57,14 @@ def upscale_multiple_images(images_array, upscale_factor=10):
         images_up : numpy array
             List of images upscale by upscale_factor (Timestep, bands, img*upscale_factor).
     """
-    new_array = []
-    for time in images_array:
+    upscale_images = []
+    for time in images:
         new_time = []
         for bands in time:
-            new_img = upscaling_sample(bands, upscale_factor)
-            new_time.append(np.array(new_img))
-        new_array.append(np.array(new_time))
-    return np.array(new_array)
+            upscale_image = upscaling_sample(bands, upscale_factor)
+            new_time.append(np.array(upscale_image))
+        upscale_images.append(np.array(new_time))
+    return np.array(upscale_images)
 
 
 def img_flip(X, axis=None):
@@ -132,8 +132,8 @@ def augmentation(
 ):
     # To make the augmentations in a standard mode we need to
     # get the tensors on the same shape, and the same number of dimensions.
-    data_X = set_standard_shape(X, sizex=sizeX_height, sizey=sizeX_width)
-    data_Y = set_standard_shape(Y, sizex=sizeY_height, sizey=sizeY_width)
+    data_X = set_standard_shape(X, x_size=sizeX_height, y_size=sizeX_width)
+    data_Y = set_standard_shape(Y, x_size=sizeY_height, y_size=sizeY_width)
     data_Y = np.squeeze(data_Y)
     data_X = np.squeeze(data_X)
     if len(data_X.shape) < 4:
