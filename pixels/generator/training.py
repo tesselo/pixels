@@ -19,10 +19,10 @@ from pixels.const import (
     TRAIN_WITH_ARRAY_LIMIT,
 )
 from pixels.generator import generator, losses
-from pixels.generator.stac_utils import plot_history
 from pixels.generator.validators import GeneratorArgumentsValidator
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
+from pixels.stac.utils import plot_history
 from pixels.tio.virtual import model_uri
 from pixels.utils import NumpyArrayEncoder
 

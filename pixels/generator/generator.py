@@ -10,7 +10,7 @@ from pixels import tio
 from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException, PixelsException
 from pixels.generator import augmentation, filters
-from pixels.generator.generator_utils import (
+from pixels.generator.utils import (
     class_sample_weights_builder,
     fill_missing_dimensions,
     multiclass_builder,

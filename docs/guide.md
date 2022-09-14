@@ -8,8 +8,9 @@ installation instruction and topic oriented guides.
 
 #### Parse training data and create stac items
 Using ipython (prior set you aws credentials):
+
 ```python
-from pixels.generator.stac import *
+from pixels.stac.stac import *
 
 source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
 
@@ -29,8 +30,9 @@ You have both X and Y stac collections you can save them as intendend.
 
 #### Full pipeline in one function
 In ipython:
+
 ```python
-from pixels.generator.stac import *
+from pixels.stac.stac import *
 
 source_s3_path = 's3://tesselo-pixels-results/y_data/RePlant_v0/RePlant_tiles_clipped_tif.zip'
 config_file = 's3://tesselo-pixels-results/x_data/RePlant_v0_001/config.json'
