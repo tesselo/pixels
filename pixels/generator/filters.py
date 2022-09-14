@@ -53,7 +53,7 @@ def order_tensor_on_cloud_mask(
     images,
     max_images,
     bands_index=None,
-    sat_platform=SENTINEL_2,
+    platform=SENTINEL_2,
 ):
     """
     Order a set of images based on a cloud mask.
@@ -66,6 +66,8 @@ def order_tensor_on_cloud_mask(
             The maximum number of images to return
         bands_index: dict
             A dictionary with the cloud bands
+        platform: const str
+            The satellite platform to use
 
     Returns
     -------
@@ -81,13 +83,13 @@ def order_tensor_on_cloud_mask(
         "B11": 8,
         "B12": 9,
     }
-    if sat_platform == SENTINEL_2:
+    if platform == SENTINEL_2:
         mask_img = sentinel_2_cloud_mask(images, bands_index)
-    elif sat_platform == LANDSAT_8:
+    elif platform == LANDSAT_8:
         mask_img = landsat_cloud_mask(images)
     else:
         raise InconsistentGeneratorDataException(
-            f"Platform {sat_platform} is not supported for cloud sorting."
+            f"Platform {platform} is not supported for cloud sorting."
         )
     mask_count = np.sum(mask_img, axis=(1, 2))
     ind = np.sort(np.argsort(mask_count)[:max_images])
