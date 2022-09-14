@@ -59,82 +59,6 @@ def get_rasters_bbox(rasters):
     return df
 
 
-def custom_merge_sum(
-    merged_data,
-    new_data,
-    merged_mask,
-    new_mask,
-    index=None,
-    roff=None,
-    coff=None,
-):
-    """Merge method for rasterio.merge.
-    https://rasterio.readthedocs.io/en/latest/api/rasterio.merge.html#rasterio.merge.merge
-    The result raster will be the value sum of given rasters.
-
-    Parameters
-    ----------
-    merged_dataarray_like
-        array to update with new_data
-    new_dataarray_like
-        data to merge same shape as merged_data
-    merged_mask, new_maskarray_like
-        boolean masks where merged/new data pixels are invalid same shape as merged_data
-    index: int
-        index of the current dataset within the merged dataset collection
-    roff: int
-        row offset in base array
-    coff: int
-        column offset in base array
-
-    """
-    mask = np.empty_like(merged_mask, dtype="bool")
-    np.logical_or(merged_mask, new_mask, out=mask)
-    np.logical_not(mask, out=mask)
-    np.add(merged_data, new_data, out=merged_data, where=mask, casting="unsafe")
-    np.logical_not(new_mask, out=mask)
-    np.logical_and(merged_mask, mask, out=mask)
-    np.copyto(merged_data, new_data, where=mask, casting="unsafe")
-
-
-def custom_merge_count(
-    merged_data,
-    new_data,
-    merged_mask,
-    new_mask,
-    index=None,
-    roff=None,
-    coff=None,
-):
-    """Merge method for rasterio.merge.
-    https://rasterio.readthedocs.io/en/latest/api/rasterio.merge.html#rasterio.merge.merge
-    The result raster will be the number of existing valid pixels in the given rasters.
-
-    Parameters
-    ----------
-    merged_dataarray_like
-        array to update with new_data
-    new_dataarray_like
-        data to merge same shape as merged_data
-    merged_mask, new_maskarray_like
-        boolean masks where merged/new data pixels are invalid same shape as merged_data
-    index: int
-        index of the current dataset within the merged dataset collection
-    roff: int
-        row offset in base array
-    coff: int
-        column offset in base array
-
-    """
-    mask = np.empty_like(merged_mask, dtype="bool")
-    np.logical_or(merged_mask, new_mask, out=mask)
-    np.logical_not(mask, out=mask)
-    np.add(merged_data, mask, out=merged_data, where=mask, casting="unsafe")
-    np.logical_not(new_mask, out=mask)
-    np.logical_and(merged_mask, mask, out=mask)
-    np.copyto(merged_data, mask, where=mask, casting="unsafe")
-
-
 def build_overviews_and_tags(raster_path, tags=None):
     with rasterio.open(raster_path) as src:
         raster_meta = src.meta
@@ -355,7 +279,7 @@ def merge_overlaping(
         out_type=out_type,
         no_data=no_data,
         res="average",
-        method=custom_merge_sum,
+        method="sum",
         prediction_name=merged_sum_path,
     )
     logger.info("Building count raster.")
@@ -366,7 +290,7 @@ def merge_overlaping(
         out_type=out_type_count,
         no_data=no_data_count,
         res="average",
-        method=custom_merge_count,
+        method="count",
         prediction_name=merged_count_path,
         additional_kwrgs={"indexes": [1]},
     )
