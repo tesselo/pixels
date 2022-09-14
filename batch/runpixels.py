@@ -8,14 +8,14 @@ import click
 import sentry_sdk
 
 from pixels.generator.prediction_utils import merge_prediction
-from pixels.generator.stac import (
+from pixels.generator.training import predict_function_batch, train_model_function
+from pixels.log import logger
+from pixels.stac.stac import (
     build_catalog_from_items,
     collect_from_catalog_subsection,
     create_x_catalog,
     parse_data,
 )
-from pixels.generator.stac_training import predict_function_batch, train_model_function
-from pixels.log import logger
 
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(

@@ -16,9 +16,9 @@ from rasterio.features import bounds
 from pixels import path, tio
 from pixels.const import ALLOWED_VECTOR_TYPES
 from pixels.exceptions import PixelsException, TrainingDataParseError
-from pixels.generator.stac_utils import get_bbox_and_footprint_and_stats
 from pixels.log import logger
 from pixels.mosaic import pixel_stack
+from pixels.stac.utils import get_bbox_and_footprint_and_stats
 from pixels.utils import run_concurrently, timeseries_steps
 from pixels.validators import PixelsConfigValidator
 

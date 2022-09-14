@@ -11,7 +11,7 @@ import numpy
 import pystac
 import rasterio
 
-from pixels.generator.stac import (
+from pixels.stac.stac import (
     collect_from_catalog_subsection,
     create_x_catalog,
     parse_data,
