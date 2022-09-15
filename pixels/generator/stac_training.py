@@ -20,6 +20,7 @@ from pixels.const import (
 )
 from pixels.generator import generator, losses
 from pixels.generator.stac_utils import plot_history
+from pixels.generator.validators import GeneratorArgumentsValidator
 from pixels.log import log_function, logger
 from pixels.slack import SlackClient
 from pixels.tio.virtual import model_uri
@@ -250,8 +251,8 @@ def train_model_function(
         model : tensorflow trained model
             Model trained with catalog data.
     """
-    # Load the generator arguments.
     gen_args = tio.load_dictionary(generator_arguments_uri)
+    GeneratorArgumentsValidator(**gen_args)
     compile_args = tio.load_dictionary(model_compile_arguments_uri)
     fit_args = tio.load_dictionary(model_fit_arguments_uri)
     path_model = os.path.join(os.path.dirname(model_config_uri), "model.h5")
