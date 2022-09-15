@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pixels.generator.generator import DataGenerator
+from pixels.generator.validators import GeneratorArgumentsValidator
 from tests import test_arrays
 
 
@@ -35,6 +36,8 @@ class TestGenerator:
     def test_simple_modes(self, mode, test_tuple):
         gen_args = {**self.gen_args}
         gen_args["mode"] = mode
+        train_with_array = mode == "Pixel_Model"
+        GeneratorArgumentsValidator(**gen_args, train_with_array=train_with_array)
         dtgen = DataGenerator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
@@ -54,6 +57,7 @@ class TestGenerator:
         gen_args["augmentation"] = 3
         gen_args["mode"] = mode
         gen_args["batch_number"] = batch
+        GeneratorArgumentsValidator(**gen_args)
         dtgen = DataGenerator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
@@ -81,6 +85,7 @@ class TestGenerator:
         gen_args["upsampling"] = 2
         gen_args["mode"] = mode
         gen_args["augmentation"] = augmentation
+        GeneratorArgumentsValidator(**gen_args)
         dtgen = DataGenerator(**gen_args)
         x, y = dtgen[1]
         np.testing.assert_array_equal(x, test_tuple[0])
@@ -101,6 +106,8 @@ class TestGenerator:
         gen_args = {**self.gen_args}
         gen_args["num_classes"] = 3
         gen_args["mode"] = mode
+        train_with_array = mode == "Pixel_Model"
+        GeneratorArgumentsValidator(**gen_args, train_with_array=train_with_array)
         dtgen = DataGenerator(**gen_args)
         x, y = dtgen[2]
         np.testing.assert_array_equal(x, test_tuple[0])
@@ -166,7 +173,8 @@ class TestGenerator:
         gen_args["num_bands"] = num_bands
         gen_args["timesteps"] = timesteps
         gen_args["padding"] = padding
-
+        train_with_array = mode == "Pixel_Model"
+        GeneratorArgumentsValidator(**gen_args, train_with_array=train_with_array)
         dtgen = DataGenerator(**gen_args)
         x, y = dtgen[0]
         np.testing.assert_array_equal(x, test_tuple[0])
@@ -176,9 +184,16 @@ class TestGenerator:
         gen_args = {**self.gen_args}
         dtgen_no_shuffle = DataGenerator(**gen_args)
         gen_args["shuffle"] = True
+        GeneratorArgumentsValidator(**gen_args)
         dtgen = DataGenerator(**gen_args)
         dtgen.on_epoch_end()
         np.testing.assert_array_equal(
             np.sort(dtgen.id_list),
             np.sort(dtgen_no_shuffle.id_list),
         )
+
+    def test_1d_train_with_array_validation_error(self):
+        gen_args = {**self.gen_args}
+        gen_args["mode"] = "Pixel_Model"
+        with pytest.raises(ValueError):
+            GeneratorArgumentsValidator(**gen_args, train_with_array=False)
