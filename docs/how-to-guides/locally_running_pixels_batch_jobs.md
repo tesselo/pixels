@@ -76,7 +76,7 @@ docker run \
   -v ${REPOS}/pixels/batch/runpixels.py:/runpixels.py \
   595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:latest \
   /runpixels.py \  
-  pixels.generator.stac_training.train_model_function \
+  pixels.generator.training.train_model_function \
   s3://pxapi-media-dev/pixelsdata/5421dd44-2991-41de-b01c-d85c4d14f71b/data/collection.json \
   s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/model.json \
   s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/compile_arguments.json \
@@ -86,7 +86,7 @@ docker run \
 ### Let segredos help
 Or you can install the auxiliary functions from segredos and run:
 ```shell
-localpixels pixels.generator.stac_training.train_model_function \
+localpixels pixels.generator.training.train_model_function \
     s3://pxapi-media-dev/pixelsdata/5421dd44-2991-41de-b01c-d85c4d14f71b/data/collection.json \
     s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/model.json \
     s3://pxapi-media-dev/kerasmodel/878b42f4-d914-48c6-b9cc-749cba823029/compile_arguments.json \
