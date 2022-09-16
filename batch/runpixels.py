@@ -10,7 +10,7 @@ import sentry_sdk
 from pixels.generator.prediction_utils import merge_prediction
 from pixels.generator.training import predict_function_batch, train_model_function
 from pixels.log import logger
-from pixels.stac.stac import (
+from pixels.stac import (
     build_catalog_from_items,
     collect_from_catalog_subsection,
     create_x_catalog,
@@ -29,8 +29,8 @@ if "SENTRY_DSN" in os.environ:
 
 # List of modules and functions that can be specified in commandline input.
 ALLOWED_MODULES = [
-    "pixels.generator.stac",
-    "pixels.generator.stac_training",
+    "pixels.stac",
+    "pixels.generator.training",
     "pixels.generator.prediction_utils",
 ]
 ALLOWED_FUNCTIONS = {
