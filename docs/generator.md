@@ -202,7 +202,7 @@ and output of the models, as well as handling special cases during prediction.
 If the size of the input images for prediction is bigger than the model input,
 there is going to be a moving window inside that image. For each window within
 the image, a prediction will be made. For overlapping sections, an average from
-the moving window predictions will be calculcated and stored as result. The
+the moving window predictions will be calculated and stored as result. The
 final output will have the size of the input image.
 
 The arguments for using this feature are:
