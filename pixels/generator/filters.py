@@ -5,7 +5,7 @@ from pixels.const import LANDSAT_8, SENTINEL_2
 from pixels.exceptions import InconsistentGeneratorDataException
 
 
-def _make_mask_on_value(img, mask_value):
+def _mask_from_value(img, mask_value):
     """
     Based on a value create a mask in an image.
 
@@ -43,7 +43,7 @@ def order_tensor_on_masks(images, mask_value, max_images=12):
         image : numpy array
             The ordered set of images.
     """
-    mask_img = _make_mask_on_value(images, mask_value)
+    mask_img = _mask_from_value(images, mask_value)
     mask_count = np.sum(mask_img, axis=(1, 2, 3))
     ind = np.sort(np.argsort(mask_count)[:max_images])
     return np.array(images[ind])

@@ -525,7 +525,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
             x_tensor = fill_missing_dimensions(x_tensor, self.x_open_shape)
         # Upsample the X.
         if self.upsampling > 1:
-            x_tensor = augmentation.upscale_multiple_images(
+            x_tensor = augmentation.upscale_images(
                 x_tensor, upscale_factor=self.upsampling
             )
         # Add padding.
@@ -781,7 +781,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
                 Y = np.vstack(Y)
         # Augment data, for more detail see do_augmentation_on_batch() on generator_utils.
         if self.augmentation > 0 and self.mode in GENERATOR_Y_IMAGE_MODES:
-            X, Y = augmentation.do_augmentation_on_batch(
+            X, Y = augmentation.batch_augment(
                 X,
                 Y,
                 augmentation_index=self.augmentation,
