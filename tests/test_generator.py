@@ -197,3 +197,11 @@ class TestGenerator:
         gen_args["mode"] = "Pixel_Model"
         with pytest.raises(ValueError):
             GeneratorArgumentsValidator(**gen_args, train_with_array=False)
+
+    def test_class_definitions_without_y_max_value_error(self):
+        gen_args = {**self.gen_args}
+        GeneratorArgumentsValidator(**gen_args, class_definitions=1, y_max_value=1)
+        with pytest.raises(ValueError):
+            GeneratorArgumentsValidator(
+                **gen_args, class_definitions=1, y_max_value=None
+            )

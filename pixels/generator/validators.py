@@ -53,3 +53,15 @@ class GeneratorArgumentsValidator(BaseModel, extra=Extra.forbid):
         ):
             raise ValueError("Use train_with_array for 1D models")
         return values
+
+    @root_validator(pre=True)
+    def validate_y_max_with_class_definitions(cls, values):
+        if (
+            isinstance(values.get("class_definitions"), int)
+            and values.get("y_max_value") is None
+        ):
+            raise ValueError(
+                "For multiclass builder with number of classes, "
+                "a y_max_value must be provided."
+            )
+        return values

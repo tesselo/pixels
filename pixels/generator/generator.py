@@ -140,10 +140,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         # Multiclass transform.
         self.class_definitions = class_definitions
         self.y_max_value = y_max_value
-        if isinstance(class_definitions, int) and not y_max_value:
-            raise InconsistentGeneratorDataException(
-                "For multiclass builder with number of classes, a y_max_value must be provided."
-            )
 
         self.nan_value = nan_value
         if not nan_value:
