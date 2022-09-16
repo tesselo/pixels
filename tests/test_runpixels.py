@@ -14,9 +14,7 @@ class TestRetrieve(unittest.TestCase):
 
     def test_running_function_not_whitelisted(self):
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["pixels.generator.stac.not_valid_function", "arg1", "arg2"]
-        )
+        result = runner.invoke(main, ["pixels.stac.not_valid_function", "arg1", "arg2"])
         assert isinstance(result.exception, ValueError)
         assert result.exception.args[0].startswith("Invalid input function.")
 
@@ -25,7 +23,7 @@ class TestRetrieve(unittest.TestCase):
         result = runner.invoke(
             main,
             [
-                "pixels.generator.stac_training.train_model_function",
+                "pixels.generator.training.train_model_function",
                 "s3://collection.json",
                 "s3://model.json",
                 "s3://compile_arguments.json",
