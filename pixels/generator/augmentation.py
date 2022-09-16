@@ -40,7 +40,7 @@ def set_standard_shape(tensor, x_size=360, y_size=360):
     return tensor
 
 
-def upscale_multiple_images(images, upscale_factor=10):
+def upscale_images(images, upscale_factor=10):
     """
     Upscale multiple images.
 
@@ -67,7 +67,7 @@ def upscale_multiple_images(images, upscale_factor=10):
     return np.array(upscale_images)
 
 
-def img_flip(X, axis=None):
+def flip_image(X, axis=None):
     X_f = np.flip(X, axis)
     return np.array(X_f)
 
@@ -85,26 +85,26 @@ def change_bright(image, ran=1):
     return np.array(image * ran)
 
 
-def apply_augmentation_to_image(img, augmentation_index):
+def augment_image(img, augmentation_index):
     if augmentation_index is None or augmentation_index == 1:
-        return img_flip(img)
+        return flip_image(img)
     if augmentation_index is None or augmentation_index == 2:
-        return img_flip(img, 0)
+        return flip_image(img, 0)
     if augmentation_index is None or augmentation_index == 3:
-        return img_flip(img, 1)
+        return flip_image(img, 1)
     if augmentation_index is None or augmentation_index == 4:
         return add_noise(img, ran=10)
     if augmentation_index is None or augmentation_index == 5:
         return change_bright(img, ran=10)
 
 
-def apply_augmentation_to_stack(imgs, augmentation_index):
+def augment_stack(imgs, augmentation_index):
     # Do the augmentations on images (number_occurrences, bands, height, width).
     time_aug_imgs = []
     for number_occurrences in imgs:
         aug_img = []
         for bands in number_occurrences:
-            aug_img.append(apply_augmentation_to_image(bands, augmentation_index))
+            aug_img.append(augment_image(bands, augmentation_index))
         time_aug_imgs.append(aug_img)
     # Revert shapes back to (number_occurrences, height, width, bands)
     time_aug_imgs = np.array(time_aug_imgs)
@@ -121,7 +121,7 @@ def apply_augmentation_to_stack(imgs, augmentation_index):
     return np.array(time_aug_imgs)
 
 
-def augmentation(
+def augment(
     X,
     Y,
     sizeX_height=None,
@@ -143,8 +143,8 @@ def augmentation(
     resulted_augmentation_X = [X[0]]
     resulted_augmentation_Y = [Y]
     for i in augmentation_index:
-        resulted_augmentation_X.append(apply_augmentation_to_stack(data_X, i))
-        resulted_augmentation_Y.append(apply_augmentation_to_stack(data_Y, i))
+        resulted_augmentation_X.append(augment_stack(data_X, i))
+        resulted_augmentation_Y.append(augment_stack(data_Y, i))
     resulted_augmentation_Y = np.squeeze(resulted_augmentation_Y)
     return (
         resulted_augmentation_X,
@@ -155,7 +155,7 @@ def augmentation(
     # brightness_range # ran > 1  Brightness of Image increases
 
 
-def do_augmentation_on_batch(
+def batch_augment(
     X,
     Y,
     sizeX_height,
@@ -195,7 +195,7 @@ def do_augmentation_on_batch(
     if mode == "2D_Model":
         X = np.expand_dims(X, 1)
     for batch in range(batch_size):
-        aug_X, aug_Y = augmentation(
+        aug_X, aug_Y = augment(
             X[batch : batch + 1],
             Y[batch : batch + 1],
             sizeX_height=sizeX_height,
