@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TAG=${1:- "latest"}
+TAG=${1:-"dev"}
 
 ./build_ecs_image.sh "$TAG"
 
