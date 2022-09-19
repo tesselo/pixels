@@ -2,6 +2,12 @@ import logging
 import os
 
 from kw.structlog_config import configure_stdlib_logging, configure_structlog
+from pystac import STAC_IO
+
+from pixels.stac.utils import read_method, write_method
+
+STAC_IO.read_text_method = read_method
+STAC_IO.write_text_method = write_method
 
 __version__ = "0.1"
 
