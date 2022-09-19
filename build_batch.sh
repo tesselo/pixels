@@ -1,10 +1,7 @@
 #!/bin/bash
 
-STAGE=${1:- "dev"}
+STAGE=${1:-"dev"}
 
-echo "$STAGE"
-
-exit
 
 # Reset build dir.
 rm -rf build
