@@ -1,5 +1,7 @@
 #!/bin/bash
 
+TAG=${1:- "latest"}
+
 cd docker || exit
 
 echo "Logging in external ECS where our base image is"
@@ -12,4 +14,4 @@ echo "Logging in our private docker repository in AWS"
 aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 595064993071.dkr.ecr.eu-central-1.amazonaws.com
 
 echo "Tagging the newly built image"
-docker tag tesselo-pixels:latest 595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:latest
+docker tag "tesselo-pixels:$TAG" "595064993071.dkr.ecr.eu-central-1.amazonaws.com/tesselo-pixels:$TAG"

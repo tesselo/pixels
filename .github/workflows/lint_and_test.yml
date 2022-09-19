@@ -7,6 +7,12 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      sure:
+        description: 'Are you sure to deploy this thing to production?'
+        required: true
+        default: 'Not really'
 
 jobs:
   lint:
@@ -50,11 +56,11 @@ jobs:
       - name: Run tests
         run: pytest
 
-  deploy:
-    name: Deploy
+  deploy-dev:
+    name: Deploy dev
     needs: [lint, test]
     runs-on: ubuntu-latest
-    if: contains('refs/heads/main', github.ref)
+    if: contains('refs/heads/main', github.ref) && !contains('workflow_dispatch', github.event_name)
     steps:
       - uses: actions/checkout@v2
       - name: Install Python 3
@@ -64,7 +70,7 @@ jobs:
       - name: Install awscli
         run: pip install awscli
       - name: Deploy to batch
-        run: ./build_batch.sh
+        run: ./build_batch.sh dev
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -72,7 +78,7 @@ jobs:
         uses: tesselo/release-action@main
         with:
           sentry_project: pixels
-          sentry_environment: 'production'
+          sentry_environment: 'dev'
           sentry_release: ${{ github.sha }}
           code_dir: 'pixels'
         env:
@@ -135,3 +141,32 @@ jobs:
           slack-message: "Pull Request with rebuild required for Pixels. Update your main and do make install."
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  deploy-production:
+    name: Deploy production
+    needs: [ lint, test ]
+    runs-on: ubuntu-latest
+    if: contains('yes', github.event.inputs.sure) && contains('workflow_dispatch', github.event_name)
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Python 3
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install awscli
+        run: pip install awscli
+      - name: Deploy to batch
+        run: ./build_batch.sh production
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Sentry Release
+        uses: tesselo/release-action@main
+        with:
+          sentry_project: pixels
+          sentry_environment: 'production'
+          sentry_release: ${{ github.sha }}
+          code_dir: 'pixels'
+        env:
+          SENTRY_ORG: 'tesselo'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
