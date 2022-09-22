@@ -102,11 +102,15 @@ def write(uri: str, content) -> None:
     """
     Writes the content to a file.
     """
-    if is_remote(uri):
-        S3(uri).write(content)
-    else:
-        with open(uri, "w") as file:
-            file.write(content)
+    try:
+        if is_remote(uri):
+            S3(uri).write(content)
+        else:
+            with open(uri, "w") as file:
+                file.write(content)
+    except Exception as e:
+        if not str(e).startswith("File-like object not found in virtual filesystem"):
+            raise e
 
 
 def download(uri: str, destination: str) -> str:
