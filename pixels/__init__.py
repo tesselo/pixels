@@ -15,5 +15,6 @@ DEBUG = os.environ.get("DEBUG", False)
 configure_structlog(debug=DEBUG, timestamp_format="iso")
 configure_stdlib_logging(debug=DEBUG, timestamp_format="iso", level=logging.INFO)
 
-# Stop the SPAM from botocore
+# Stop the SPAM from botocore and rasterio
 logging.getLogger("botocore.credentials").setLevel(logging.ERROR)
+logging.getLogger("rasterio._filepath").setLevel(logging.CRITICAL + 1)
