@@ -15,6 +15,7 @@ from pixels.const import (
     BBOX_PIXEL_WITH_HEIGHT_TOLERANCE,
     S2_BAND_RESOLUTIONS,
     S2_JP2_GOOGLE_FALLBACK_URL_TEMPLATE,
+    THREADS_LIMIT,
     WORKERS_LIMIT,
 )
 from pixels.validators import ConcurrencyOption, FeatureCollectionCRS
@@ -371,7 +372,11 @@ def run_concurrently(
         iterator = variable_arguments
     if not n_jobs:
         n_jobs = len(variable_arguments)
-    num_processes = min(n_jobs, WORKERS_LIMIT)
+    if concurrency == ConcurrencyOption.threading:
+        max_processes = THREADS_LIMIT
+    else:
+        max_processes = WORKERS_LIMIT
+    num_processes = min(n_jobs, max_processes)
 
     with WorkerPool(n_jobs=num_processes, start_method=concurrency) as pool:
         result_list = pool.map(funk, iterator)
