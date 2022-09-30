@@ -12,7 +12,7 @@ from pixels.generator.generator import (
 class GeneratorArgumentsValidator(BaseModel, extra=Extra.forbid):
     path_collection_catalog: Optional[str] = ""
     split: Optional[float] = 1
-    random_seed: Optional[float] = None
+    random_seed: Optional[float] = 42
     timesteps: Optional[int] = None
     width: Optional[int] = None
     height: Optional[int] = None

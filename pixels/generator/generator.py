@@ -78,7 +78,7 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         self,
         path_collection_catalog="",
         split=1,
-        random_seed=None,
+        random_seed=42,
         timesteps=None,
         width=None,
         height=None,
@@ -339,6 +339,8 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         """
         if self.usage_type in [GENERATOR_MODE_PREDICTION, GENERATOR_MODE_TRAINING]:
             self.training_percentage = self.split
+        else:
+            self.training_percentage = 1 - self.split
         # The ids are the names of each image collection.
         self.original_id_list = list(self.collection_catalog.keys())
         # Check if path names are relative (to catalog dictionary) or absolute.
@@ -367,17 +369,6 @@ class DataGenerator(keras.utils.Sequence, BoundLogger):
         # Split the dataset to unused data.
         if self.usage_type == GENERATOR_MODE_EVALUATION:
             evaluation_id_list = np.setdiff1d(self.original_id_list, training_id_list)
-            requested_evaluation_length = (
-                math.floor(self.original_size * self.split) or 1
-            )
-
-            if requested_evaluation_length > len(evaluation_id_list):
-                self.warning(
-                    "The requested evaluation data length is bigger than the total evaluation set. Using only full evaluation set."
-                )
-
-            evaluation_id_list = evaluation_id_list[:requested_evaluation_length]
-
             self.length = len(evaluation_id_list)
             self.id_list = evaluation_id_list
         else:
