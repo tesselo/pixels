@@ -11,13 +11,7 @@ import tensorflow_addons as tfa
 from rasterio import Affine
 
 from pixels import tio
-from pixels.const import (
-    ALLOWED_CUSTOM_LOSSES,
-    EVALUATION_PERCENTAGE_LIMIT,
-    EVALUATION_SAMPLE_LIMIT,
-    NAN_VALUE_LOSSES,
-    TRAIN_WITH_ARRAY_LIMIT,
-)
+from pixels.const import ALLOWED_CUSTOM_LOSSES, NAN_VALUE_LOSSES, TRAIN_WITH_ARRAY_LIMIT
 from pixels.generator import generator, losses
 from pixels.generator.validators import GeneratorArgumentsValidator
 from pixels.log import log_function, logger
@@ -392,12 +386,7 @@ def train_model_function(
         gen_args["split"] = eval_split
     if gen_args["split"] <= 0:
         raise ValueError("Negative or 0 split is not allowed.")
-    # Limit the evaluation to a maximum of 20% of the dataset.
-    if gen_args["split"] > EVALUATION_PERCENTAGE_LIMIT:
-        gen_args["split"] = EVALUATION_PERCENTAGE_LIMIT
-    # Limit the evaluation to a maximum of 2000 samples.
-    if len(dtgen) * gen_args["split"] > EVALUATION_SAMPLE_LIMIT:
-        gen_args["split"] = EVALUATION_SAMPLE_LIMIT / len(dtgen)
+
     if "y_downsample" in gen_args:
         gen_args.pop("y_downsample")
     logger.info(f"Evaluating model on {len(dtgen) * gen_args['split']} samples.")
