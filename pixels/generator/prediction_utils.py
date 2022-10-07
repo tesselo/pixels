@@ -4,6 +4,7 @@ import os
 import geopandas as gp
 import numpy as np
 import rasterio
+from numpy.core._exceptions import _ArrayMemoryError
 from rasterio import merge
 from rasterio.warp import Resampling
 from rasterio.windows import Window
@@ -238,24 +239,28 @@ def merge_all(
             prediction_name = os.path.join("merger_files", "merged_prediction.tif")
         else:
             prediction_name = os.path.join(merger_folder, "merged_prediction.tif")
+    try:
+        merge.merge(
+            files_to_merge,
+            nodata=no_data,
+            dtype=out_type,
+            method=method,
+            resampling=rasterio.enums.Resampling[res],
+            dst_path=prediction_name,
+            dst_kwds={
+                "COMPRESS": "DEFLATE",
+                "PREDICTOR": predictor,
+                "NUM_THREADS": "ALL_CPUS",
+                "BIGTIFF": "IF_NEEDED",
+                "TILED": "YES",
+                "dtype": out_type,
+            },
+            **additional_kwrgs,
+        )
+    except _ArrayMemoryError:
+        logger.warning("Predictions merge array too big, skipping merge.")
+        return
 
-    merge.merge(
-        files_to_merge,
-        nodata=no_data,
-        dtype=out_type,
-        method=method,
-        resampling=rasterio.enums.Resampling[res],
-        dst_path=prediction_name,
-        dst_kwds={
-            "COMPRESS": "DEFLATE",
-            "PREDICTOR": predictor,
-            "NUM_THREADS": "ALL_CPUS",
-            "BIGTIFF": "IF_NEEDED",
-            "TILED": "YES",
-            "dtype": out_type,
-        },
-        **additional_kwrgs,
-    )
     build_overviews_and_tags(prediction_name, tags=None)
 
     return prediction_name
@@ -360,7 +365,7 @@ def merge_prediction(generator_config_uri):
             merger_folder=merger_files_folder,
         )
     predictions_bbox = None
-    if extract_probabilities:
+    if extract_probabilities and merged_path:
         logger.info("Extracting probabilities. Building class raster.")
         calc = "argmax"
         command_args = {"axis": 0}
@@ -374,6 +379,6 @@ def merge_prediction(generator_config_uri):
             mem_limit=64,
         )
 
-    if tio.is_remote(predict_path):
+    if tio.is_remote(predict_path) and merged_path:
         logger.info("Saving files to remote storage.", remote_path=predict_path)
         tio.upload(merger_files_folder)
