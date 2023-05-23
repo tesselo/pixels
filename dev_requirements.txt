@@ -95,12 +95,10 @@ pyyaml==6.0
     # via
     #   bandit
     #   pre-commit
-requests==2.28.1
+requests==2.31.0
     # via semgrep
 ruamel-yaml==0.17.21
     # via semgrep
-ruamel-yaml-clib==0.2.6
-    # via ruamel-yaml
 semgrep==0.64.0
     # via -r dev_requirements.in
 six==1.16.0
@@ -114,14 +112,9 @@ stevedore==4.0.0
 toml==0.10.2
     # via pre-commit
 tomli==2.0.1
-    # via
-    #   black
-    #   coverage
-    #   pytest
+    # via pytest
 tqdm==4.64.1
     # via semgrep
-typing-extensions==4.3.0
-    # via black
 urllib3==1.26.12
     # via requests
 virtualenv==20.16.4
